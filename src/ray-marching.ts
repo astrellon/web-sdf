@@ -240,3 +240,9 @@ export function sdfSphere(point: ReadonlyVec3, radius: number)
 {
     return vec3.length(point) - radius;
 }
+
+export function sdfTorus(p: ReadonlyVec3, t: ReadonlyVec2)
+{
+  const q: vec2 = [vec2.length([p[0], p[2]]) - t[0], p[1]];
+  return vec2.length(q) - t[1];
+}

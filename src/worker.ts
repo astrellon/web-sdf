@@ -1,10 +1,10 @@
 import { ReadonlyVec2, ReadonlyVec3, ReadonlyVec4, vec3 } from "gl-matrix";
 import { WorkerRequests } from "./states";
-import { sdfSphere, rayMarch, createViewMatrix, rayDirection, phongIllumination } from "./ray-marching";
+import { sdfSphere, rayMarch, createViewMatrix, rayDirection, phongIllumination, sdfTorus } from "./ray-marching";
 
 function scene(point: ReadonlyVec3): number
 {
-    return sdfSphere(point, 1.0);
+    return sdfTorus(point, [1.0, 0.5]);
 }
 
 const emptyColour: ReadonlyVec4 = [0, 0, 0, 255];
