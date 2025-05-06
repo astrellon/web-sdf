@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <title>Web SDF</title>
+        <style>
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #main-canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -1;
+            }
+        </style>
+    </head>
+    <body>
+        <h1 id="main-h1">Web SDF</h1>
+        <div>An example of SDF</div>
+        <button onClick="stopRender()">Stop</button>
+        <canvas id="main-canvas"</canvas>
+    </body>
+    <script src="./index.js"></script>
+</html>

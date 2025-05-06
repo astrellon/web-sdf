@@ -1,0 +1,22 @@
+{
+  "name": "web-sdf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run buildMain && npm run buildWorker && npm run copyHtml",
+    "buildMain": "esbuild ./src/index.ts --bundle --sourcemap --outfile=dist/index.js --tsconfig=./tsconfig.json",
+    "buildWorker": "esbuild ./src/worker.ts --bundle --sourcemap --outfile=dist/worker.js --tsconfig=./tsconfig.worker.json",
+    "copyHtml": "cp ./src/index.html ./dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.25.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.3",
+    "simple-signals": "^1.0.1"
+  }
+}
