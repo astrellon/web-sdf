@@ -1,6 +1,9 @@
 import { mat4, ReadonlyVec2, ReadonlyVec3, vec2, vec3 } from "gl-matrix";
 import { toRadian } from "./common";
 
+// Many functions were ported from GLSL from this page:
+// https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
+
 export const MAX_MARCHING_STEPS = 16;
 export const EPSILON = 0.0001;
 
@@ -117,6 +120,7 @@ export function estimateNormal(point: ReadonlyVec3, scene: RayMarchScene): vec3
     return result;
 }
 
+// https://asawicki.info/news_1301_reflect_and_refract_functions.html
 export function reflect(out: vec3, incidentVec: ReadonlyVec3, normal: ReadonlyVec3)
 {
     const dot = vec3.dot(incidentVec, normal);
