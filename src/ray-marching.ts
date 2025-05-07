@@ -1,5 +1,5 @@
-import { mat4, ReadonlyVec2, ReadonlyVec3, vec2, vec3 } from "gl-matrix";
 import { toRadian } from "./common";
+import vec3 from "./gl-matrix-ts/vec3";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -7,7 +7,7 @@ import { toRadian } from "./common";
 export const MAX_MARCHING_STEPS = 16;
 export const EPSILON = 0.0001;
 
-export type RayMarchScene = (point: ReadonlyVec3) => number;
+export type RayMarchScene = (point: vec3) => number;
 
 /**
  * Return a transform matrix that will transform a ray from view space
@@ -16,9 +16,9 @@ export type RayMarchScene = (point: ReadonlyVec3) => number;
  * This assumes that the center of the camera is aligned with the negative z axis in
  * view space when calculating the ray marching direction. See rayDirection.
  */
-export function createViewMatrix(eye: ReadonlyVec3, center: ReadonlyVec3, up: ReadonlyVec3)
+export function createViewMatrix(eye: vec3, center: vec3, up: vec3)
 {
-    const f: vec3 = [0, 0, 0];
+    const f = eye.clone();
     const s: vec3 = [0, 0, 0];
     const u: vec3 = [0, 0, 0];
 

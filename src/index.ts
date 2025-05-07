@@ -1,6 +1,6 @@
-import { ReadonlyVec3 } from "gl-matrix";
 import { WorkerWrapper } from "./worker-wrapper";
-import { exampleRender } from "./common";
+import { WorkerRenderRequest } from "./states";
+import { renderScene1 } from "./render-scenes";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 2;
@@ -15,6 +15,14 @@ let renderEnabled = true;
     console.log("Stopping render");
     renderEnabled = false;
 }
+(self as any).renderAgain = () =>
+{
+    console.log("Rendering again");
+    renderMainThread();
+}
+
+let mainThreadBuffer: ArrayBuffer;
+let imageDataArray: Uint8ClampedArray;
 
 function startup()
 {
@@ -27,9 +35,11 @@ function startup()
     {
         setupCanvas(canvas);
 
-        setupWorkers();
-        renderWorkers();
-        // renderMainThread();
+        // setupWorkers();
+        // renderWorkers();
+        mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
+        imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
+        renderMainThread();
     }
 }
 
@@ -76,10 +86,23 @@ function setupWorkers()
 
 function renderMainThread()
 {
-    const mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
-    const imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
     console.time('Main thread render');
-    exampleRender(imageDataArray, window.innerWidth, window.innerHeight);
+
+    // const camZ = Math.sin(Date.now() / 1000) + 6;
+    // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
+
+    const request: WorkerRenderRequest = {
+        type: 'render',
+        buffer: mainThreadBuffer,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        totalWidth: window.innerWidth,
+        totalHeight: window.innerHeight,
+        xPos: 0,
+        yPos: 0,
+        cameraPosition: [0, 0, 5]
+    }
+    renderScene1(request);
 
     const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
     context.putImageData(imageData, 0, 0);
