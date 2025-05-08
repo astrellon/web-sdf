@@ -1,5 +1,5 @@
 import { toRadian } from "./common";
-import vec3 from "./gl-matrix-ts/vec3";
+import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross } from "./gl-matrix-ts/vec3";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -16,27 +16,19 @@ export type RayMarchScene = (point: vec3) => number;
  * This assumes that the center of the camera is aligned with the negative z axis in
  * view space when calculating the ray marching direction. See rayDirection.
  */
-export function createViewMatrix(eye: vec3, center: vec3, up: vec3)
-{
-    const f = eye.clone();
-    const s: vec3 = [0, 0, 0];
-    const u: vec3 = [0, 0, 0];
+// export function createViewMatrix(eye: rvec3, center: rvec3, up: rvec3)
+// {
+//     const f = vec3Normalized(vec3Sub(center, eye));
+//     const s = vec3Normalized(vec3Cross(f, up));
+//     const u = vec3Cross(s, f);
 
-    vec3.sub(f, center, eye);
-    vec3.normalize(f, f);
-
-    vec3.cross(s, f, up);
-    vec3.normalize(s, s);
-
-    vec3.cross(u, s, f);
-
-    return mat4.fromValues(
-        s[0], s[1], s[2], 0,
-        u[0], u[1], u[2], 0,
-        -f[0], -f[1], -f[2], 0,
-        0, 0, 0, 0
-    );
-}
+//     return mat4.fromValues(
+//         s[0], s[1], s[2], 0,
+//         u[0], u[1], u[2], 0,
+//         -f[0], -f[1], -f[2], 0,
+//         0, 0, 0, 0
+//     );
+// }
 
 /**
  * Return the normalized direction to march in from the eye point for a single pixel.
