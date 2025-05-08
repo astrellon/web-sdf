@@ -1,6 +1,6 @@
 import { toRadian } from "./common";
 import { rvec2, vec2, vec2Length, vec2LengthValues, vec2ScaleAndAdd } from "./gl-matrix-ts";
-import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleBy, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3Copy, vec3AddTo, vec3MulTo, vec3Mul, vec3Length } from "./gl-matrix-ts/vec3";
+import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleBy, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3Copy, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Clone } from "./gl-matrix-ts/vec3";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -46,7 +46,7 @@ export function rayDirection(result: vec3, fieldOfView: number, size: rvec2, fra
 
     result.x = x;
     result.y = y;
-    result.z = z;
+    result.z = -z;
     vec3Normalize(result);
     return result;
 }
@@ -169,8 +169,7 @@ export function phongContribForLight(scene: RayMarchScene,
     {
         const r2 = vec3Scale(k_d, dotLN);
         const pow = Math.pow(dotRV, alpha);
-        vec3Copy(r1, k_s);
-        vec3Scale(r1, pow);
+        r1 = vec3Scale(k_s, pow);
 
         vec3AddTo(r1, r2);
     }

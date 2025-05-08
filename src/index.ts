@@ -36,11 +36,12 @@ function startup()
     {
         setupCanvas(canvas);
 
-        // setupWorkers();
-        // renderWorkers();
-        mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
-        imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
-        renderMainThread();
+        setupWorkers();
+        renderWorkers();
+
+        // mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
+        // imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
+        // renderMainThread();
     }
 }
 
