@@ -1,6 +1,7 @@
 import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
 import { ReadonlyVec3 } from "gl-matrix";
+import { rvec3 } from "./gl-matrix-ts";
 
 export class WorkerWrapper
 {
@@ -33,7 +34,7 @@ export class WorkerWrapper
         this.onRender = new Signal();
     }
 
-    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: ReadonlyVec3) =>
+    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3   ) =>
     {
         const message: WorkerRenderRequest = {
             type: 'render',

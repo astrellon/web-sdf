@@ -1,5 +1,6 @@
 import { toRadian } from "./common";
-import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross } from "./gl-matrix-ts/vec3";
+import { rvec2, vec2, vec2Length, vec2LengthValues, vec2ScaleAndAdd } from "./gl-matrix-ts";
+import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleBy, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3Copy, vec3AddTo, vec3MulTo, vec3Mul, vec3Length } from "./gl-matrix-ts/vec3";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -37,14 +38,16 @@ export type RayMarchScene = (point: vec3) => number;
  * size: resolution of the output image
  * fragCoord: the x,y coordinate of the pixel in the output image
  */
-export function rayDirection(fieldOfView: number, size: ReadonlyVec2, fragCoord: ReadonlyVec2): vec3
+export function rayDirection(result: vec3, fieldOfView: number, size: rvec2, fragCoord: rvec2): vec3
 {
-    const xy: vec2 = [0, 0];
-    vec2.scaleAndAdd(xy, fragCoord, size, -0.5);
-    const z = size[1] / Math.tan(toRadian(fieldOfView) / 2.0);
+    const x = fragCoord.x + size.x * -0.5;
+    const y = fragCoord.y + size.y * -0.5;
+    const z = size.y / Math.tan(toRadian(fieldOfView) * 0.5);
 
-    const result: vec3 = [xy[0], xy[1], -z];
-    vec3.normalize(result, result);
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    vec3Normalize(result);
     return result;
 }
 
@@ -59,13 +62,13 @@ export function rayDirection(fieldOfView: number, size: ReadonlyVec2, fragCoord:
  * @param end the max distance away from the ey to march before giving up
  * @returns the shortest distance found, if nothing is found then end is returned
  */
-export function rayMarch(eye: ReadonlyVec3, marchingDirection: ReadonlyVec3, start: number, end: number, scene: RayMarchScene): number
+export function rayMarch(eye: rvec3, marchingDirection: rvec3, start: number, end: number, scene: RayMarchScene): number
 {
     let depth = start;
-    const point: vec3 = [0, 0, 0];
+    const point: vec3 = vec3Zero();
     for (let i = 0; i < MAX_MARCHING_STEPS; i++)
     {
-        vec3.scaleAndAdd(point, eye, marchingDirection, depth);
+        vec3ScaleAndAddBy(point, eye, marchingDirection, depth);
         const dist = scene(point);
         if (dist <= EPSILON)
         {
@@ -85,40 +88,36 @@ export function rayMarch(eye: ReadonlyVec3, marchingDirection: ReadonlyVec3, sta
 /**
  * Using the gradient of the SDF, estimate the normal on the surface at point p.
  */
-export function estimateNormal(point: ReadonlyVec3, scene: RayMarchScene): vec3
+export function estimateNormal(point: rvec3, scene: RayMarchScene): vec3
 {
-    const p1: vec3 = [point[0] + EPSILON, point[1], point[2]];
-    const p2: vec3 = [point[0] - EPSILON, point[1], point[2]];
+    const p1: vec3 = {x: point.x + EPSILON, y: point.y, z: point.z};
+    const p2: vec3 = {x: point.x - EPSILON, y: point.y, z: point.z};
 
     const x = scene(p1) - scene(p2);
 
-    p1[0] = point[0];
-    p1[1] = point[1] + EPSILON;
-    p2[0] = point[0];
-    p2[1] = point[1] - EPSILON;
+    p1.x = point.x;
+    p1.y = point.y + EPSILON;
+    p2.x = point.x;
+    p2.y = point.y - EPSILON;
 
     const y = scene(p1) - scene(p2);
 
-    p1[1] = point[1];
-    p1[2] = point[2] + EPSILON;
-    p2[1] = point[1];
-    p2[2] = point[2] - EPSILON;
+    p1.y = point.y;
+    p1.z = point.z + EPSILON;
+    p2.y = point.y;
+    p2.z = point.z - EPSILON;
 
     const z = scene(p1) - scene(p2);
 
-    const result: vec3 = [x, y, z];
-    vec3.normalize(result, result);
-
-    return result;
+    return vec3NormalizedValues(x, y, z);
 }
 
 // https://asawicki.info/news_1301_reflect_and_refract_functions.html
-export function reflect(out: vec3, incidentVec: ReadonlyVec3, normal: ReadonlyVec3)
+export function reflect(out: vec3, incidentVec: rvec3, normal: rvec3)
 {
-    const dot = vec3.dot(incidentVec, normal);
-    out[0] = incidentVec[0] - 2 * dot * normal[0];
-    out[1] = incidentVec[1] - 2 * dot * normal[1];
-    out[2] = incidentVec[2] - 2 * dot * normal[2];
+    const dot = vec3Dot(incidentVec, normal);
+    vec3ScaleAndAddBy(out, incidentVec, normal, -2 * dot);
+    return out;
 }
 
 /**
@@ -138,57 +137,45 @@ export function reflect(out: vec3, incidentVec: ReadonlyVec3, normal: ReadonlyVe
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 export function phongContribForLight(scene: RayMarchScene,
-    k_d: ReadonlyVec3, k_s: ReadonlyVec3,
-    alpha: number, point: ReadonlyVec3, eye: ReadonlyVec3,
-    lightPos: ReadonlyVec3, lightIntensity: ReadonlyVec3): vec3
+    k_d: rvec3, k_s: rvec3,
+    alpha: number, point: rvec3, eye: rvec3,
+    lightPos: rvec3, lightIntensity: rvec3): vec3
 {
     const N = estimateNormal(point, scene);
 
-    const L: vec3 = [0, 0, 0];
-    const nL: vec3 = [0, 0, 0];
-    vec3.sub(L, lightPos, point);
-    vec3.normalize(L, L);
+    const L = vec3Normalized(vec3Sub(lightPos, point));
+    const nL = vec3Negated(L);
 
-    vec3.scale(nL, L, -1);
+    const V = vec3Normalized(vec3Sub(eye, point));
+    const R = vec3Normalized(reflect(vec3Zero(), nL, N));
 
-    const V: vec3 = [0, 0, 0];
-    vec3.sub(V, eye, point);
-    vec3.normalize(V, V);
-
-    const R: vec3 = [0, 0, 0];
-    reflect(R, nL, N);
-    vec3.normalize(R, R);
-
-    const dotLN = vec3.dot(L, N);
-    const dotRV = vec3.dot(R, V);
+    const dotLN = vec3Dot(L, N);
+    const dotRV = vec3Dot(R, V);
 
     if (dotLN < 0.0)
     {
         // Light not visible from this point on the surface
-        return [0, 0, 0];
+        return vec3Zero();
     }
 
-    const r1: vec3 = [0, 0 ,0];
+    let r1: vec3;
 
     if (dotRV < 0.0)
     {
         // Light reflection in opposite direction as viewer, apply only diffuse component
-        vec3.scale(r1, k_d, dotLN);
+        r1 = vec3Scale(k_d, dotLN);
     }
     else
     {
-        const r2: vec3 = [0, 0, 0];
-        vec3.scale(r2, k_d, dotLN);
-
+        const r2 = vec3Scale(k_d, dotLN);
         const pow = Math.pow(dotRV, alpha);
-        vec3.scale(r1, k_s, pow);
+        vec3Copy(r1, k_s);
+        vec3Scale(r1, pow);
 
-        vec3.add(r1, r1, r2);
-
-        // return lightIntensity * (k_d * dotLN + k_s * pow(dotRV, alpha));
+        vec3AddTo(r1, r2);
     }
 
-    vec3.multiply(r1, r1, lightIntensity);
+    vec3MulTo(r1, lightIntensity);
     return r1;
 }
 
@@ -205,36 +192,34 @@ export function phongContribForLight(scene: RayMarchScene,
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-export function phongIllumination(scene: RayMarchScene, k_a: ReadonlyVec3, k_d: ReadonlyVec3, k_s: ReadonlyVec3, alpha: number, p: ReadonlyVec3, eye: ReadonlyVec3): vec3
+export function phongIllumination(scene: RayMarchScene, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3): vec3
 {
-    const ambientLight: ReadonlyVec3 = [0.5, 0.5, 0.5];
+    const ambientLight: rvec3 = {x: 0.5, y: 0.5, z: 0.5};
 
-    const colour: vec3 = [0, 0 ,0];
-    vec3.mul(colour, ambientLight, k_a);
+    const colour: vec3 = vec3Mul(ambientLight, k_a);
+    const light1Pos: rvec3 = {x: 4, y: 2, z: 4};
+    const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
 
-    const light1Pos: ReadonlyVec3 = [4, 2, 4];
-    const light1Intensity: ReadonlyVec3 = [0.4, 0.4, 0.4];
-
-    const light2Pos: ReadonlyVec3 = [-2, 2, 2];
-    const light2Intensity: ReadonlyVec3 = [0.6, 0.4, 0.2];
+    const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
+    const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
 
     const lightContrib1 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
-    vec3.add(colour, colour, lightContrib1);
+    vec3AddTo(colour, lightContrib1);
 
     const lightContrib2 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light2Pos, light2Intensity);
-    vec3.add(colour, colour, lightContrib2);
+    vec3AddTo(colour, lightContrib2);
 
     return colour;
 }
 
 
-export function sdfSphere(point: ReadonlyVec3, radius: number)
+export function sdfSphere(point: rvec3, radius: number)
 {
-    return vec3.length(point) - radius;
+    return vec3Length(point) - radius;
 }
 
-export function sdfTorus(p: ReadonlyVec3, t: ReadonlyVec2)
+export function sdfTorus(p: rvec3, t: rvec3)
 {
-  const q: vec2 = [vec2.length([p[0], p[2]]) - t[0], p[1]];
-  return vec2.length(q) - t[1];
+  const q: vec2 = {x: vec2LengthValues(p.x, p.z) - t.x, y: p.y};
+  return vec2Length(q) - t[1];
 }

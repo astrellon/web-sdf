@@ -1,4 +1,5 @@
 import { ReadonlyVec3 } from "gl-matrix";
+import { rvec3 } from "./gl-matrix-ts";
 
 export interface WorkerRequest
 {
@@ -13,7 +14,7 @@ export interface WorkerRenderRequest extends WorkerRequest
     readonly height: number;
     readonly totalWidth: number;
     readonly totalHeight: number;
-    readonly cameraPosition: ReadonlyVec3;
+    readonly cameraPosition: rvec3;
     readonly buffer: ArrayBuffer;
 }
 export type WorkerRequests = WorkerRenderRequest;

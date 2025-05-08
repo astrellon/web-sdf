@@ -1,6 +1,7 @@
 import { WorkerWrapper } from "./worker-wrapper";
 import { WorkerRenderRequest } from "./states";
 import { renderScene1 } from "./render-scenes";
+import { rvec3 } from "./gl-matrix-ts";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 2;
@@ -100,7 +101,7 @@ function renderMainThread()
         totalHeight: window.innerHeight,
         xPos: 0,
         yPos: 0,
-        cameraPosition: [0, 0, 5]
+        cameraPosition: {x: 0, y: 0, z: 5}
     }
     renderScene1(request);
 
@@ -120,7 +121,7 @@ function renderWorkers()
     const { width, height } = context.canvas;
 
     const camZ = Math.sin(Date.now() / 1000) + 6;
-    const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
+    const cameraPosition: rvec3 = {x: 0, y: 0, z: camZ};
     for (const worker of workers)
     {
         waitingToFinish++;
