@@ -1,11 +1,10 @@
 import { toRadian } from "./common";
-import { rvec2, vec2, vec2Length, vec2LengthValues, vec2ScaleAndAdd } from "./gl-matrix-ts";
-import { vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleBy, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3Copy, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Clone } from "./gl-matrix-ts/vec3";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max } from "./gl-matrix-ts";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
 
-export const MAX_MARCHING_STEPS = 16;
+export const MAX_MARCHING_STEPS = 255;
 export const EPSILON = 0.0001;
 
 export type RayMarchScene = (point: vec3) => number;
@@ -17,19 +16,16 @@ export type RayMarchScene = (point: vec3) => number;
  * This assumes that the center of the camera is aligned with the negative z axis in
  * view space when calculating the ray marching direction. See rayDirection.
  */
-// export function createViewMatrix(eye: rvec3, center: rvec3, up: rvec3)
-// {
-//     const f = vec3Normalized(vec3Sub(center, eye));
-//     const s = vec3Normalized(vec3Cross(f, up));
-//     const u = vec3Cross(s, f);
+export function createViewMatrix(out: mat3, eye: rvec3, center: rvec3, up: rvec3)
+{
+    const f = vec3Normalize(vec3Sub(center, eye));
+    const s = vec3Normalize(vec3Cross(f, up));
+    const u = vec3Cross(s, f);
 
-//     return mat4.fromValues(
-//         s[0], s[1], s[2], 0,
-//         u[0], u[1], u[2], 0,
-//         -f[0], -f[1], -f[2], 0,
-//         0, 0, 0, 0
-//     );
-// }
+    out.m00 =  s.x; out.m01 =  s.y; out.m02 =  s.z;
+    out.m10 =  u.x; out.m11 =  u.y; out.m12 =  u.z;
+    out.m20 = -f.x; out.m21 = -f.y; out.m22 = -f.z;
+}
 
 /**
  * Return the normalized direction to march in from the eye point for a single pixel.
@@ -218,8 +214,31 @@ export function sdfSphere(point: rvec3, radius: number)
     return vec3Length(point) - radius;
 }
 
-export function sdfTorus(p: rvec3, t: rvec3)
+export function sdfTorus(p: rvec3, t: rvec2)
 {
   const q: vec2 = {x: vec2LengthValues(p.x, p.z) - t.x, y: p.y};
-  return vec2Length(q) - t[1];
+  return vec2Length(q) - t.y;
+}
+
+export function sdfBox(p: rvec3, size: rvec3)
+{
+    const d = vec3SubFrom(vec3Abs(p), size);
+    const outsideDistance = vec3Length(vec3Max(d, 0.0));
+    const insideDistance = Math.min(Math.max(d.x, Math.max(d.y, d.z)), 0);
+    return outsideDistance + insideDistance;
+}
+
+export function sdfOpUnion(d1: number, d2: number)
+{
+    return Math.min(d1, d2);
+}
+
+export function sdfOpSub(d1: number, d2: number)
+{
+    return Math.max(-d1, d2);
+}
+
+export function sdfOpIntersection(d1: number, d2: number)
+{
+    return Math.max(d1, d2);
 }

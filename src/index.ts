@@ -1,33 +1,62 @@
 import { WorkerWrapper } from "./worker-wrapper";
-import { WorkerRenderRequest } from "./states";
+import { mat3Identity, rvec3, vec3Zero } from "./gl-matrix-ts";
+import { quatIdentity, quatNormalize } from "./gl-matrix-ts/quat";
 import { renderScene1 } from "./render-scenes";
-import { rvec3 } from "./gl-matrix-ts";
-import { quatFromEuler, quatIdentity, quatNormalize } from "./gl-matrix-ts/quat";
+import { WorkerRenderRequest } from "./states";
+import { createViewMatrix } from "./ray-marching";
 
 const workers: WorkerWrapper[] = [];
-const blocksX = 2;
-const blocksY = 12;
+const blocksX = 1;
+const blocksY = navigator.hardwareConcurrency;
 
 let context: CanvasRenderingContext2D;
 let waitingToFinish = 0;
 let renderEnabled = true;
 
-(self as any).stopRender = () =>
-{
-    console.log("Stopping render");
-    renderEnabled = false;
-}
-// (self as any).renderAgain = () =>
-// {
-//     console.log("Rendering again");
-//     renderMainThread();
-// }
-
 let mainThreadBuffer: ArrayBuffer;
 let imageDataArray: Uint8ClampedArray;
+let canvasScale = 1.0;
 
 function startup()
 {
+    const toggleRenderButton = document.getElementById('toggle-render');
+    toggleRenderButton.addEventListener('click', () =>
+    {
+        if (renderEnabled)
+        {
+            toggleRenderButton.innerText = 'Start';
+            renderEnabled = false;
+        }
+        else
+        {
+            toggleRenderButton.innerText = 'Stop';
+            renderEnabled = true;
+
+            doRender();
+        }
+    });
+
+    document.getElementById('select-render-scale').addEventListener('change', (e: Event) =>
+    {
+        const selectedValue = (e.target as HTMLSelectElement).value;
+        const value = Number.parseFloat(selectedValue);
+        if (isFinite(value))
+        {
+            canvasScale = value;
+            updateCanvasSize();
+        }
+        else
+        {
+            console.warn('Unable to parse canvas scale', selectedValue);
+        }
+    })
+
+    window.addEventListener('resize', (e) =>
+    {
+        updateCanvasSize();
+        doRender();
+    });
+
     const canvas = document.getElementById("main-canvas") as HTMLCanvasElement;
     if (!canvas)
     {
@@ -38,31 +67,52 @@ function startup()
         setupCanvas(canvas);
 
         setupWorkers();
-        renderWorkers();
-
         // mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
         // imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
-        // renderMainThread();
+        doRender();
     }
+}
+
+function doRender()
+{
+    // renderMainThread();
+    renderWorkers();
 }
 
 function setupCanvas(canvas: HTMLCanvasElement)
 {
     context = canvas.getContext('2d');
-    context.canvas.width = window.innerWidth;
-    context.canvas.height = window.innerHeight;
+    resizeCanvas(window.innerWidth, window.innerHeight);
 
     // Firefox doesn't like having the canvas rendered to until something has happened, like a fillRect
-    context.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+}
+
+function resizeCanvas(width: number, height: number)
+{
+    context.canvas.width = width;
+    context.canvas.height = height;
+}
+
+function updateCanvasSize()
+{
+    const width = window.innerWidth * canvasScale;
+    const height = window.innerHeight * canvasScale;
+    console.log('Updating canvas size to', width, height, canvasScale);
+
+    resizeCanvas(width, height);
 }
 
 function setupWorkers()
 {
-    const floorWidth = Math.floor(window.innerWidth / blocksX);
-    const floorHeight = Math.floor(window.innerHeight / blocksY);
+    const canvasWidth = context.canvas.width;
+    const canvasHeight = context.canvas.height;
 
-    const remainingWidth = window.innerWidth - floorWidth * (blocksX - 1);
-    const remainingHeight = window.innerHeight - floorHeight * (blocksY - 1);
+    const floorWidth = Math.floor(canvasWidth / blocksX);
+    const floorHeight = Math.floor(canvasHeight / blocksY);
+
+    const remainingWidth = canvasWidth - floorWidth * (blocksX - 1);
+    const remainingHeight = canvasHeight - floorHeight * (blocksY - 1);
 
     let xPos = 0;
     let yPos = 0;
@@ -90,31 +140,42 @@ function setupWorkers()
     quatNormalize(q);
 }
 
-// function renderMainThread()
-// {
-//     console.time('Main thread render');
+function renderMainThread()
+{
+    console.time('Main thread render');
 
-//     // const camZ = Math.sin(Date.now() / 1000) + 6;
-//     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
+    // const camZ = Math.sin(Date.now() / 1000) + 6;
+    // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
+    const t = Date.now() / 1000;
+    const x = Math.sin(t) * 12;
+    const z = Math.cos(t) * 12;
+    cameraPosition.x = x;
+    cameraPosition.y = 3;
+    cameraPosition.z = z;
+    createViewMatrix(cameraMatrix, cameraPosition, cameraTarget, cameraUp);
 
-//     const request: WorkerRenderRequest = {
-//         type: 'render',
-//         buffer: mainThreadBuffer,
-//         width: window.innerWidth,
-//         height: window.innerHeight,
-//         totalWidth: window.innerWidth,
-//         totalHeight: window.innerHeight,
-//         xPos: 0,
-//         yPos: 0,
-//         cameraPosition: {x: 0, y: 0, z: 5}
-//     }
-//     renderScene1(request);
+    const request: WorkerRenderRequest = {
+        type: 'render',
+        buffer: mainThreadBuffer,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        totalWidth: window.innerWidth,
+        totalHeight: window.innerHeight,
+        xPos: 0,
+        yPos: 0,
+        cameraMatrix, cameraPosition
+    }
+    renderScene1(request);
 
-//     const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
-//     context.putImageData(imageData, 0, 0);
-//     console.timeEnd('Main thread render');
-// }
+    const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
+    context.putImageData(imageData, 0, 0);
+    console.timeEnd('Main thread render');
+}
 
+const cameraMatrix = mat3Identity();
+const cameraPosition = vec3Zero();
+const cameraTarget = vec3Zero();
+const cameraUp: rvec3 = {x: 0, y: 1, z: 0};
 function renderWorkers()
 {
     if (!renderEnabled)
@@ -125,12 +186,18 @@ function renderWorkers()
     console.time('Render');
     const { width, height } = context.canvas;
 
-    const camZ = Math.sin(Date.now() / 1000) + 6;
-    const cameraPosition: rvec3 = {x: 0, y: 0, z: camZ};
+    const t = Date.now() / 1000;
+    const x = Math.sin(t) * 1;
+    const z = Math.cos(t) * 12;
+    cameraPosition.x = 8;
+    cameraPosition.y = 5;
+    cameraPosition.z = 12;
+    createViewMatrix(cameraMatrix, cameraPosition, cameraTarget, cameraUp);
+
     for (const worker of workers)
     {
         waitingToFinish++;
-        worker.doRender(width, height, cameraPosition);
+        worker.doRender(width, height, cameraPosition, cameraMatrix);
     }
 }
 

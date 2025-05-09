@@ -1,13 +1,13 @@
 import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
-import { rvec3 } from "./gl-matrix-ts";
+import { rmat3, rmat4, rvec3 } from "./gl-matrix-ts";
 
 export class WorkerWrapper
 {
-    public readonly width: number;
-    public readonly height: number;
-    public readonly xPos: number;
-    public readonly yPos: number;
+    public width: number;
+    public height: number;
+    public xPos: number;
+    public yPos: number;
     public readonly xIndex: number;
     public readonly yIndex: number;
 
@@ -33,7 +33,15 @@ export class WorkerWrapper
         this.onRender = new Signal();
     }
 
-    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3   ) =>
+    public updateCanvasSize = (width: number, height: number, xPos: number, yPos: number) =>
+    {
+        this.width = width;
+        this.height = height;
+        this.xPos = xPos;
+        this.yPos = yPos;
+    }
+
+    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3) =>
     {
         const message: WorkerRenderRequest = {
             type: 'render',
@@ -42,7 +50,7 @@ export class WorkerWrapper
             yPos: this.yPos,
             width: this.width,
             height: this.height,
-            cameraPosition, totalHeight, totalWidth
+            cameraPosition, cameraMatrix, totalHeight, totalWidth
         };
         this.worker.postMessage(message, [this.imageData]);
     }

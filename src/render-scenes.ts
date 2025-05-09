@@ -1,10 +1,13 @@
 import { WorkerRenderRequest } from "./states";
-import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus } from "./ray-marching";
-import { rvec2, rvec3, rvec4, vec2Zero, vec3ScaleAndAddBy, vec3Zero } from "./gl-matrix-ts";
+import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus, sdfBox, sdfOpSub } from "./ray-marching";
+import { rvec2, rvec3, rvec4, vec2Zero, vec3ScaleAndAddBy, vec3TransformMat3, vec3Zero } from "./gl-matrix-ts";
 
 function scene(point: rvec3): number
 {
-    return sdfSphere(point, 1);
+    const sphere = sdfSphere(point, 1.5);
+    // return sdfTorus(point, {x: 1, y: 0.5});
+    const box = sdfBox(point, {x: 2, y: 1.5, z: 1});
+    return sdfOpSub(sphere, box);
 }
 
 const emptyColour: rvec4 = {x: 0, y: 0, z: 0, w: 255};
@@ -22,7 +25,8 @@ export function renderScene1(request: WorkerRenderRequest)
         totalWidth,
         xPos,
         yPos,
-        cameraPosition,
+        cameraMatrix,
+        cameraPosition
     } = request;
     const view = new Uint8ClampedArray(buffer);
 
@@ -42,7 +46,10 @@ export function renderScene1(request: WorkerRenderRequest)
         {
             fragCoord.x = x + xPos;
             fragCoord.y = y + yPos;
+
             const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
+            vec3TransformMat3(viewDir, cameraMatrix);
+
             const dist = rayMarch(cameraPosition, viewDir, 0, 100, scene);
 
             let colour = redColour;
