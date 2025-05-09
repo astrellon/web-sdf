@@ -191,16 +191,17 @@ export function phongContribForLight(scene: RayMarchScene,
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
+
+const ambientLight: rvec3 = {x: 0.5, y: 0.5, z: 0.5};
+const light1Pos: rvec3 = {x: 4, y: 2, z: 4};
+const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
+
+const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
+const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
+
 export function phongIllumination(scene: RayMarchScene, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3): vec3
 {
-    const ambientLight: rvec3 = {x: 0.5, y: 0.5, z: 0.5};
-
     const colour: vec3 = vec3Mul(ambientLight, k_a);
-    const light1Pos: rvec3 = {x: 4, y: 2, z: 4};
-    const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
-
-    const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
-    const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
 
     const lightContrib1 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
     vec3AddTo(colour, lightContrib1);

@@ -2,6 +2,7 @@ import { WorkerWrapper } from "./worker-wrapper";
 import { WorkerRenderRequest } from "./states";
 import { renderScene1 } from "./render-scenes";
 import { rvec3 } from "./gl-matrix-ts";
+import { quatFromEuler, quatIdentity, quatNormalize } from "./gl-matrix-ts/quat";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 2;
@@ -16,11 +17,11 @@ let renderEnabled = true;
     console.log("Stopping render");
     renderEnabled = false;
 }
-(self as any).renderAgain = () =>
-{
-    console.log("Rendering again");
-    renderMainThread();
-}
+// (self as any).renderAgain = () =>
+// {
+//     console.log("Rendering again");
+//     renderMainThread();
+// }
 
 let mainThreadBuffer: ArrayBuffer;
 let imageDataArray: Uint8ClampedArray;
@@ -84,32 +85,35 @@ function setupWorkers()
         xPos = 0;
         yPos += height;
     }
+
+    const q = quatIdentity();
+    quatNormalize(q);
 }
 
-function renderMainThread()
-{
-    console.time('Main thread render');
+// function renderMainThread()
+// {
+//     console.time('Main thread render');
 
-    // const camZ = Math.sin(Date.now() / 1000) + 6;
-    // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
+//     // const camZ = Math.sin(Date.now() / 1000) + 6;
+//     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
 
-    const request: WorkerRenderRequest = {
-        type: 'render',
-        buffer: mainThreadBuffer,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        totalWidth: window.innerWidth,
-        totalHeight: window.innerHeight,
-        xPos: 0,
-        yPos: 0,
-        cameraPosition: {x: 0, y: 0, z: 5}
-    }
-    renderScene1(request);
+//     const request: WorkerRenderRequest = {
+//         type: 'render',
+//         buffer: mainThreadBuffer,
+//         width: window.innerWidth,
+//         height: window.innerHeight,
+//         totalWidth: window.innerWidth,
+//         totalHeight: window.innerHeight,
+//         xPos: 0,
+//         yPos: 0,
+//         cameraPosition: {x: 0, y: 0, z: 5}
+//     }
+//     renderScene1(request);
 
-    const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
-    context.putImageData(imageData, 0, 0);
-    console.timeEnd('Main thread render');
-}
+//     const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
+//     context.putImageData(imageData, 0, 0);
+//     console.timeEnd('Main thread render');
+// }
 
 function renderWorkers()
 {

@@ -1,6 +1,5 @@
 import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
-import { ReadonlyVec3 } from "gl-matrix";
 import { rvec3 } from "./gl-matrix-ts";
 
 export class WorkerWrapper

@@ -1,6 +1,6 @@
 import { WorkerRenderRequest } from "./states";
 import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus } from "./ray-marching";
-import { rvec2, rvec3, rvec4, vec3ScaleAndAddBy, vec3Zero } from "./gl-matrix-ts";
+import { rvec2, rvec3, rvec4, vec2Zero, vec3ScaleAndAddBy, vec3Zero } from "./gl-matrix-ts";
 
 function scene(point: rvec3): number
 {
@@ -29,12 +29,20 @@ export function renderScene1(request: WorkerRenderRequest)
     const viewSize: rvec2 = {x: totalWidth, y: totalHeight};
     const rayDir = vec3Zero();
     const closestPoint = vec3Zero();
+    const fragCoord = vec2Zero();
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const fragCoord: rvec2 = {x: x + xPos, y: y + yPos};
+    const K_a: rvec3 = {x: 0.2, y: 0.2, z: 0.2};
+    const K_d: rvec3 = {x: 0.7, y: 0.2, z: 0.2};
+    const K_s: rvec3 = {x: 1.0, y: 1.0, z: 1.0};
+    const shininess = 10.0;
+
+    for (let y = 0; y < height; y++)
+    {
+        for (let x = 0; x < width; x++)
+        {
+            fragCoord.x = x + xPos;
+            fragCoord.y = y + yPos;
             const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
-
             const dist = rayMarch(cameraPosition, viewDir, 0, 100, scene);
 
             let colour = redColour;
@@ -47,15 +55,8 @@ export function renderScene1(request: WorkerRenderRequest)
             {
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
-                // vec3.scaleAndAdd(p, cameraPosition, viewDir, dist);
-                // vec3 p = eye + dist * dir;
 
-                const K_a: rvec3 = {x: 0.2, y: 0.2, z: 0.2};
-                const K_d: rvec3 = {x: 0.7, y: 0.2, z: 0.2};
-                const K_s: rvec3 = {x: 1.0, y: 1.0, z: 1.0};
-                const shininess = 10.0;
-
-                const colouredLight = phongIllumination( scene, K_a, K_d, K_s, shininess, closestPoint, cameraPosition);
+                const colouredLight = phongIllumination(scene, K_a, K_d, K_s, shininess, closestPoint, cameraPosition);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,
