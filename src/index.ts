@@ -187,11 +187,11 @@ function renderWorkers()
     const { width, height } = context.canvas;
 
     const t = Date.now() / 1000;
-    const x = Math.sin(t) * 1;
-    const z = Math.cos(t) * 12;
-    cameraPosition.x = 8;
+    const x = Math.sin(t) * 8;
+    const z = Math.cos(t) * 8;
+    cameraPosition.x = x;
     cameraPosition.y = 5;
-    cameraPosition.z = 12;
+    cameraPosition.z = z;
     createViewMatrix(cameraMatrix, cameraPosition, cameraTarget, cameraUp);
 
     for (const worker of workers)

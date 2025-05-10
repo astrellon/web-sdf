@@ -26,7 +26,7 @@ export function renderScene1(request: WorkerRenderRequest)
         xPos,
         yPos,
         cameraMatrix,
-        cameraPosition
+        cameraPosition,
     } = request;
     const view = new Uint8ClampedArray(buffer);
 
@@ -45,7 +45,7 @@ export function renderScene1(request: WorkerRenderRequest)
         for (let x = 0; x < width; x++)
         {
             fragCoord.x = x + xPos;
-            fragCoord.y = y + yPos;
+            fragCoord.y = totalHeight - (y + yPos);
 
             const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
             vec3TransformMat3(viewDir, cameraMatrix);
