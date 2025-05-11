@@ -41,7 +41,7 @@ export class WorkerWrapper
         this.yPos = yPos;
     }
 
-    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3) =>
+    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3, time: number) =>
     {
         const message: WorkerRenderRequest = {
             type: 'render',
@@ -50,7 +50,7 @@ export class WorkerWrapper
             yPos: this.yPos,
             width: this.width,
             height: this.height,
-            cameraPosition, cameraMatrix, totalHeight, totalWidth
+            cameraPosition, cameraMatrix, totalHeight, totalWidth, time
         };
         this.worker.postMessage(message, [this.imageData]);
     }

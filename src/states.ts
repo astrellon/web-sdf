@@ -16,6 +16,7 @@ export interface WorkerRenderRequest extends WorkerRequest
     readonly cameraPosition: rvec3;
     readonly cameraMatrix: rmat3;
     readonly buffer: ArrayBuffer;
+    readonly time: number;
 }
 export type WorkerRequests = WorkerRenderRequest;
 

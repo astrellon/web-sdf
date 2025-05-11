@@ -147,8 +147,8 @@ function renderMainThread()
     // const camZ = Math.sin(Date.now() / 1000) + 6;
     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
     const t = Date.now() / 1000;
-    const x = Math.sin(t) * 12;
-    const z = Math.cos(t) * 12;
+    const x = Math.sin(t) * 20;
+    const z = Math.cos(t) * 20;
     cameraPosition.x = x;
     cameraPosition.y = 3;
     cameraPosition.z = z;
@@ -163,7 +163,7 @@ function renderMainThread()
         totalHeight: window.innerHeight,
         xPos: 0,
         yPos: 0,
-        cameraMatrix, cameraPosition
+        cameraMatrix, cameraPosition, time: t
     }
     renderScene1(request);
 
@@ -187,8 +187,8 @@ function renderWorkers()
     const { width, height } = context.canvas;
 
     const t = Date.now() / 1000;
-    const x = Math.sin(t) * 8;
-    const z = Math.cos(t) * 8;
+    const x = Math.sin(t) * 20;
+    const z = Math.cos(t) * 20;
     cameraPosition.x = x;
     cameraPosition.y = 5;
     cameraPosition.z = z;
@@ -197,7 +197,7 @@ function renderWorkers()
     for (const worker of workers)
     {
         waitingToFinish++;
-        worker.doRender(width, height, cameraPosition, cameraMatrix);
+        worker.doRender(width, height, cameraPosition, cameraMatrix, t);
     }
 }
 

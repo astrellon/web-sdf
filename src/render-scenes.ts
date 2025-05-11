@@ -1,17 +1,31 @@
 import { WorkerRenderRequest } from "./states";
 import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus, sdfBox, sdfOpSub } from "./ray-marching";
-import { rvec2, rvec3, rvec4, vec2Zero, vec3ScaleAndAddBy, vec3TransformMat3, vec3Zero } from "./gl-matrix-ts";
+import { rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3TransformMat3, vec3Zero } from "./gl-matrix-ts";
+import mathf from "./gl-matrix-ts/mathf";
 
+const maxSize = Math.max(1.5, 2, 1.5, 1) * 3;
 function scene(point: rvec3): number
 {
+    // const diff = vec3Length(point);
+    // if (diff > maxSize)
+    // {
+    //     return diff;
+    // }
+
+    // const sphere = diff - 1.5;
+    // const sphere = sdfSphere(point, 1.5);
+    // sdfTorus(point, {x: 1, y: 0.5});
+    // const box = sdfBox(point, {x: 2, y: 1.5, z: 1});
+    // return sdfOpSub(sphere, box);
+
     const sphere = sdfSphere(point, 1.5);
-    // return sdfTorus(point, {x: 1, y: 0.5});
     const box = sdfBox(point, {x: 2, y: 1.5, z: 1});
-    return sdfOpSub(sphere, box);
+    return mathf.lerp(sphere, box, lerpTime);
 }
 
 const emptyColour: rvec4 = {x: 0, y: 0, z: 0, w: 255};
 const redColour: rvec4 = {x: 255, y: 0, z: 0, w: 255};
+let lerpTime = 0;
 
 export function renderScene1(request: WorkerRenderRequest)
 {
@@ -27,8 +41,11 @@ export function renderScene1(request: WorkerRenderRequest)
         yPos,
         cameraMatrix,
         cameraPosition,
+        time
     } = request;
     const view = new Uint8ClampedArray(buffer);
+
+    lerpTime = Math.sin(time) * 0.5 + 0.5;
 
     const viewSize: rvec2 = {x: totalWidth, y: totalHeight};
     const rayDir = vec3Zero();
