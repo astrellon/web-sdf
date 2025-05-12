@@ -1,26 +1,31 @@
 import { WorkerRenderRequest } from "./states";
-import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus, sdfBox, sdfOpSub } from "./ray-marching";
+import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus, sdfBox, sdfOpSub, sdfHexPrim } from "./ray-marching";
 import { rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3TransformMat3, vec3Zero } from "./gl-matrix-ts";
 import mathf from "./gl-matrix-ts/mathf";
 
-const maxSize = Math.max(1.5, 2, 1.5, 1) * 3;
+// const maxSize = Math.max(1.5, 2, 1.5, 1);
+const maxSize = 1.5;
 function scene(point: rvec3): number
 {
-    // const diff = vec3Length(point);
-    // if (diff > maxSize)
-    // {
-    //     return diff;
-    // }
+    const diff = vec3Length(point);
+    if (diff > maxSize + 3)
+    {
+        return diff - 3;
+    }
 
-    // const sphere = diff - 1.5;
-    // const sphere = sdfSphere(point, 1.5);
+    const sphere = diff - 1.5;
+    // const sphere = sdfSphere(point, 1.2);
     // sdfTorus(point, {x: 1, y: 0.5});
-    // const box = sdfBox(point, {x: 2, y: 1.5, z: 1});
-    // return sdfOpSub(sphere, box);
-
-    const sphere = sdfSphere(point, 1.5);
+    const hex = sdfHexPrim(point, {x: 2, y: 1.5});
     const box = sdfBox(point, {x: 2, y: 1.5, z: 1});
-    return mathf.lerp(sphere, box, lerpTime);
+
+    // const sphere = sdfSphere(point, 1.5);
+    // const sphere = diff - 1.5;
+    // return sphere;
+    // const torus = sdfTorus(point, {x: 2, y: 1.5});
+    // // const op = sdfOpSub(sphere, box);
+    return sdfOpSub(mathf.lerp(sphere, hex, lerpTime), box);
+    // return mathf.lerp(sphere, hex, lerpTime);
 }
 
 const emptyColour: rvec4 = {x: 0, y: 0, z: 0, w: 255};
@@ -80,7 +85,7 @@ export function renderScene1(request: WorkerRenderRequest)
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
 
-                const colouredLight = phongIllumination(scene, K_a, K_d, K_s, shininess, closestPoint, cameraPosition);
+                const colouredLight = phongIllumination(scene, dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,

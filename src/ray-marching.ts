@@ -1,5 +1,6 @@
 import { toRadian } from "./common";
-import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy } from "./gl-matrix-ts";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot } from "./gl-matrix-ts";
+import mathf from "./gl-matrix-ts/mathf";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -91,24 +92,25 @@ export function rayMarch(eye: rvec3, marchingDirection: rvec3, start: number, en
 /**
  * Using the gradient of the SDF, estimate the normal on the surface at point p.
  */
-export function estimateNormal(point: rvec3, scene: RayMarchScene): vec3
+export function estimateNormal(point: rvec3, currentDepth: number, scene: RayMarchScene): vec3
 {
-    const p1: vec3 = {x: point.x + EPSILON, y: point.y, z: point.z};
-    const p2: vec3 = {x: point.x - EPSILON, y: point.y, z: point.z};
+    const eps = currentDepth * 0.0015;
+    const p1: vec3 = {x: point.x + eps, y: point.y, z: point.z};
+    const p2: vec3 = {x: point.x - eps, y: point.y, z: point.z};
 
     const x = scene(p1) - scene(p2);
 
     p1.x = point.x;
-    p1.y = point.y + EPSILON;
+    p1.y = point.y + eps;
     p2.x = point.x;
-    p2.y = point.y - EPSILON;
+    p2.y = point.y - eps;
 
     const y = scene(p1) - scene(p2);
 
     p1.y = point.y;
-    p1.z = point.z + EPSILON;
+    p1.z = point.z + eps;
     p2.y = point.y;
-    p2.z = point.z - EPSILON;
+    p2.z = point.z - eps;
 
     const z = scene(p1) - scene(p2);
 
@@ -140,11 +142,12 @@ export function reflect(out: vec3, incidentVec: rvec3, normal: rvec3)
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 export function phongContribForLight(scene: RayMarchScene,
+    currentDepth: number,
     k_d: rvec3, k_s: rvec3,
     alpha: number, point: rvec3, eye: rvec3,
     lightPos: rvec3, lightIntensity: rvec3): vec3
 {
-    const N = estimateNormal(point, scene);
+    const N = estimateNormal(point, currentDepth, scene);
 
     const L = vec3Normalized(vec3Sub(lightPos, point));
     const nL = vec3Negated(L);
@@ -202,14 +205,14 @@ const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
 const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
 const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
 
-export function phongIllumination(scene: RayMarchScene, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3): vec3
+export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3): vec3
 {
     const colour: vec3 = vec3Mul(ambientLight, k_a);
 
-    const lightContrib1 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
+    const lightContrib1 = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
     vec3AddTo(colour, colour, lightContrib1);
 
-    const lightContrib2 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light2Pos, light2Intensity);
+    const lightContrib2 = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, p, eye, light2Pos, light2Intensity);
     vec3AddTo(colour, colour, lightContrib2);
 
     return colour;
@@ -233,6 +236,23 @@ export function sdfBox(p: rvec3, size: rvec3)
     const outsideDistance = vec3Length(vec3Max(d, 0.0));
     const insideDistance = Math.min(Math.max(d.x, Math.max(d.y, d.z)), 0);
     return outsideDistance + insideDistance;
+}
+
+const hexConsts: rvec3 = {x: -0.8660254, y: 0.5, z: 0.57735};
+export function sdfHexPrim(p: rvec3, h: rvec2)
+{
+    const absP = vec3Abs(p);
+    const dot = 2.0 * Math.min(vec2Dot(hexConsts, absP), 0);
+    absP.x -= dot * hexConsts.x;
+    absP.y -= dot * hexConsts.y;
+
+    const clamped = mathf.clamp(absP.x, -hexConsts.z * h.x, hexConsts.z * h.x);
+    const dx = vec2LengthValues(absP.x - clamped, absP.y - h.x) * Math.sign(absP.y - h.x);
+    const dy = absP.z - h.y;
+    const maxDx = Math.max(dx, 0);
+    const maxDy = Math.max(dy, 0);
+
+    return Math.min(Math.max(dx, dy), 0) + vec2LengthValues(maxDx, maxDy);
 }
 
 export function sdfOpUnion(d1: number, d2: number)
