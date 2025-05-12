@@ -65,7 +65,7 @@ export function renderScene1(request: WorkerRenderRequest)
             fragCoord.y = totalHeight - (y + yPos);
 
             const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
-            vec3TransformMat3(viewDir, cameraMatrix);
+            vec3TransformMat3(viewDir, viewDir, cameraMatrix);
 
             const dist = rayMarch(cameraPosition, viewDir, 0, 100, scene);
 

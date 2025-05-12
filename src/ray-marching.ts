@@ -1,5 +1,5 @@
 import { toRadian } from "./common";
-import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max } from "./gl-matrix-ts";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy } from "./gl-matrix-ts";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -16,11 +16,18 @@ export type RayMarchScene = (point: vec3) => number;
  * This assumes that the center of the camera is aligned with the negative z axis in
  * view space when calculating the ray marching direction. See rayDirection.
  */
+let f: vec3 = vec3Zero();
+let s: vec3 = vec3Zero();
+let u: vec3 = vec3Zero();
 export function createViewMatrix(out: mat3, eye: rvec3, center: rvec3, up: rvec3)
 {
-    const f = vec3Normalize(vec3Sub(center, eye));
-    const s = vec3Normalize(vec3Cross(f, up));
-    const u = vec3Cross(s, f);
+    vec3SubFrom(f, center, eye);
+    vec3Normalize(f, f);
+
+    vec3CrossBy(s, f, up);
+    vec3Normalize(s, s)
+
+    vec3CrossBy(u, s, f);
 
     out.m00 =  s.x; out.m01 =  s.y; out.m02 =  s.z;
     out.m10 =  u.x; out.m11 =  u.y; out.m12 =  u.z;
@@ -43,7 +50,7 @@ export function rayDirection(result: vec3, fieldOfView: number, size: rvec2, fra
     result.x = x;
     result.y = y;
     result.z = -z;
-    vec3Normalize(result);
+    vec3Normalize(result, result);
     return result;
 }
 
@@ -167,10 +174,10 @@ export function phongContribForLight(scene: RayMarchScene,
         const pow = Math.pow(dotRV, alpha);
         r1 = vec3Scale(k_s, pow);
 
-        vec3AddTo(r1, r2);
+        vec3AddTo(r1, r1, r2);
     }
 
-    vec3MulTo(r1, lightIntensity);
+    vec3MulTo(r1, r1, lightIntensity);
     return r1;
 }
 
@@ -200,10 +207,10 @@ export function phongIllumination(scene: RayMarchScene, k_a: rvec3, k_d: rvec3, 
     const colour: vec3 = vec3Mul(ambientLight, k_a);
 
     const lightContrib1 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
-    vec3AddTo(colour, lightContrib1);
+    vec3AddTo(colour, colour, lightContrib1);
 
     const lightContrib2 = phongContribForLight(scene, k_d, k_s, alpha, p, eye, light2Pos, light2Intensity);
-    vec3AddTo(colour, lightContrib2);
+    vec3AddTo(colour, colour, lightContrib2);
 
     return colour;
 }
@@ -222,7 +229,7 @@ export function sdfTorus(p: rvec3, t: rvec2)
 
 export function sdfBox(p: rvec3, size: rvec3)
 {
-    const d = vec3SubFrom(vec3Abs(p), size);
+    const d = vec3Sub(vec3Abs(p), size);
     const outsideDistance = vec3Length(vec3Max(d, 0.0));
     const insideDistance = Math.min(Math.max(d.x, Math.max(d.y, d.z)), 0);
     return outsideDistance + insideDistance;
