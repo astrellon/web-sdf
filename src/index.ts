@@ -198,6 +198,8 @@ function renderWorkers()
         return;
     }
 
+    updateLights();
+
     console.time('Render');
     const { width, height } = context.canvas;
 
