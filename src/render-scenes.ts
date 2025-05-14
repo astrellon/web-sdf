@@ -46,7 +46,9 @@ export function renderScene1(request: WorkerRenderRequest)
         yPos,
         cameraMatrix,
         cameraPosition,
-        time
+        time,
+        numLights,
+        lightData
     } = request;
     const view = new Uint8ClampedArray(buffer);
 
@@ -85,7 +87,7 @@ export function renderScene1(request: WorkerRenderRequest)
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
 
-                const colouredLight = phongIllumination(scene, dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition);
+                const colouredLight = phongIllumination(scene, dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,

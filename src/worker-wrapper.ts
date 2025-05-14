@@ -1,6 +1,7 @@
 import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
 import { rmat3, rmat4, rvec3 } from "./gl-matrix-ts";
+import { SdfScene } from "./sdf-scene";
 
 export class WorkerWrapper
 {
@@ -41,7 +42,7 @@ export class WorkerWrapper
         this.yPos = yPos;
     }
 
-    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3, time: number) =>
+    public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3, time: number, sdfScene: SdfScene) =>
     {
         const message: WorkerRenderRequest = {
             type: 'render',
@@ -50,6 +51,8 @@ export class WorkerWrapper
             yPos: this.yPos,
             width: this.width,
             height: this.height,
+            numLights: sdfScene.getNumLights(),
+            lightData: sdfScene.getLightDataArray(),
             cameraPosition, cameraMatrix, totalHeight, totalWidth, time
         };
         this.worker.postMessage(message, [this.imageData]);

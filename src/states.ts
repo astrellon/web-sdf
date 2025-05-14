@@ -15,6 +15,8 @@ export interface WorkerRenderRequest extends WorkerRequest
     readonly totalHeight: number;
     readonly cameraPosition: rvec3;
     readonly cameraMatrix: rmat3;
+    readonly lightData: number[];
+    readonly numLights: number;
     readonly buffer: ArrayBuffer;
     readonly time: number;
 }

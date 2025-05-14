@@ -1,6 +1,7 @@
 import { toRadian } from "./common";
 import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot } from "./gl-matrix-ts";
 import mathf from "./gl-matrix-ts/mathf";
+import { lightDataSize } from "./sdf-scene";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/
@@ -199,21 +200,34 @@ export function phongContribForLight(scene: RayMarchScene,
  */
 
 const ambientLight: rvec3 = {x: 0.5, y: 0.5, z: 0.5};
-const light1Pos: rvec3 = {x: 4, y: 2, z: 4};
-const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
+// const light1Pos: rvec3 = {x: 4, y: 2, z: 4};
+// const light1Intensity: rvec3 = {x: 0.4, y: 0.4, z: 0.4};
 
-const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
-const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
+// const light2Pos: rvec3 = {x: -2, y: 2, z: 2};
+// const light2Intensity: rvec3 = {x: 0.6, y: 0.4, z: 0.2};
 
-export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3): vec3
+export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, p: rvec3, eye: rvec3, numLights: number, lightData: number[]): vec3
 {
     const colour: vec3 = vec3Mul(ambientLight, k_a);
 
-    const lightContrib1 = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, p, eye, light1Pos, light1Intensity);
-    vec3AddTo(colour, colour, lightContrib1);
+    for (let i = 0; i < numLights; i++)
+    {
+        const lightIndex = i * lightDataSize;
+        const lightPos = {
+            x: lightData[lightIndex    ],
+            y: lightData[lightIndex + 1],
+            z: lightData[lightIndex + 2]
+        }
+        const lightRadius = lightData[lightIndex + 3];
+        const lightColour = {
+            x: lightData[lightIndex + 4],
+            y: lightData[lightIndex + 5],
+            z: lightData[lightIndex + 6]
+        }
 
-    const lightContrib2 = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, p, eye, light2Pos, light2Intensity);
-    vec3AddTo(colour, colour, lightContrib2);
+        const lightContrib = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, p, eye, lightPos, lightColour);
+        vec3AddTo(colour, colour, lightContrib);
+    }
 
     return colour;
 }

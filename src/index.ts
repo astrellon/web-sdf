@@ -4,6 +4,7 @@ import { quatIdentity, quatNormalize } from "./gl-matrix-ts/quat";
 import { renderScene1 } from "./render-scenes";
 import { WorkerRenderRequest } from "./states";
 import { createViewMatrix } from "./ray-marching";
+import { SdfScene } from "./sdf-scene";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 1;
@@ -16,6 +17,8 @@ let renderEnabled = true;
 let mainThreadBuffer: ArrayBuffer;
 let imageDataArray: Uint8ClampedArray;
 let canvasScale = 1.0;
+
+const sdfScene = new SdfScene();
 
 function startup()
 {
@@ -75,8 +78,17 @@ function startup()
 
 function doRender()
 {
+    updateLights();
     // renderMainThread();
     renderWorkers();
+}
+
+function updateLights()
+{
+    const t = (Date.now() / 1000) * 3;
+    const x = Math.sin(t) * 7;
+    const z = Math.cos(t) * 3;
+    sdfScene.setLight(0, {position: {x, z, y: 1}});
 }
 
 function setupCanvas(canvas: HTMLCanvasElement)
@@ -146,7 +158,8 @@ function renderMainThread()
 
     // const camZ = Math.sin(Date.now() / 1000) + 6;
     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
-    const t = Date.now() / 1000;
+    // const t = Date.now() / 1000;
+    const t= 0;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;
@@ -156,11 +169,13 @@ function renderMainThread()
 
     const request: WorkerRenderRequest = {
         type: 'render',
-        buffer: mainThreadBuffer,
+        numLights: sdfScene.getNumLights(),
+        lightData: sdfScene.getLightDataArray(),
         width: window.innerWidth,
         height: window.innerHeight,
         totalWidth: window.innerWidth,
         totalHeight: window.innerHeight,
+        buffer: mainThreadBuffer,
         xPos: 0,
         yPos: 0,
         cameraMatrix, cameraPosition, time: t
@@ -186,7 +201,8 @@ function renderWorkers()
     console.time('Render');
     const { width, height } = context.canvas;
 
-    const t = Date.now() / 1000;
+    // const t = Date.now() / 1000;
+    const t = 0;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;
@@ -197,7 +213,7 @@ function renderWorkers()
     for (const worker of workers)
     {
         waitingToFinish++;
-        worker.doRender(width, height, cameraPosition, cameraMatrix, t);
+        worker.doRender(width, height, cameraPosition, cameraMatrix, t, sdfScene);
     }
 }
 
