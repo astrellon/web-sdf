@@ -18,6 +18,8 @@ let mainThreadBuffer: ArrayBuffer;
 let imageDataArray: Uint8ClampedArray;
 let canvasScale = 1.0;
 
+let renderOnMain = false;
+
 const sdfScene = new SdfScene();
 
 function startup()
@@ -69,9 +71,15 @@ function startup()
     {
         setupCanvas(canvas);
 
-        setupWorkers();
-        // mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
-        // imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
+        if (renderOnMain)
+        {
+            mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
+            imageDataArray = new Uint8ClampedArray(mainThreadBuffer);
+        }
+        else
+        {
+            setupWorkers();
+        }
         doRender();
     }
 }
@@ -79,8 +87,15 @@ function startup()
 function doRender()
 {
     updateLights();
-    // renderMainThread();
-    renderWorkers();
+
+    if (renderOnMain)
+    {
+        renderMainThread();
+    }
+    else
+    {
+        renderWorkers();
+    }
 }
 
 function updateLights()
@@ -158,8 +173,7 @@ function renderMainThread()
 
     // const camZ = Math.sin(Date.now() / 1000) + 6;
     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
-    // const t = Date.now() / 1000;
-    const t= 0;
+    const t = Date.now() / 1000;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;
@@ -198,13 +212,13 @@ function renderWorkers()
         return;
     }
 
-    updateLights();
+    // updateLights();
 
     console.time('Render');
     const { width, height } = context.canvas;
 
-    // const t = Date.now() / 1000;
-    const t = 0;
+    const t = Date.now() / 1000;
+    // const t = 0;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;

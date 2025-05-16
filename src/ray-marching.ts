@@ -283,3 +283,8 @@ export function sdfOpIntersection(d1: number, d2: number)
 {
     return Math.max(d1, d2);
 }
+
+export function sdfOpXor(d1: number, d2: number)
+{
+    return Math.max(Math.min(d1, d2), -Math.max(d1, d2));
+}
