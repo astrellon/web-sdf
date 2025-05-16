@@ -53,6 +53,8 @@ export class WorkerWrapper
             height: this.height,
             numLights: sdfScene.getNumLights(),
             lightData: sdfScene.getLightDataArray(),
+            numShapes: sdfScene.getNumShapes(),
+            shapeData: sdfScene.getShapeDataArray(),
             cameraPosition, cameraMatrix, totalHeight, totalWidth, time
         };
         this.worker.postMessage(message, [this.imageData]);

@@ -1,4 +1,4 @@
-import { mat4, quat, vec3, vec3One, vec3Zero } from "./gl-matrix-ts";
+import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero } from "./gl-matrix-ts";
 
 interface Light
 {
@@ -16,17 +16,42 @@ interface Shape
 {
     position: vec3;
     rotation: quat;
-    transformDirty: boolean;
+    maxSize: number;
     type: ShapeType;
     shapeParams: vec3;
 
     leftOpCode: SdfOpCode;
-    left?: Shape;
+    leftIndex: number;
     rightOpCode: SdfOpCode;
-    right?: Shape;
+    rightIndex: number;
 }
 
-type ShapeData =
+const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
+{
+    'none': 0,
+    'union': 1,
+    'intersection': 2,
+    'subtraction': 3,
+    'xor': 4,
+}
+const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
+{
+    'none': 0,
+    'box': 1,
+    'sphere': 2,
+    'hexPrism': 3,
+}
+
+function toShapeTypeInt(type: ShapeType): ShapeTypeInt
+{
+    return ShapeTypeMap[type] || 0;
+}
+function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
+{
+    return SdfOpCodeMap[type] || 0;
+}
+
+type ShapeDataArray =
 [
     vec3, number,           // position | max size
     quat,                   // quaternion
@@ -59,6 +84,21 @@ export class SdfScene
         return this.lights.length;
     }
 
+    public getShapeDataArray()
+    {
+        return this.shapeDataArray;
+    }
+
+    public getShapes()
+    {
+        return this.shapes;
+    }
+
+    public getNumShapes()
+    {
+        return this.shapes.length;
+    }
+
     public setLight(index: number, light: Partial<Light>)
     {
         if (index < 0)
@@ -78,7 +118,6 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    /*
     public setShape(index: number, shape: Partial<Shape>)
     {
         if (index < 0)
@@ -88,7 +127,7 @@ export class SdfScene
 
         if (index >= this.shapes.length)
         {
-            this.shapes[index] = { ...defaultShape, ...shape };
+            this.shapes[index] = { ...this.createNewShape(), ...shape };
         }
         else
         {
@@ -97,7 +136,6 @@ export class SdfScene
 
         this.updateShape(index);
     }
-    */
 
     private updateLight(index: number)
     {
@@ -107,10 +145,37 @@ export class SdfScene
         this.lightDataArray[dataIndex    ] = light.position.x;
         this.lightDataArray[dataIndex + 1] = light.position.y;
         this.lightDataArray[dataIndex + 2] = light.position.z;
+        this.lightDataArray[dataIndex + 2] = light.position.z;
         this.lightDataArray[dataIndex + 3] = light.radius;
         this.lightDataArray[dataIndex + 4] = light.colour.x;
         this.lightDataArray[dataIndex + 5] = light.colour.y;
         this.lightDataArray[dataIndex + 6] = light.colour.z;
+    }
+
+    private updateShape(index: number)
+    {
+        const dataIndex = index * shapeDataSize;
+        const shape = this.shapes[index];
+
+        this.shapeDataArray[dataIndex     ] = shape.position.x;
+        this.shapeDataArray[dataIndex +  1] = shape.position.y;
+        this.shapeDataArray[dataIndex +  2] = shape.position.z;
+        this.shapeDataArray[dataIndex +  3] = shape.maxSize;
+
+        this.shapeDataArray[dataIndex +  4] = shape.rotation.x;
+        this.shapeDataArray[dataIndex +  5] = shape.rotation.y;
+        this.shapeDataArray[dataIndex +  6] = shape.rotation.z;
+        this.shapeDataArray[dataIndex +  7] = shape.rotation.w;
+
+        this.shapeDataArray[dataIndex +  8] = toShapeTypeInt(shape.type);
+        this.shapeDataArray[dataIndex +  9] = shape.shapeParams.x;
+        this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
+        this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
+
+        this.shapeDataArray[dataIndex + 12] = toOpCodeInt(shape.leftOpCode);
+        this.shapeDataArray[dataIndex + 13] = shape.leftIndex;
+        this.shapeDataArray[dataIndex + 14] = toOpCodeInt(shape.rightOpCode);
+        this.shapeDataArray[dataIndex + 15] = shape.rightIndex;
     }
 
     private createNewLight(): Light
@@ -119,6 +184,21 @@ export class SdfScene
             position: vec3Zero(),
             radius: 10,
             colour: vec3One()
+        }
+    }
+
+    private createNewShape(): Shape
+    {
+        return {
+            position: vec3Zero(),
+            rotation: quatIdentity(),
+            maxSize: 1,
+            type: "none",
+            shapeParams: vec3Zero(),
+            leftOpCode: "none",
+            leftIndex: -1,
+            rightOpCode: "none",
+            rightIndex: -1,
         }
     }
 }

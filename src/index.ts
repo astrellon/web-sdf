@@ -1,6 +1,6 @@
 import { WorkerWrapper } from "./worker-wrapper";
 import { mat3Identity, rvec3, vec3Zero } from "./gl-matrix-ts";
-import { quatIdentity, quatNormalize } from "./gl-matrix-ts/quat";
+import { quatIdentity, quatNormalize, quatSetAxisAngle } from "./gl-matrix-ts/quat";
 import { renderScene1 } from "./render-scenes";
 import { WorkerRenderRequest } from "./states";
 import { createViewMatrix } from "./ray-marching";
@@ -71,6 +71,19 @@ function startup()
     {
         setupCanvas(canvas);
 
+        sdfScene.setShape(0, {
+            type: 'box',
+            shapeParams: {x: 3, y: 2, z: 1},
+            maxSize: 2.0,
+            leftIndex: 1,
+            leftOpCode: 'subtraction'
+        });
+        sdfScene.setShape(1, {
+            type: 'sphere',
+            shapeParams: {x: 1.5, y: 0, z: 0},
+            maxSize: 0
+        });
+
         if (renderOnMain)
         {
             mainThreadBuffer = new ArrayBuffer(window.innerWidth * window.innerHeight * 4);
@@ -102,8 +115,17 @@ function updateLights()
 {
     const t = (Date.now() / 1000) * 3;
     const x = Math.sin(t) * 7;
-    const z = Math.cos(t) * 3;
-    sdfScene.setLight(0, {position: {x, z, y: 1}});
+    const z = Math.cos(t) * 7;
+    sdfScene.setLight(0, {position: {x, z, y: 1.5}});
+
+    sdfScene.setShape(1, {
+        position: {x: x / 5, y: z / 7, z: 0}
+    });
+
+    const q = quatSetAxisAngle(quatIdentity(), {x: 1, y: 0, z: 0}, t / 3);
+    sdfScene.setShape(0, {
+        rotation: q
+    });
 }
 
 function setupCanvas(canvas: HTMLCanvasElement)
@@ -185,6 +207,8 @@ function renderMainThread()
         type: 'render',
         numLights: sdfScene.getNumLights(),
         lightData: sdfScene.getLightDataArray(),
+        numShapes: sdfScene.getNumShapes(),
+        shapeData: sdfScene.getShapeDataArray(),
         width: window.innerWidth,
         height: window.innerHeight,
         totalWidth: window.innerWidth,
@@ -212,13 +236,13 @@ function renderWorkers()
         return;
     }
 
-    // updateLights();
+    updateLights();
 
     console.time('Render');
     const { width, height } = context.canvas;
 
-    const t = Date.now() / 1000;
-    // const t = 0;
+    // const t = Date.now() / 1000;
+    const t = 0;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;
