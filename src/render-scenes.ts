@@ -1,7 +1,7 @@
 import { WorkerRenderRequest } from "./states";
 import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfBox, sdfOpSub, sdfHexPrim, sdfOpIntersection, sdfOpUnion, sdfOpXor } from "./ray-marching";
 import { mat4GetTranslation, mat4Identity, quatIdentity, quatSetAxisAngle, rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformMat3, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
-import { SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, shapeDataSize, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeSphere } from "./sdf-scene";
+import { SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, shapeDataSize, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-scene";
 import mathf from "./gl-matrix-ts/mathf";
 
 const maxSize = 1.5;
@@ -9,10 +9,99 @@ const transform = mat4Identity();
 const transPoint = vec3Zero();
 const rotation = quatIdentity();
 
-const shapeStack: number[] = [];
-const shapeStackIndex = 0;
+const processingStack: number[] = [];
+const operations: SdfOpCodeInt[] = [];
+const depthStack: number[] = [];
 
 const testPoint = vec3Zero();
+function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): number
+{
+    processingStack.length = 0;
+    operations.length = 0;
+    depthStack.length = 0;
+
+    processingStack.push(index);
+
+    while (processingStack.length > 0)
+    {
+        const i = processingStack.pop();
+
+        testPoint.x = data[i];
+        testPoint.y = data[i + 1];
+        testPoint.z = data[i + 2];
+
+        const radius = data[i + 3];
+        vec3SubFrom(testPoint, testPoint, point);
+
+        if (radius > 0)
+        {
+            const diff = vec3Length(testPoint);
+            if (diff > radius + 3)
+            {
+                depthStack.push(diff - 3);
+                continue;
+            }
+        }
+
+        rotation.x = data[i + 4];
+        rotation.y = data[i + 5];
+        rotation.z = data[i + 6];
+        rotation.w = data[i + 7];
+
+        vec3TransformQuat(transPoint, testPoint, rotation);
+
+        const type = data[i + 8] as ShapeTypeInt;
+        const params: rvec3 = {
+            x: data[i + 9],
+            y: data[i + 10],
+            z: data[i + 11]
+        }
+
+        if (type !== ShapeTypeNone)
+        {
+            let dist = getDistToType(type, transPoint, params);
+            depthStack.push(dist);
+        }
+
+        const leftOp = data[i + 12] as SdfOpCodeInt;
+        const leftIndex = data[i + 13];
+        const rightOp = data[i + 14] as SdfOpCodeInt;
+        const rightIndex = data[i + 15];
+
+        if (leftIndex > 0)
+        {
+            processingStack.push(leftIndex * shapeDataSize);
+            if (leftOp !== SdfOpCodeNone)
+            {
+                operations.push(leftOp);
+            }
+        }
+
+        if (rightIndex > 0)
+        {
+            processingStack.push(rightIndex * shapeDataSize);
+            if (rightOp !== SdfOpCodeNone)
+            {
+                operations.push(rightOp);
+            }
+        }
+    }
+
+    if (depthStack.length === 0)
+    {
+        return 100;
+    }
+    while (operations.length > 0 && depthStack.length > 1)
+    {
+        const lastOp = operations.pop();
+        const lastD2 = depthStack.pop();
+        const lastD1 = depthStack.pop();
+        const dist = applyOpCode(lastOp, lastD2, lastD1);
+        depthStack.push(dist);
+    }
+    return depthStack[0];
+
+}
 function sceneFromData(point: rvec3, data: number[], index: number): number
 {
     testPoint.x = data[index];
@@ -176,7 +265,7 @@ export function renderScene1(request: WorkerRenderRequest)
             let hitIndex = -1;
             for (let i = 0; i < numShapes; i++)
             {
-                const newDist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromData(p, shapeData, i * shapeDataSize));
+                const newDist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromDataNoRecursive(p, shapeData, i * shapeDataSize));
                 if (newDist < dist)
                 {
                     dist = newDist;
@@ -195,7 +284,7 @@ export function renderScene1(request: WorkerRenderRequest)
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
 
-                const colouredLight = phongIllumination((p) => sceneFromData(p, shapeData, hitIndex * shapeDataSize), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
+                const colouredLight = phongIllumination((p) => sceneFromDataNoRecursive(p, shapeData, hitIndex * shapeDataSize), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,

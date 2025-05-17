@@ -59,7 +59,10 @@ function startup()
     window.addEventListener('resize', (e) =>
     {
         updateCanvasSize();
-        doRender();
+        if (!renderOnMain)
+        {
+            doRender();
+        }
     });
 
     const canvas = document.getElementById("main-canvas") as HTMLCanvasElement;
@@ -100,7 +103,11 @@ function startup()
         {
             setupWorkers();
         }
-        doRender();
+
+        if (!renderOnMain)
+        {
+            doRender();
+        }
     }
 }
 
