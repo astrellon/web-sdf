@@ -1,3 +1,4 @@
+import { Opaque } from "./common";
 import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero } from "./gl-matrix-ts";
 
 interface Light
@@ -9,9 +10,19 @@ interface Light
 export const lightDataSize = 3 + 1 + 3;
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
-export type SdfOpCodeInt = 0 | 1 | 2 | 3 | 4;
+export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
+export const SdfOpCodeNone = 0 as SdfOpCodeInt;
+export const SdfOpCodeUnion = 1 as SdfOpCodeInt;
+export const SdfOpCodeIntersection = 2 as SdfOpCodeInt;
+export const SdfOpCodeSubtraction = 3 as SdfOpCodeInt;
+export const SdfOpCodeXor = 4 as SdfOpCodeInt;
+
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
-export type ShapeTypeInt = 0 | 1 | 2 | 3;
+export type ShapeTypeInt = Opaque<number, "shapeType">;
+export const ShapeTypeNone = 0 as ShapeTypeInt;
+export const ShapeTypeBox = 1 as ShapeTypeInt;
+export const ShapeTypeSphere = 2 as ShapeTypeInt;
+export const ShapeTypeHexPrism = 3 as ShapeTypeInt;
 interface Shape
 {
     position: vec3;
@@ -28,27 +39,27 @@ interface Shape
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
 {
-    'none': 0,
-    'union': 1,
-    'intersection': 2,
-    'subtraction': 3,
-    'xor': 4,
+    'none': SdfOpCodeNone,
+    'union': SdfOpCodeUnion,
+    'intersection': SdfOpCodeIntersection,
+    'subtraction': SdfOpCodeSubtraction,
+    'xor': SdfOpCodeXor,
 }
 const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
 {
-    'none': 0,
-    'box': 1,
-    'sphere': 2,
-    'hexPrism': 3,
+    'none': ShapeTypeNone,
+    'box': ShapeTypeBox,
+    'sphere': ShapeTypeSphere,
+    'hexPrism': ShapeTypeHexPrism,
 }
 
 function toShapeTypeInt(type: ShapeType): ShapeTypeInt
 {
-    return ShapeTypeMap[type] || 0;
+    return ShapeTypeMap[type] || ShapeTypeNone;
 }
 function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
 {
-    return SdfOpCodeMap[type] || 0;
+    return SdfOpCodeMap[type] || SdfOpCodeNone;
 }
 
 type ShapeDataArray =
@@ -68,6 +79,8 @@ export class SdfScene
 
     private shapes: Shape[] = [];
     private shapeDataArray: number[] = [];
+
+    public numTopShapes: number = 0;
 
     public getLightDataArray()
     {
@@ -94,7 +107,7 @@ export class SdfScene
         return this.shapes;
     }
 
-    public getNumShapes()
+    public getNumTotalShapes()
     {
         return this.shapes.length;
     }
@@ -192,7 +205,7 @@ export class SdfScene
         return {
             position: vec3Zero(),
             rotation: quatIdentity(),
-            maxSize: 1,
+            maxSize: 0,
             type: "none",
             shapeParams: vec3Zero(),
             leftOpCode: "none",

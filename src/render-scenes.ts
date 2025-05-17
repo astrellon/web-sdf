@@ -1,10 +1,9 @@
 import { WorkerRenderRequest } from "./states";
-import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfTorus, sdfBox, sdfOpSub, sdfHexPrim, sdfOpIntersection, sdfOpUnion, sdfOpXor } from "./ray-marching";
-import { mat4GetTranslation, mat4Identity, mat4Mul, mat4Set, mat4SetFromRotation, mat4SetFromRotationTranslation, quat, quatIdentity, quatSetAxisAngle, rvec2, rvec3, rvec4, vec2Zero, vec3, vec3Length, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformMat3, vec3TransformMat4, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
+import { sdfSphere, rayMarch, rayDirection, phongIllumination, sdfBox, sdfOpSub, sdfHexPrim, sdfOpIntersection, sdfOpUnion, sdfOpXor } from "./ray-marching";
+import { mat4GetTranslation, mat4Identity, quatIdentity, quatSetAxisAngle, rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformMat3, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
+import { SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, shapeDataSize, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeSphere } from "./sdf-scene";
 import mathf from "./gl-matrix-ts/mathf";
-import { SdfOpCodeInt, SdfScene, shapeDataSize, ShapeTypeInt } from "./sdf-scene";
 
-// const maxSize = Math.max(1.5, 2, 1.5, 1);
 const maxSize = 1.5;
 const transform = mat4Identity();
 const transPoint = vec3Zero();
@@ -21,10 +20,15 @@ function sceneFromData(point: rvec3, data: number[], index: number): number
     testPoint.z = data[index + 2];
 
     const radius = data[index + 3];
-    const diff = vec3Length(vec3SubFrom(testPoint, testPoint, point));
-    if (radius > 0 && diff > radius + 3)
+    vec3SubFrom(testPoint, testPoint, point);
+
+    if (radius > 0)
     {
-        return diff - 3;
+        const diff = vec3Length(testPoint);
+        if (diff > radius + 3)
+        {
+            return diff - 3;
+        }
     }
 
     rotation.x = data[index + 4];
@@ -33,7 +37,6 @@ function sceneFromData(point: rvec3, data: number[], index: number): number
     rotation.w = data[index + 7];
 
     vec3TransformQuat(transPoint, testPoint, rotation);
-    // vec3SubFrom(transPoint, transPoint, testPoint);
 
     const type = data[index + 8] as ShapeTypeInt;
     const params: rvec3 = {
@@ -42,12 +45,16 @@ function sceneFromData(point: rvec3, data: number[], index: number): number
         z: data[index + 11]
     }
 
-    let dist = type !== 0 ? getDistToType(type, transPoint, params) : diff;
+    let dist = getDistToType(type, transPoint, params);
 
     const leftOp = data[index + 12] as SdfOpCodeInt;
     const leftIndex = data[index + 13];
 
-    if (leftOp !== 0 && leftIndex > 0)
+    if (leftIndex > 0 && type === 0)
+    {
+        dist = sceneFromData(point, data, leftIndex * shapeDataSize);
+    }
+    else if (leftOp !== 0 && leftIndex > 0)
     {
         const left = sceneFromData(point, data, leftIndex * shapeDataSize);
         dist = applyOpCode(leftOp, left, dist);
@@ -69,9 +76,9 @@ function getDistToType(opCode: ShapeTypeInt, point: rvec3, params: rvec3)
 {
     switch (opCode)
     {
-        case 1: return sdfBox(point, params);
-        case 2: return sdfSphere(point, params.x);
-        case 3: return sdfHexPrim(point, params);
+        case ShapeTypeBox: return sdfBox(point, params);
+        case ShapeTypeSphere: return sdfSphere(point, params.x);
+        case ShapeTypeHexPrism: return sdfHexPrim(point, params);
     }
     return 100;
 }
@@ -80,10 +87,10 @@ function applyOpCode(opCode: SdfOpCodeInt, dist1: number, dist2: number)
 {
     switch (opCode)
     {
-        case 1: return sdfOpUnion(dist1, dist2);
-        case 2: return sdfOpIntersection(dist1, dist2);
-        case 3: return sdfOpSub(dist1, dist2);
-        case 4: return sdfOpXor(dist1, dist2);
+        case SdfOpCodeUnion: return sdfOpUnion(dist1, dist2);
+        case SdfOpCodeIntersection: return sdfOpIntersection(dist1, dist2);
+        case SdfOpCodeSubtraction: return sdfOpSub(dist1, dist2);
+        case SdfOpCodeXor: return sdfOpXor(dist1, dist2);
     }
     return 100;
 }
@@ -165,7 +172,17 @@ export function renderScene1(request: WorkerRenderRequest)
             const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
             vec3TransformMat3(viewDir, viewDir, cameraMatrix);
 
-            const dist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromData(p, shapeData, 0));
+            let dist = 100;
+            let hitIndex = -1;
+            for (let i = 0; i < numShapes; i++)
+            {
+                const newDist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromData(p, shapeData, i * shapeDataSize));
+                if (newDist < dist)
+                {
+                    dist = newDist;
+                    hitIndex = i;
+                }
+            }
 
             let colour = redColour;
 
@@ -173,12 +190,12 @@ export function renderScene1(request: WorkerRenderRequest)
             {
                 colour = emptyColour;
             }
-            else
+            else if (hitIndex >= 0)
             {
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
 
-                const colouredLight = phongIllumination((p) => sceneFromData(p, shapeData, 0), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
+                const colouredLight = phongIllumination((p) => sceneFromData(p, shapeData, hitIndex * shapeDataSize), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,

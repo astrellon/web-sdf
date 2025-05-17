@@ -73,16 +73,23 @@ function startup()
 
         sdfScene.setShape(0, {
             type: 'box',
-            shapeParams: {x: 3, y: 2, z: 1},
-            maxSize: 2.0,
-            leftIndex: 1,
+            shapeParams: {x: 6, y: 1, z: 6},
+            position: {x: 0, y: -1.5, z: 0},
+            leftIndex: 2,
             leftOpCode: 'subtraction'
         });
         sdfScene.setShape(1, {
-            type: 'sphere',
-            shapeParams: {x: 1.5, y: 0, z: 0},
-            maxSize: 0
+            type: 'box',
+            shapeParams: {x: 3, y: 2, z: 1},
+            maxSize: 4.0,
+            leftIndex: 2,
+            leftOpCode: 'subtraction'
         });
+        sdfScene.setShape(2, {
+            type: 'hexPrism',
+            shapeParams: {x: 1.5, y: 2, z: 0},
+        });
+        sdfScene.numTopShapes = 2;
 
         if (renderOnMain)
         {
@@ -118,12 +125,12 @@ function updateLights()
     const z = Math.cos(t) * 7;
     sdfScene.setLight(0, {position: {x, z, y: 1.5}});
 
-    sdfScene.setShape(1, {
+    sdfScene.setShape(2, {
         position: {x: x / 5, y: z / 7, z: 0}
     });
 
     const q = quatSetAxisAngle(quatIdentity(), {x: 1, y: 0, z: 0}, t / 3);
-    sdfScene.setShape(0, {
+    sdfScene.setShape(1, {
         rotation: q
     });
 }
@@ -207,7 +214,7 @@ function renderMainThread()
         type: 'render',
         numLights: sdfScene.getNumLights(),
         lightData: sdfScene.getLightDataArray(),
-        numShapes: sdfScene.getNumShapes(),
+        numShapes: sdfScene.numTopShapes,
         shapeData: sdfScene.getShapeDataArray(),
         width: window.innerWidth,
         height: window.innerHeight,
