@@ -222,7 +222,7 @@ export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_
         }
 
         const toLight = vec3Normalized(vec3Sub(lightPos, point));
-        const shadow = softShadow(scene, point, toLight, 1, 100);
+        const shadow = softShadow(scene, point, toLight, 0.1, 100);
         const lightContrib = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, point, rayOrigin, lightPos, lightColour);
         vec3AddTo(colour, colour, vec3ScaleBy(lightContrib, lightContrib, shadow));
         // vec3AddTo(colour, colour, lightContrib);
@@ -231,7 +231,7 @@ export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_
     return colour;
 }
 
-const shadowSharpness = 8;
+const shadowSharpness = 32;
 const shadowPoint = vec3Zero();
 export function softShadow(scene: RayMarchScene, rayOrigin: rvec3, rayDirection: rvec3, minT: number, maxT: number)
 {

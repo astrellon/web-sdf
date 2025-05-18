@@ -99,7 +99,7 @@ function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): 
         const lastOp = operations[operationsStackIndex--];
         const lastD2 = depthStack[depthStackIndex--];
         const lastD1 = depthStack[depthStackIndex--]
-        const dist = applyOpCode(lastOp, lastD2, lastD1);
+        const dist = applyOpCode(lastOp, lastD1, lastD2);
         depthStack[++depthStackIndex] = dist;
     }
     return depthStack[0];

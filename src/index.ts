@@ -74,12 +74,13 @@ function startup()
     {
         setupCanvas(canvas);
 
+        // Order of operations is not easy to follow
         sdfScene.setShape(0, {
             type: 'none',
-            // leftIndex: 2,
-            // leftOpCode: 'subtraction',
-            rightIndex: 3,
-            rightOpCode: 'union'
+            rightIndex: 2,
+            rightOpCode: 'union',
+            leftIndex: 3,
+            leftOpCode: 'subtraction'
         });
         sdfScene.setShape(1, {
             type: 'box',
@@ -89,13 +90,13 @@ function startup()
         sdfScene.setShape(2, {
             type: 'hexPrism',
             shapeParams: {x: 1.5, y: 2, z: 0},
+            maxSize: 2
         });
         sdfScene.setShape(3, {
             type: 'box',
             shapeParams: {x: 6, y: 1, z: 6},
             position: {x: 0, y: -1.5, z: 0},
-            leftIndex: 1,
-            leftOpCode: 'union'
+            leftIndex: 1
         })
         sdfScene.numTopShapes = 1;
 
