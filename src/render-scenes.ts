@@ -10,21 +10,24 @@ const transPoint = vec3Zero();
 const rotation = quatIdentity();
 
 const processingStack: number[] = [];
+let processingStackIndex = 0;
 const operations: SdfOpCodeInt[] = [];
+let operationsStackIndex = 0;
 const depthStack: number[] = [];
+let depthStackIndex = 0;
 
 const testPoint = vec3Zero();
 function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): number
 {
-    processingStack.length = 0;
-    operations.length = 0;
-    depthStack.length = 0;
+    processingStackIndex = -1;
+    operationsStackIndex = -1;
+    depthStackIndex = -1;
 
-    processingStack.push(index);
+    processingStack[++processingStackIndex] = index;
 
-    while (processingStack.length > 0)
+    while (processingStackIndex >= 0)
     {
-        const i = processingStack.pop();
+        const i = processingStack[processingStackIndex--];
 
         testPoint.x = data[i];
         testPoint.y = data[i + 1];
@@ -38,7 +41,7 @@ function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): 
             const diff = vec3Length(testPoint);
             if (diff > radius + 3)
             {
-                depthStack.push(diff - 3);
+                depthStack[++depthStackIndex] = diff - 3;
                 continue;
             }
         }
@@ -60,7 +63,7 @@ function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): 
         if (type !== ShapeTypeNone)
         {
             let dist = getDistToType(type, transPoint, params);
-            depthStack.push(dist);
+            depthStack[++depthStackIndex] = dist;
         }
 
         const leftOp = data[i + 12] as SdfOpCodeInt;
@@ -70,34 +73,34 @@ function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): 
 
         if (leftIndex > 0)
         {
-            processingStack.push(leftIndex * shapeDataSize);
+            processingStack[++processingStackIndex] = leftIndex * shapeDataSize;
             if (leftOp !== SdfOpCodeNone)
             {
-                operations.push(leftOp);
+                operations[++operationsStackIndex] = leftOp;
             }
         }
 
         if (rightIndex > 0)
         {
-            processingStack.push(rightIndex * shapeDataSize);
+            processingStack[++processingStackIndex] = rightIndex * shapeDataSize;
             if (rightOp !== SdfOpCodeNone)
             {
-                operations.push(rightOp);
+                operations[++operationsStackIndex] = rightOp;
             }
         }
     }
 
-    if (depthStack.length === 0)
+    if (depthStackIndex < 0)
     {
         return 100;
     }
-    while (operations.length > 0 && depthStack.length > 1)
+    while (operationsStackIndex >= 0 && depthStackIndex >= 1)
     {
-        const lastOp = operations.pop();
-        const lastD2 = depthStack.pop();
-        const lastD1 = depthStack.pop();
+        const lastOp = operations[operationsStackIndex--];
+        const lastD2 = depthStack[depthStackIndex--];
+        const lastD1 = depthStack[depthStackIndex--]
         const dist = applyOpCode(lastOp, lastD2, lastD1);
-        depthStack.push(dist);
+        depthStack[++depthStackIndex] = dist;
     }
     return depthStack[0];
 
