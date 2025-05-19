@@ -74,31 +74,22 @@ function startup()
     {
         setupCanvas(canvas);
 
-        // Order of operations is not easy to follow
         sdfScene.setShape(0, {
-            type: 'none',
-            rightIndex: 2,
-            rightOpCode: 'union',
-            leftIndex: 3,
-            leftOpCode: 'subtraction'
-        });
-        sdfScene.setShape(1, {
             type: 'box',
             shapeParams: {x: 3, y: 2, z: 1},
             maxSize: 4.0,
         });
-        sdfScene.setShape(2, {
+        sdfScene.setShape(1, {
             type: 'hexPrism',
             shapeParams: {x: 1.5, y: 2, z: 0},
             maxSize: 2
         });
-        sdfScene.setShape(3, {
+        sdfScene.setShape(2, {
             type: 'box',
             shapeParams: {x: 6, y: 1, z: 6},
             position: {x: 0, y: -1.5, z: 0},
-            leftIndex: 1
-        })
-        sdfScene.numTopShapes = 1;
+        });
+        sdfScene.setOperations([0, 2, 'union', 1, 'subtraction']);
 
         if (renderOnMain)
         {
@@ -138,12 +129,12 @@ function updateLights()
     const z = Math.cos(t) * 7;
     sdfScene.setLight(0, {position: {x, z, y: 1.5}});
 
-    sdfScene.setShape(2, {
+    sdfScene.setShape(1, {
         position: {x: x / 5, y: z / 7, z: 0}
     });
 
     const q = quatSetAxisAngle(quatIdentity(), {x: 1, y: 0, z: 0}, t / 3);
-    sdfScene.setShape(1, {
+    sdfScene.setShape(0, {
         rotation: q
     });
 }
@@ -227,7 +218,7 @@ function renderMainThread()
         type: 'render',
         numLights: sdfScene.getNumLights(),
         lightData: sdfScene.getLightDataArray(),
-        numShapes: sdfScene.numTopShapes,
+        operations: sdfScene.getOperationNumbers(),
         shapeData: sdfScene.getShapeDataArray(),
         width: window.innerWidth,
         height: window.innerHeight,

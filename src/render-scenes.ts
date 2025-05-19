@@ -9,99 +9,71 @@ const transform = mat4Identity();
 const transPoint = vec3Zero();
 const rotation = quatIdentity();
 
-const processingStack: number[] = [];
-let processingStackIndex = 0;
-const operations: SdfOpCodeInt[] = [];
-let operationsStackIndex = 0;
 const depthStack: number[] = [];
-let depthStackIndex = 0;
 
 const testPoint = vec3Zero();
-function sceneFromDataNoRecursive(point: rvec3, data: number[], index: number): number
+
+function calculateDist(index: number, point: rvec3, shapeData: number[])
 {
-    processingStackIndex = -1;
-    operationsStackIndex = -1;
-    depthStackIndex = -1;
+    const i = index * shapeDataSize;
 
-    processingStack[++processingStackIndex] = index;
+    testPoint.x = shapeData[i];
+    testPoint.y = shapeData[i + 1];
+    testPoint.z = shapeData[i + 2];
 
-    while (processingStackIndex >= 0)
+    const radius = shapeData[i + 3];
+    vec3SubFrom(testPoint, testPoint, point);
+
+    if (radius > 0)
     {
-        const i = processingStack[processingStackIndex--];
-
-        testPoint.x = data[i];
-        testPoint.y = data[i + 1];
-        testPoint.z = data[i + 2];
-
-        const radius = data[i + 3];
-        vec3SubFrom(testPoint, testPoint, point);
-
-        if (radius > 0)
+        const diff = vec3Length(testPoint);
+        if (diff > radius + 3)
         {
-            const diff = vec3Length(testPoint);
-            if (diff > radius + 3)
-            {
-                depthStack[++depthStackIndex] = diff - 3;
-                continue;
-            }
+            return diff - 3;
         }
+    }
 
-        rotation.x = data[i + 4];
-        rotation.y = data[i + 5];
-        rotation.z = data[i + 6];
-        rotation.w = data[i + 7];
+    rotation.x = shapeData[i + 4];
+    rotation.y = shapeData[i + 5];
+    rotation.z = shapeData[i + 6];
+    rotation.w = shapeData[i + 7];
 
-        vec3TransformQuat(transPoint, testPoint, rotation);
+    vec3TransformQuat(transPoint, testPoint, rotation);
 
-        const type = data[i + 8] as ShapeTypeInt;
-        const params: rvec3 = {
-            x: data[i + 9],
-            y: data[i + 10],
-            z: data[i + 11]
-        }
+    const type = shapeData[i + 8] as ShapeTypeInt;
+    const params: rvec3 = {
+        x: shapeData[i + 9],
+        y: shapeData[i + 10],
+        z: shapeData[i + 11],
+    };
 
-        if (type !== ShapeTypeNone)
+    return getDistToType(type, transPoint, params);
+}
+
+function sceneFromDataNoRecursive(point: rvec3, shapeData: number[], operations: number[]): number
+{
+    let operationsIndex = 0;
+    let depthStackIndex = -1;
+
+    while (operationsIndex < operations.length)
+    {
+        const operation = operations[operationsIndex++];
+
+        if (operation <= SdfOpCodeNone)
         {
-            let dist = getDistToType(type, transPoint, params);
+            const lastD2 = depthStack[depthStackIndex--];
+            const lastD1 = depthStack[depthStackIndex--]
+            const dist = applyOpCode(operation as SdfOpCodeInt, lastD2, lastD1);
             depthStack[++depthStackIndex] = dist;
         }
-
-        const leftOp = data[i + 12] as SdfOpCodeInt;
-        const leftIndex = data[i + 13];
-        const rightOp = data[i + 14] as SdfOpCodeInt;
-        const rightIndex = data[i + 15];
-
-        if (leftIndex > 0)
+        else
         {
-            processingStack[++processingStackIndex] = leftIndex * shapeDataSize;
-            if (leftOp !== SdfOpCodeNone)
-            {
-                operations[++operationsStackIndex] = leftOp;
-            }
-        }
-
-        if (rightIndex > 0)
-        {
-            processingStack[++processingStackIndex] = rightIndex * shapeDataSize;
-            if (rightOp !== SdfOpCodeNone)
-            {
-                operations[++operationsStackIndex] = rightOp;
-            }
+            // Calculate dist of object at index
+            const dist = calculateDist(operation, point, shapeData);
+            depthStack[++depthStackIndex] = dist;
         }
     }
 
-    if (depthStackIndex < 0)
-    {
-        return 100;
-    }
-    while (operationsStackIndex >= 0 && depthStackIndex >= 1)
-    {
-        const lastOp = operations[operationsStackIndex--];
-        const lastD2 = depthStack[depthStackIndex--];
-        const lastD1 = depthStack[depthStackIndex--]
-        const dist = applyOpCode(lastOp, lastD1, lastD2);
-        depthStack[++depthStackIndex] = dist;
-    }
     return depthStack[0];
 
 }
@@ -235,7 +207,7 @@ export function renderScene1(request: WorkerRenderRequest)
         time,
         numLights,
         lightData,
-        numShapes,
+        operations,
         shapeData
     } = request;
     const view = new Uint8ClampedArray(buffer);
@@ -265,15 +237,10 @@ export function renderScene1(request: WorkerRenderRequest)
             vec3TransformMat3(viewDir, viewDir, cameraMatrix);
 
             let dist = 100;
-            let hitIndex = -1;
-            for (let i = 0; i < numShapes; i++)
+            const newDist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromDataNoRecursive(p, shapeData, operations));
+            if (newDist < dist)
             {
-                const newDist = rayMarch(cameraPosition, viewDir, 0, 100, (p) => sceneFromDataNoRecursive(p, shapeData, i * shapeDataSize));
-                if (newDist < dist)
-                {
-                    dist = newDist;
-                    hitIndex = i;
-                }
+                dist = newDist;
             }
 
             let colour = redColour;
@@ -282,12 +249,12 @@ export function renderScene1(request: WorkerRenderRequest)
             {
                 colour = emptyColour;
             }
-            else if (hitIndex >= 0)
+            else
             {
                 // The closest point on the surface to the eyepoint along the view ray
                 vec3ScaleAndAddBy(closestPoint, cameraPosition, viewDir, dist);
 
-                const colouredLight = phongIllumination((p) => sceneFromDataNoRecursive(p, shapeData, hitIndex * shapeDataSize), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
+                const colouredLight = phongIllumination((p) => sceneFromDataNoRecursive(p, shapeData, operations), dist, K_a, K_d, K_s, shininess, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
                     x: colouredLight.x * 255,
                     y: colouredLight.y * 255,

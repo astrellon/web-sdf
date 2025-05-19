@@ -53,7 +53,7 @@ export class WorkerWrapper
             height: this.height,
             numLights: sdfScene.getNumLights(),
             lightData: sdfScene.getLightDataArray(),
-            numShapes: sdfScene.numTopShapes,
+            operations: sdfScene.getOperationNumbers(),
             shapeData: sdfScene.getShapeDataArray(),
             cameraPosition, cameraMatrix, totalHeight, totalWidth, time
         };

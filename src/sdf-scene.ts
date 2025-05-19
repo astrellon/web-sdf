@@ -11,18 +11,18 @@ export const lightDataSize = 3 + 1 + 3;
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
-export const SdfOpCodeNone = 0 as SdfOpCodeInt;
-export const SdfOpCodeUnion = 1 as SdfOpCodeInt;
-export const SdfOpCodeIntersection = 2 as SdfOpCodeInt;
-export const SdfOpCodeSubtraction = 3 as SdfOpCodeInt;
-export const SdfOpCodeXor = 4 as SdfOpCodeInt;
+export const SdfOpCodeNone = -5e5 as SdfOpCodeInt;
+export const SdfOpCodeUnion = -6e5 as SdfOpCodeInt;
+export const SdfOpCodeIntersection = -7e5 as SdfOpCodeInt;
+export const SdfOpCodeSubtraction = -8e5 as SdfOpCodeInt;
+export const SdfOpCodeXor = -9e5 as SdfOpCodeInt;
 
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
 export type ShapeTypeInt = Opaque<number, "shapeType">;
-export const ShapeTypeNone = 0 as ShapeTypeInt;
-export const ShapeTypeBox = 1 as ShapeTypeInt;
-export const ShapeTypeSphere = 2 as ShapeTypeInt;
-export const ShapeTypeHexPrism = 3 as ShapeTypeInt;
+export const ShapeTypeNone = -5e6 as ShapeTypeInt;
+export const ShapeTypeBox = -6e6 as ShapeTypeInt;
+export const ShapeTypeSphere = -7e6 as ShapeTypeInt;
+export const ShapeTypeHexPrism = -8e6 as ShapeTypeInt;
 interface Shape
 {
     position: vec3;
@@ -30,11 +30,6 @@ interface Shape
     maxSize: number;
     type: ShapeType;
     shapeParams: vec3;
-
-    leftOpCode: SdfOpCode;
-    leftIndex: number;
-    rightOpCode: SdfOpCode;
-    rightIndex: number;
 }
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
@@ -67,10 +62,10 @@ type ShapeDataArray =
     vec3, number,           // position | max size
     quat,                   // quaternion
     ShapeTypeInt, vec3,     // shapeType | shapeParams
-    SdfOpCodeInt, number,   // opCode | left shape index
-    SdfOpCodeInt, number    // opCode | right shape index
 ];
-export const shapeDataSize = 4 + 4 + 4 + 2 + 2;
+export const shapeDataSize = 4 + 4 + 4;
+
+export type ShapeOperation = number | SdfOpCode;
 
 export class SdfScene
 {
@@ -80,7 +75,9 @@ export class SdfScene
     private shapes: Shape[] = [];
     private shapeDataArray: number[] = [];
 
-    public numTopShapes: number = 0;
+    public operations: ShapeOperation[] = [];
+
+    private numberOperations: number[] = [];
 
     public getLightDataArray()
     {
@@ -110,6 +107,22 @@ export class SdfScene
     public getNumTotalShapes()
     {
         return this.shapes.length;
+    }
+
+    public setOperations(operations: ShapeOperation[])
+    {
+        this.operations = operations;
+        this.updateOperationNumbers();
+    }
+
+    public getOperations()
+    {
+        return this.operations;
+    }
+
+    public getOperationNumbers()
+    {
+        return this.numberOperations;
     }
 
     public setLight(index: number, light: Partial<Light>)
@@ -184,11 +197,18 @@ export class SdfScene
         this.shapeDataArray[dataIndex +  9] = shape.shapeParams.x;
         this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
+    }
 
-        this.shapeDataArray[dataIndex + 12] = toOpCodeInt(shape.leftOpCode);
-        this.shapeDataArray[dataIndex + 13] = shape.leftIndex;
-        this.shapeDataArray[dataIndex + 14] = toOpCodeInt(shape.rightOpCode);
-        this.shapeDataArray[dataIndex + 15] = shape.rightIndex;
+    private updateOperationNumbers()
+    {
+        this.numberOperations = this.operations.map(i =>
+        {
+            if (typeof(i) === 'string')
+            {
+                return toOpCodeInt(i);
+            }
+            return i;
+        });
     }
 
     private createNewLight(): Light
@@ -208,10 +228,6 @@ export class SdfScene
             maxSize: 0,
             type: "none",
             shapeParams: vec3Zero(),
-            leftOpCode: "none",
-            leftIndex: -1,
-            rightOpCode: "none",
-            rightIndex: -1,
         }
     }
 }

@@ -18,7 +18,7 @@ export interface WorkerRenderRequest extends WorkerRequest
     readonly lightData: number[];
     readonly numLights: number;
     readonly shapeData: number[];
-    readonly numShapes: number;
+    readonly operations: number[];
     readonly buffer: ArrayBuffer;
     readonly time: number;
 }
