@@ -1,5 +1,5 @@
 import { Opaque } from "./common";
-import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero } from "./gl-matrix-ts";
+import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero, vec4 } from "./gl-matrix-ts";
 
 interface Light
 {
@@ -30,6 +30,8 @@ interface Shape
     maxSize: number;
     type: ShapeType;
     shapeParams: vec3;
+    diffuseColour: vec4;
+    specularColour: vec4;
 }
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
@@ -62,8 +64,10 @@ type ShapeDataArray =
     vec3, number,           // position | max size
     quat,                   // quaternion
     ShapeTypeInt, vec3,     // shapeType | shapeParams
+    vec4,                   // diffuse
+    vec4,                   // specular
 ];
-export const shapeDataSize = 4 + 4 + 4;
+export const shapeDataSize = 4 + 4 + 4 + 4 + 4;
 
 export type ShapeOperation = number | SdfOpCode;
 
@@ -197,6 +201,16 @@ export class SdfScene
         this.shapeDataArray[dataIndex +  9] = shape.shapeParams.x;
         this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
+
+        this.shapeDataArray[dataIndex + 12] = shape.diffuseColour.x;
+        this.shapeDataArray[dataIndex + 13] = shape.diffuseColour.y;
+        this.shapeDataArray[dataIndex + 14] = shape.diffuseColour.z;
+        this.shapeDataArray[dataIndex + 15] = shape.diffuseColour.w;
+
+        this.shapeDataArray[dataIndex + 16] = shape.specularColour.x;
+        this.shapeDataArray[dataIndex + 17] = shape.specularColour.y;
+        this.shapeDataArray[dataIndex + 18] = shape.specularColour.z;
+        this.shapeDataArray[dataIndex + 19] = shape.specularColour.w;
     }
 
     private updateOperationNumbers()
@@ -228,6 +242,8 @@ export class SdfScene
             maxSize: 0,
             type: "none",
             shapeParams: vec3Zero(),
+            diffuseColour: {x: 0.7, y: 0.3, z: 0.2, w: 1.0},
+            specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0}
         }
     }
 }

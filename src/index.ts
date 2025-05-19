@@ -1,7 +1,7 @@
 import { WorkerWrapper } from "./worker-wrapper";
 import { mat3Identity, rvec3, vec3Zero } from "./gl-matrix-ts";
 import { quatIdentity, quatNormalize, quatSetAxisAngle } from "./gl-matrix-ts/quat";
-import { renderScene1 } from "./render-scenes";
+import { renderScene1, renderScene2 } from "./render-scenes";
 import { WorkerRenderRequest } from "./states";
 import { createViewMatrix } from "./ray-marching";
 import { SdfScene } from "./sdf-scene";
@@ -75,19 +75,21 @@ function startup()
         setupCanvas(canvas);
 
         sdfScene.setShape(0, {
-            type: 'box',
-            shapeParams: {x: 3, y: 2, z: 1},
-            maxSize: 4.0,
+            type: 'sphere',
+            shapeParams: {x: 2, y: 2, z: 1},
+            maxSize: 2.0,
+            diffuseColour: {x: 0.1, y: 0.9, z: 0.2, w: 1.0}
         });
         sdfScene.setShape(1, {
-            type: 'hexPrism',
+            type: 'sphere',
             shapeParams: {x: 1.5, y: 2, z: 0},
-            maxSize: 2
+            maxSize: 1.5
         });
         sdfScene.setShape(2, {
             type: 'box',
             shapeParams: {x: 6, y: 1, z: 6},
             position: {x: 0, y: -1.5, z: 0},
+            diffuseColour: {x: 0.2, y: 0.25, z: 0.3, w: 1.0}
         });
         sdfScene.setOperations([0, 2, 'union', 1, 'subtraction']);
 
@@ -125,6 +127,7 @@ function doRender()
 function updateLights()
 {
     const t = (Date.now() / 1000) * 3;
+    // const t = 0;
     const x = Math.sin(t) * 7;
     const z = Math.cos(t) * 7;
     sdfScene.setLight(0, {position: {x, z, y: 1.5}});
@@ -133,10 +136,10 @@ function updateLights()
         position: {x: x / 5, y: z / 7, z: 0}
     });
 
-    const q = quatSetAxisAngle(quatIdentity(), {x: 1, y: 0, z: 0}, t / 3);
-    sdfScene.setShape(0, {
-        rotation: q
-    });
+    // const q = quatSetAxisAngle(quatIdentity(), {x: 1, y: 0, z: 0}, t / 3);
+    // sdfScene.setShape(0, {
+    //     rotation: q
+    // });
 }
 
 function setupCanvas(canvas: HTMLCanvasElement)
@@ -206,7 +209,8 @@ function renderMainThread()
 
     // const camZ = Math.sin(Date.now() / 1000) + 6;
     // const cameraPosition: ReadonlyVec3 = [0, 0, camZ];
-    const t = Date.now() / 1000;
+    // const t = Date.now() / 1000;
+    const t = 0;
     const x = Math.sin(t) * 20;
     const z = Math.cos(t) * 20;
     cameraPosition.x = x;
@@ -214,24 +218,26 @@ function renderMainThread()
     cameraPosition.z = z;
     createViewMatrix(cameraMatrix, cameraPosition, cameraTarget, cameraUp);
 
+    const { width, height } = context.canvas;
+
     const request: WorkerRenderRequest = {
         type: 'render',
         numLights: sdfScene.getNumLights(),
         lightData: sdfScene.getLightDataArray(),
         operations: sdfScene.getOperationNumbers(),
         shapeData: sdfScene.getShapeDataArray(),
-        width: window.innerWidth,
-        height: window.innerHeight,
-        totalWidth: window.innerWidth,
-        totalHeight: window.innerHeight,
+        width,
+        height,
+        totalWidth: width,
+        totalHeight: height,
         buffer: mainThreadBuffer,
         xPos: 0,
         yPos: 0,
         cameraMatrix, cameraPosition, time: t
     }
-    renderScene1(request);
+    renderScene2(request);
 
-    const imageData = new ImageData(imageDataArray, window.innerWidth, window.innerHeight);
+    const imageData = new ImageData(imageDataArray, width, height);
     context.putImageData(imageData, 0, 0);
     console.timeEnd('Main thread render');
 }

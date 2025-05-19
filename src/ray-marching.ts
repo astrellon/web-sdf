@@ -1,5 +1,5 @@
 import { toRadian } from "./common";
-import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy } from "./gl-matrix-ts";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy, rvec4, vec4Zero } from "./gl-matrix-ts";
 import mathf from "./gl-matrix-ts/mathf";
 import { lightDataSize } from "./sdf-scene";
 
@@ -9,7 +9,15 @@ import { lightDataSize } from "./sdf-scene";
 export const MAX_MARCHING_STEPS = 255;
 export const EPSILON = 0.0001;
 
-export type RayMarchScene = (point: vec3) => number;
+export interface RayWithMaterial
+{
+    distance: number,
+    diffuseColour: rvec4,
+    specularColour: rvec4
+}
+
+export type RayMarchSceneDist = (point: vec3) => number;
+export type RayMarchSceneMaterial = (point: vec3) => RayWithMaterial;
 
 /**
  * Return a transform matrix that will transform a ray from view space
@@ -61,21 +69,21 @@ export function rayDirection(result: vec3, fieldOfView: number, size: rvec2, fra
  * the marching direction. If no part of the surface is found between start and end,
  * return end.
  *
- * @param eye the eye point, acting as the origin of the ray
- * @param marchingDirection the normalized direction to march in
- * @param start the starting distance away from the eye
- * @param end the max distance away from the ey to march before giving up
+ * @param rayOrigin the eye point, acting as the origin of the ray
+ * @param rayDirection the normalized direction to march in
+ * @param near the starting distance away from the eye
+ * @param far the max distance away from the ey to march before giving up
  * @returns the shortest distance found, if nothing is found then end is returned
  */
 const rayMarchPoint = vec3Zero();
-export function rayMarch(eye: rvec3, marchingDirection: rvec3, start: number, end: number, scene: RayMarchScene): number
+export function rayMarchDist(rayOrigin: rvec3, rayDirection: rvec3, near: number, far: number, scene: RayMarchSceneDist): number
 {
     rayMarchPoint.x = rayMarchPoint.y = rayMarchPoint.z = 0;
-    let depth = start;
+    let depth = near;
 
     for (let i = 0; i < MAX_MARCHING_STEPS; i++)
     {
-        vec3ScaleAndAddBy(rayMarchPoint, eye, marchingDirection, depth);
+        vec3ScaleAndAddBy(rayMarchPoint, rayOrigin, rayDirection, depth);
         const dist = scene(rayMarchPoint);
         if (dist <= EPSILON)
         {
@@ -83,39 +91,102 @@ export function rayMarch(eye: rvec3, marchingDirection: rvec3, start: number, en
         }
 
         depth += dist;
-        if (depth >= end)
+        if (depth >= far)
         {
-            return end;
+            return far;
         }
     }
 
-    return end;
+    return far;
+}
+
+export const zeroColour = vec4Zero();
+export function rayMarchMaterial(rayOrigin: rvec3, rayDirection: rvec3, near: number, far: number, scene: RayMarchSceneMaterial): RayWithMaterial
+{
+    rayMarchPoint.x = rayMarchPoint.y = rayMarchPoint.z = 0;
+    let depth = near;
+
+    for (let i = 0; i < MAX_MARCHING_STEPS; i++)
+    {
+        vec3ScaleAndAddBy(rayMarchPoint, rayOrigin, rayDirection, depth);
+        const dist = scene(rayMarchPoint);
+        if (dist.distance <= EPSILON)
+        {
+            return { distance: depth, diffuseColour: dist.diffuseColour, specularColour: dist.specularColour };
+        }
+
+        depth += dist.distance;
+        if (depth >= far)
+        {
+            break;
+        }
+    }
+
+    return {distance: far, diffuseColour: zeroColour, specularColour: zeroColour};
 }
 
 /**
  * Using the gradient of the SDF, estimate the normal on the surface at point p.
  */
-export function estimateNormal(point: rvec3, currentDepth: number, scene: RayMarchScene): vec3
+let debugCount = 100;
+export function estimateNormal(point: rvec3, currentDepth: number, scene: RayMarchSceneDist): vec3
 {
     const eps = currentDepth * 0.0015;
     const p1: vec3 = {x: point.x + eps, y: point.y, z: point.z};
     const p2: vec3 = {x: point.x - eps, y: point.y, z: point.z};
 
-    const x = scene(p1) - scene(p2);
+    const d1 = scene(p1);
+    const d2 = scene(p2);
+    const x = d1 - d2;
 
     p1.x = point.x;
     p1.y = point.y + eps;
     p2.x = point.x;
     p2.y = point.y - eps;
 
-    const y = scene(p1) - scene(p2);
+    const d3 = scene(p1);
+    const d4 = scene(p2);
+    const y = d3 - d4;
 
     p1.y = point.y;
     p1.z = point.z + eps;
     p2.y = point.y;
     p2.z = point.z - eps;
 
-    const z = scene(p1) - scene(p2);
+    const d5 = scene(p1);
+    const d6 = scene(p2);
+    const z = d5 - d6;
+
+    return vec3NormalizedValues(x, y, z);
+}
+
+export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
+{
+    const eps = currentDepth * 0.0015;
+    const p1: vec3 = {x: point.x + eps, y: point.y, z: point.z};
+    const p2: vec3 = {x: point.x - eps, y: point.y, z: point.z};
+
+    const d1 = scene(p1);
+    const d2 = scene(p2);
+    const x = d1.distance - d2.distance;
+
+    p1.x = point.x;
+    p1.y = point.y + eps;
+    p2.x = point.x;
+    p2.y = point.y - eps;
+
+    const d3 = scene(p1);
+    const d4 = scene(p2);
+    const y = d3.distance - d4.distance;
+
+    p1.y = point.y;
+    p1.z = point.z + eps;
+    p2.y = point.y;
+    p2.z = point.z - eps;
+
+    const d5 = scene(p1);
+    const d6 = scene(p2);
+    const z = d5.distance - d6.distance;
 
     return vec3NormalizedValues(x, y, z);
 }
@@ -144,10 +215,10 @@ export function reflect(out: vec3, incidentVec: rvec3, normal: rvec3)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-export function phongContribForLight(scene: RayMarchScene,
+export function phongContribForLight(scene: RayMarchSceneDist,
     currentDepth: number,
-    k_d: rvec3, k_s: rvec3,
-    alpha: number, point: rvec3, eye: rvec3,
+    diffuseColour: rvec4, specularColour: rvec3,
+    point: rvec3, eye: rvec3,
     lightPos: rvec3, lightIntensity: rvec3): vec3
 {
     const N = estimateNormal(point, currentDepth, scene);
@@ -172,13 +243,56 @@ export function phongContribForLight(scene: RayMarchScene,
     if (dotRV < 0.0)
     {
         // Light reflection in opposite direction as viewer, apply only diffuse component
-        r1 = vec3Scale(k_d, dotLN);
+        r1 = vec3Scale(diffuseColour, dotLN);
     }
     else
     {
-        const r2 = vec3Scale(k_d, dotLN);
-        const pow = Math.pow(dotRV, alpha);
-        r1 = vec3Scale(k_s, pow);
+        const r2 = vec3Scale(diffuseColour, dotLN);
+        const pow = Math.pow(dotRV, diffuseColour.w);
+        r1 = vec3Scale(specularColour, pow);
+
+        vec3AddTo(r1, r1, r2);
+    }
+
+    vec3MulTo(r1, r1, lightIntensity);
+    return r1;
+}
+
+export function phongContribForLightMaterial(scene: RayMarchSceneMaterial,
+    currentDepth: number,
+    diffuseColour: rvec4, specularColour: rvec3,
+    point: rvec3, eye: rvec3,
+    lightPos: rvec3, lightIntensity: rvec3): vec3
+{
+    const N = estimateNormalMaterial(point, currentDepth, scene);
+
+    const L = vec3Normalized(vec3Sub(lightPos, point));
+    const nL = vec3Negated(L);
+
+    const V = vec3Normalized(vec3Sub(eye, point));
+    const R = vec3Normalized(reflect(vec3Zero(), nL, N));
+
+    const dotLN = vec3Dot(L, N);
+    const dotRV = vec3Dot(R, V);
+
+    if (dotLN < 0.0)
+    {
+        // Light not visible from this point on the surface
+        return vec3Zero();
+    }
+
+    let r1: vec3;
+
+    if (dotRV < 0.0)
+    {
+        // Light reflection in opposite direction as viewer, apply only diffuse component
+        r1 = vec3Scale(diffuseColour, dotLN);
+    }
+    else
+    {
+        const r2 = vec3Scale(diffuseColour, dotLN);
+        const pow = Math.pow(dotRV, diffuseColour.w);
+        r1 = vec3Scale(specularColour, pow);
 
         vec3AddTo(r1, r1, r2);
     }
@@ -201,10 +315,10 @@ export function phongContribForLight(scene: RayMarchScene,
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 
-const ambientLight: rvec3 = {x: 0.5, y: 0.5, z: 0.5};
-export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_a: rvec3, k_d: rvec3, k_s: rvec3, alpha: number, point: rvec3, rayOrigin: rvec3, numLights: number, lightData: number[]): vec3
+const fixedAmbientLight: rvec3 = {x: 0.1, y: 0.1, z: 0.1};
+export function phongIllumination(scene: RayMarchSceneDist, currentDepth: number, diffuseColour: rvec4, specularColour: rvec3, point: rvec3, rayOrigin: rvec3, numLights: number, lightData: number[]): vec3
 {
-    const colour: vec3 = vec3Mul(ambientLight, k_a);
+    const colour: vec3 = { x: fixedAmbientLight.x, y: fixedAmbientLight.y, z: fixedAmbientLight.z };
 
     for (let i = 0; i < numLights; i++)
     {
@@ -223,9 +337,36 @@ export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_
 
         const toLight = vec3Normalized(vec3Sub(lightPos, point));
         const shadow = softShadow(scene, point, toLight, 0.1, 100);
-        const lightContrib = phongContribForLight(scene, currentDepth, k_d, k_s, alpha, point, rayOrigin, lightPos, lightColour);
+        const lightContrib = phongContribForLight(scene, currentDepth, diffuseColour, specularColour, point, rayOrigin, lightPos, lightColour);
         vec3AddTo(colour, colour, vec3ScaleBy(lightContrib, lightContrib, shadow));
-        // vec3AddTo(colour, colour, lightContrib);
+    }
+
+    return colour;
+}
+
+export function phongIlluminationMaterial(scene: RayMarchSceneMaterial, currentPoint: RayWithMaterial, point: rvec3, rayOrigin: rvec3, numLights: number, lightData: number[]): vec3
+{
+    const colour: vec3 = { x: fixedAmbientLight.x, y: fixedAmbientLight.y, z: fixedAmbientLight.z };
+
+    for (let i = 0; i < numLights; i++)
+    {
+        const lightIndex = i * lightDataSize;
+        const lightPos = {
+            x: lightData[lightIndex    ],
+            y: lightData[lightIndex + 1],
+            z: lightData[lightIndex + 2]
+        }
+        const lightRadius = lightData[lightIndex + 3];
+        const lightColour = {
+            x: lightData[lightIndex + 4],
+            y: lightData[lightIndex + 5],
+            z: lightData[lightIndex + 6]
+        }
+
+        const toLight = vec3Normalized(vec3Sub(lightPos, point));
+        const shadow = softShadowMaterial(scene, point, toLight, 0.1, 100);
+        const lightContrib = phongContribForLightMaterial(scene, currentPoint.distance, currentPoint.diffuseColour, currentPoint.specularColour, point, rayOrigin, lightPos, lightColour);
+        vec3AddTo(colour, colour, vec3ScaleBy(lightContrib, lightContrib, shadow));
     }
 
     return colour;
@@ -233,13 +374,13 @@ export function phongIllumination(scene: RayMarchScene, currentDepth: number, k_
 
 const shadowSharpness = 32;
 const shadowPoint = vec3Zero();
-export function softShadow(scene: RayMarchScene, rayOrigin: rvec3, rayDirection: rvec3, minT: number, maxT: number)
+export function softShadow(scene: RayMarchSceneDist, rayOrigin: rvec3, rayDirection: rvec3, near: number, far: number)
 {
     let result = 1.0;
     shadowPoint.x = shadowPoint.y = shadowPoint.z = 0;
 
-    let t = minT;
-    for (let i = 0; i < MAX_MARCHING_STEPS && t < maxT; i++)
+    let t = near;
+    for (let i = 0; i < MAX_MARCHING_STEPS && t < far; i++)
     {
         vec3ScaleAndAddBy(shadowPoint, rayOrigin, rayDirection, t);
         const dist = scene(shadowPoint);
@@ -250,6 +391,27 @@ export function softShadow(scene: RayMarchScene, rayOrigin: rvec3, rayDirection:
 
         result = Math.min(result, shadowSharpness * dist / t);
         t += dist;
+    }
+
+    return result;
+}
+export function softShadowMaterial(scene: RayMarchSceneMaterial, rayOrigin: rvec3, rayDirection: rvec3, near: number, far: number)
+{
+    let result = 1.0;
+    shadowPoint.x = shadowPoint.y = shadowPoint.z = 0;
+
+    let t = near;
+    for (let i = 0; i < MAX_MARCHING_STEPS && t < far; i++)
+    {
+        vec3ScaleAndAddBy(shadowPoint, rayOrigin, rayDirection, t);
+        const dist = scene(shadowPoint);
+        if (dist.distance < EPSILON)
+        {
+            return dist.distance;
+        }
+
+        result = Math.min(result, shadowSharpness * dist.distance / t);
+        t += dist.distance;
     }
 
     return result;
