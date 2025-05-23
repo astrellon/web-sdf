@@ -4,9 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run buildMain && npm run buildWorker && npm run copyHtml",
-    "buildMain": "esbuild ./src/index.ts --bundle --minify --sourcemap --outfile=dist/index.js --tsconfig=./tsconfig.json",
-    "buildWorker": "esbuild ./src/worker.ts --bundle --minify --sourcemap --outfile=dist/worker.js --tsconfig=./tsconfig.worker.json",
+    "build": "node build.js && npm run copyHtml",
     "copyHtml": "cp ./src/index.html ./dist"
   },
   "author": "",

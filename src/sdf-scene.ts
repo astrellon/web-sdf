@@ -9,6 +9,13 @@ interface Light
 }
 export const lightDataSize = 3 + 1 + 3;
 
+export interface Camera
+{
+    position: vec3;
+    rotation: quat;
+    fieldOfView: number;
+}
+
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
 export const SdfOpCodeNone = -5e5 as SdfOpCodeInt;
@@ -79,8 +86,7 @@ export class SdfScene
     private shapes: Shape[] = [];
     private shapeDataArray: number[] = [];
 
-    public operations: ShapeOperation[] = [];
-
+    private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
 
     public getLightDataArray()
