@@ -6,6 +6,7 @@ import vertText from "./vert.glsl";
 import fragText from "./frag.glsl";
 
 import Shader from "./shader";
+import { vec3 } from "./gl-matrix-ts";
 
 let gl: WebGL2RenderingContext;
 let shader: Shader;
@@ -21,6 +22,8 @@ const positions = [
     -1, 1
 ];
 let positionBuffer: WebGLBuffer;
+
+const cameraPosition: vec3 = {x: 0, y: 1, z: 10};
 
 function startup()
 {
@@ -49,8 +52,13 @@ function startup()
         gl.enableVertexAttribArray(positionAttributeLoc);
         gl.vertexAttribPointer(positionAttributeLoc, 2, gl.FLOAT, false, 0, 0);
 
-        const uColour = gl.getUniformLocation(shader.program, 'uColour');
+        const uCameraMatrix = gl.getUniformLocation(shader.program, 'uCameraMatrix');
+        const uCameraPosition = gl.getUniformLocation(shader.program, 'uCameraPosition');
         const uAspectRatio = gl.getUniformLocation(shader.program, 'uAspectRatio');
+
+        const uShapes = gl.getUniformLocation(shader.program, 'uShapes');
+        const uOperations = gl.getUniformLocation(shader.program, 'uOperations');
+        const uNumOperations = gl.getUniformLocation(shader.program, 'uNumOperations');
 
         const aspectRatio = gl.canvas.width / gl.canvas.height;
         console.log('Aspect', aspectRatio);
@@ -58,13 +66,27 @@ function startup()
 
         function testRender()
         {
-            const t = Math.sin(Date.now() / 1000);
-            const x = Math.sin(t) * 7;
-            const z = Math.cos(t) * 7;
+            const t = Date.now() / 1000;
+            const tx = Math.cos(t);
+            const ty = Math.sin(t);
+            const x = tx * 7;
+            const z = ty * 7;
             sdfScene.setLight(0, {position: {x, z, y: 1.5}});
+
+            sdfScene.setShape(1, {
+                position: {x: x / 5, y: z / 7, z: 0}
+            });
 
             gl.uniformMatrix2x4fv(uLights, false, sdfScene.getLightDataArray());
             gl.uniform1i(uNumLights, sdfScene.getNumLights());
+
+            const ops = sdfScene.getOperationNumbers();
+            gl.uniform1i(uNumOperations, ops.length);
+            gl.uniform1iv(uOperations, ops);
+
+            gl.uniformMatrix4fv(uShapes, false, sdfScene.getShapeDataArray());
+
+            gl.uniform3f(uCameraPosition, cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
             requestAnimationFrame(testRender);
@@ -72,13 +94,13 @@ function startup()
 
         sdfScene.setShape(0, {
             type: 'sphere',
-            shapeParams: {x: 2, y: 2, z: 1},
+            shapeParams: {x: 1, y: 2, z: 1},
             maxSize: 2.0,
             diffuseColour: {x: 0.1, y: 0.9, z: 0.2, w: 1.0}
         });
         sdfScene.setShape(1, {
-            type: 'sphere',
-            shapeParams: {x: 1.5, y: 2, z: 0},
+            type: 'hexPrism',
+            shapeParams: {x: 1.0, y: 2, z: 0},
             maxSize: 1.5
         });
         sdfScene.setShape(2, {
@@ -94,7 +116,7 @@ function startup()
             colour: {x: 1.0, y: 0.8, z: 0.6, w: 1}
         });
         sdfScene.setLight(1, {
-            position: {x: -4, y: -2, z: 3},
+            position: {x: -4, y: 2, z: 3},
             colour: {x: 0.2, y: 1.0, z: 0.6, w: 1}
         });
 

@@ -18,18 +18,18 @@ export interface Camera
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
-export const SdfOpCodeNone = -5e5 as SdfOpCodeInt;
-export const SdfOpCodeUnion = -6e5 as SdfOpCodeInt;
-export const SdfOpCodeIntersection = -7e5 as SdfOpCodeInt;
-export const SdfOpCodeSubtraction = -8e5 as SdfOpCodeInt;
-export const SdfOpCodeXor = -9e5 as SdfOpCodeInt;
+export const SdfOpCodeNone = -5e2 as SdfOpCodeInt;
+export const SdfOpCodeUnion = -6e2 as SdfOpCodeInt;
+export const SdfOpCodeIntersection = -7e2 as SdfOpCodeInt;
+export const SdfOpCodeSubtraction = -8e2 as SdfOpCodeInt;
+export const SdfOpCodeXor = -9e2 as SdfOpCodeInt;
 
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
 export type ShapeTypeInt = Opaque<number, "shapeType">;
-export const ShapeTypeNone = -5e6 as ShapeTypeInt;
-export const ShapeTypeBox = -6e6 as ShapeTypeInt;
-export const ShapeTypeSphere = -7e6 as ShapeTypeInt;
-export const ShapeTypeHexPrism = -8e6 as ShapeTypeInt;
+export const ShapeTypeNone = -5e3 as ShapeTypeInt;
+export const ShapeTypeBox = -6e3 as ShapeTypeInt;
+export const ShapeTypeSphere = -7e3 as ShapeTypeInt;
+export const ShapeTypeHexPrism = -8e3 as ShapeTypeInt;
 interface Shape
 {
     position: vec3;
@@ -74,7 +74,7 @@ type ShapeDataArray =
     vec4,                   // diffuse
     vec4,                   // specular
 ];
-export const shapeDataSize = 4 + 4 + 4 + 4 + 4;
+export const shapeDataSize = 4 + 4 + 4 + 4;// + 4;
 
 export type ShapeOperation = number | SdfOpCode;
 
@@ -213,10 +213,10 @@ export class SdfScene
         this.shapeDataArray[dataIndex + 14] = shape.diffuseColour.z;
         this.shapeDataArray[dataIndex + 15] = shape.diffuseColour.w;
 
-        this.shapeDataArray[dataIndex + 16] = shape.specularColour.x;
-        this.shapeDataArray[dataIndex + 17] = shape.specularColour.y;
-        this.shapeDataArray[dataIndex + 18] = shape.specularColour.z;
-        this.shapeDataArray[dataIndex + 19] = shape.specularColour.w;
+        // this.shapeDataArray[dataIndex + 16] = shape.specularColour.x;
+        // this.shapeDataArray[dataIndex + 17] = shape.specularColour.y;
+        // this.shapeDataArray[dataIndex + 18] = shape.specularColour.z;
+        // this.shapeDataArray[dataIndex + 19] = shape.specularColour.w;
     }
 
     private updateOperationNumbers()
