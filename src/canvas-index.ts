@@ -5,6 +5,7 @@ import { renderScene1, renderScene2 } from "./render-scenes";
 import { WorkerRenderRequest } from "./states";
 import { createViewMatrix } from "./ray-marching";
 import { SdfScene } from "./sdf-scene";
+import { toRadian } from "./common";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 1;
@@ -219,6 +220,7 @@ function renderMainThread()
     createViewMatrix(cameraMatrix, cameraPosition, cameraTarget, cameraUp);
 
     const { width, height } = context.canvas;
+    const cameraZDir = height / Math.tan(toRadian(45) * 0.5);
 
     const request: WorkerRenderRequest = {
         type: 'render',
@@ -233,7 +235,7 @@ function renderMainThread()
         buffer: mainThreadBuffer,
         xPos: 0,
         yPos: 0,
-        cameraMatrix, cameraPosition, time: t
+        cameraMatrix, cameraPosition, cameraZDir, time: t
     }
     renderScene2(request);
 

@@ -1,5 +1,5 @@
 import { toRadian } from "./common";
-import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy, rvec4, vec4Zero } from "./gl-matrix-ts";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy, rvec4, vec4Zero, vec4One, vec3NormalizeValues } from "./gl-matrix-ts";
 import mathf from "./gl-matrix-ts/mathf";
 import { lightDataSize } from "./sdf-scene";
 
@@ -13,7 +13,7 @@ export interface RayWithMaterial
 {
     distance: number,
     diffuseColour: rvec4,
-    specularColour: rvec4
+    // specularColour: rvec4
 }
 
 export type RayMarchSceneDist = (point: vec3) => number;
@@ -51,11 +51,10 @@ export function createViewMatrix(out: mat3, eye: rvec3, center: rvec3, up: rvec3
  * size: resolution of the output image
  * fragCoord: the x,y coordinate of the pixel in the output image
  */
-export function rayDirection(result: vec3, fieldOfView: number, size: rvec2, fragCoord: rvec2): vec3
+export function rayDirection(result: vec3, z: number, size: rvec2, fragCoord: rvec2): vec3
 {
     const x = fragCoord.x + size.x * -0.5;
     const y = fragCoord.y + size.y * -0.5;
-    const z = size.y / Math.tan(toRadian(fieldOfView) * 0.5);
 
     result.x = x;
     result.y = y;
@@ -112,7 +111,7 @@ export function rayMarchMaterial(rayOrigin: rvec3, rayDirection: rvec3, near: nu
         const dist = scene(rayMarchPoint);
         if (dist.distance <= EPSILON)
         {
-            return { distance: depth, diffuseColour: dist.diffuseColour, specularColour: dist.specularColour };
+            return { distance: depth, diffuseColour: dist.diffuseColour };
         }
 
         depth += dist.distance;
@@ -122,7 +121,7 @@ export function rayMarchMaterial(rayOrigin: rvec3, rayDirection: rvec3, near: nu
         }
     }
 
-    return {distance: far, diffuseColour: zeroColour, specularColour: zeroColour};
+    return { distance: far, diffuseColour: zeroColour };
 }
 
 /**
@@ -160,7 +159,7 @@ export function estimateNormal(point: rvec3, currentDepth: number, scene: RayMar
     return vec3NormalizedValues(x, y, z);
 }
 
-export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
+export function estimateNormalPhongMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
 {
     const eps = currentDepth * 0.0015;
     const p1: vec3 = {x: point.x + eps, y: point.y, z: point.z};
@@ -189,6 +188,37 @@ export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene
     const z = d5.distance - d6.distance;
 
     return vec3NormalizedValues(x, y, z);
+}
+
+// Lambert
+// vec3 calcNormal(vec3 pos)
+// {
+//     // Center sample
+//     float c = sdf(pos);
+//     // Use offset samples to compute gradient / normal
+//     vec2 eps_zero = vec2(0.001, 0.0);
+    // return normalize(vec3(
+    //     sdf(pos + eps_zero.xyy),
+    //     sdf(pos + eps_zero.yxy),
+    //     sdf(pos + eps_zero.yyx)
+    // ) - c);
+// }
+export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
+{
+    const eps = currentDepth * 0.0015;
+
+    const testPoint: vec3 = {x: point.x + eps, y: point.y, z: point.z};
+    const x = scene(testPoint).distance;
+
+    testPoint.x = point.x;
+    testPoint.y = point.y + eps;
+    const y = scene(testPoint).distance;
+
+    testPoint.y = point.y;
+    testPoint.z = point.z + eps;
+    const z = scene(testPoint).distance;
+
+    return vec3NormalizeValues(testPoint, x - currentDepth, y - currentDepth, z - currentDepth);
 }
 
 // https://asawicki.info/news_1301_reflect_and_refract_functions.html
@@ -344,6 +374,7 @@ export function phongIllumination(scene: RayMarchSceneDist, currentDepth: number
     return colour;
 }
 
+const whiteColour = vec4One();
 export function phongIlluminationMaterial(scene: RayMarchSceneMaterial, currentPoint: RayWithMaterial, point: rvec3, rayOrigin: rvec3, numLights: number, lightData: number[]): vec3
 {
     const colour: vec3 = { x: fixedAmbientLight.x, y: fixedAmbientLight.y, z: fixedAmbientLight.z };
@@ -365,7 +396,7 @@ export function phongIlluminationMaterial(scene: RayMarchSceneMaterial, currentP
 
         const toLight = vec3Normalized(vec3Sub(lightPos, point));
         const shadow = softShadowMaterial(scene, point, toLight, 0.1, 100);
-        const lightContrib = phongContribForLightMaterial(scene, currentPoint.distance, currentPoint.diffuseColour, currentPoint.specularColour, point, rayOrigin, lightPos, lightColour);
+        const lightContrib = phongContribForLightMaterial(scene, currentPoint.distance, currentPoint.diffuseColour, whiteColour, point, rayOrigin, lightPos, lightColour);
         vec3AddTo(colour, colour, vec3ScaleBy(lightContrib, lightContrib, shadow));
     }
 

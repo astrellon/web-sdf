@@ -67,7 +67,7 @@ function calculateDistMaterial(index: number, point: rvec3, shapeData: number[])
         const diff = vec3Length(testPoint);
         if (diff > radius + 3)
         {
-            return { distance: diff - 3, diffuseColour: zeroColour, specularColour: zeroColour };
+            return { distance: diff - 3, diffuseColour: zeroColour };
         }
     }
 
@@ -93,14 +93,14 @@ function calculateDistMaterial(index: number, point: rvec3, shapeData: number[])
         z: shapeData[i + 14],
         w: shapeData[i + 15],
     }
-    const specularColour = {
-        x: shapeData[i + 16],
-        y: shapeData[i + 17],
-        z: shapeData[i + 18],
-        w: shapeData[i + 19],
-    }
+    // const specularColour = {
+    //     x: shapeData[i + 16],
+    //     y: shapeData[i + 17],
+    //     z: shapeData[i + 18],
+    //     w: shapeData[i + 19],
+    // }
 
-    return { distance, diffuseColour, specularColour };
+    return { distance, diffuseColour };
 }
 
 function sceneFromDataNoRecursive(point: rvec3, shapeData: number[], operations: number[]): number
@@ -192,20 +192,17 @@ function applyOpCodeMaterial(opCode: SdfOpCodeInt, dist1: RayWithMaterial, dist2
             return -dist1.distance > dist2.distance ? {
                 distance: -dist1.distance,
                 diffuseColour: dist1.diffuseColour,
-                specularColour: dist1.specularColour
             } : dist2;
         case SdfOpCodeXor:
             return {
                 distance: sdfOpXor(dist1.distance, dist2.distance),
                 diffuseColour: dist1.diffuseColour,
-                specularColour: dist1.specularColour
             };
     }
 
     return {
         distance: 100,
         diffuseColour: zeroColour,
-        specularColour: zeroColour
     }
 }
 
@@ -254,6 +251,7 @@ export function renderScene1(request: WorkerRenderRequest)
         yPos,
         cameraMatrix,
         cameraPosition,
+        cameraZDir,
         time,
         numLights,
         lightData,
@@ -282,7 +280,7 @@ export function renderScene1(request: WorkerRenderRequest)
             fragCoord.x = x + xPos;
             fragCoord.y = totalHeight - (y + yPos);
 
-            const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
+            const viewDir = rayDirection(rayDir, cameraZDir, viewSize, fragCoord);
             vec3TransformMat3(viewDir, viewDir, cameraMatrix);
 
             let dist = 100;
@@ -336,6 +334,7 @@ export function renderScene2(request: WorkerRenderRequest)
         yPos,
         cameraMatrix,
         cameraPosition,
+        cameraZDir,
         time,
         numLights,
         lightData,
@@ -360,10 +359,10 @@ export function renderScene2(request: WorkerRenderRequest)
             fragCoord.x = x + xPos;
             fragCoord.y = totalHeight - (y + yPos);
 
-            const viewDir = rayDirection(rayDir, 45.0, viewSize, fragCoord);
+            const viewDir = rayDirection(rayDir, cameraZDir, viewSize, fragCoord);
             vec3TransformMat3(viewDir, viewDir, cameraMatrix);
 
-            let dist: RayWithMaterial = { distance: 100, diffuseColour: zeroColour, specularColour: zeroColour };
+            let dist: RayWithMaterial = { distance: 100, diffuseColour: zeroColour };
             const newDist = rayMarchMaterial(cameraPosition, viewDir, 0, 100, (p) => sceneFromDataNoRecursiveMaterial(p, shapeData, operations));
             if (newDist.distance < dist.distance)
             {
@@ -384,9 +383,9 @@ export function renderScene2(request: WorkerRenderRequest)
                 const sceneCalc = (p: rvec3) => sceneFromDataNoRecursiveMaterial(p, shapeData, operations);
                 const colouredLight = phongIlluminationMaterial(sceneCalc, dist, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
-                    x: colouredLight.x * 255,
-                    y: colouredLight.y * 255,
-                    z: colouredLight.z * 255,
+                    x: Math.pow(colouredLight.x, 0.4545) * 255,
+                    y: Math.pow(colouredLight.y, 0.4545) * 255, // Gamma correction is colour ^ (1 / 2.2)
+                    z: Math.pow(colouredLight.z, 0.4545) * 255,
                     w: 255,
                 };
             }

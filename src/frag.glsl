@@ -145,13 +145,24 @@ vec3 rayDirection(float fieldOfView, vec2 fragCoord)
     return normalize(vec3(xy, -z));
 }
 
-vec3 estimateNormal(vec3 p)
+vec3 estimateNormal(vec3 p, float currentDepth)
 {
     return normalize(vec3(
         sceneSDF(vec3(p.x + EPSILON, p.y, p.z)) - sceneSDF(vec3(p.x - EPSILON, p.y, p.z)),
         sceneSDF(vec3(p.x, p.y + EPSILON, p.z)) - sceneSDF(vec3(p.x, p.y - EPSILON, p.z)),
         sceneSDF(vec3(p.x, p.y, p.z  + EPSILON)) - sceneSDF(vec3(p.x, p.y, p.z - EPSILON))
     ));
+}
+
+// https://github.com/electricsquare/raymarching-workshop?tab=readme-ov-file#diffuse-term
+vec3 estimateNormalLambert(vec3 pos, float currentDepth)
+{
+    // Use offset samples to compute gradient / normal
+    vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
+    return normalize(vec3(
+        sceneSDF(pos + eps_zero.xyy) - currentDepth,
+        sceneSDF(pos + eps_zero.yxy) - currentDepth,
+        sceneSDF(pos + eps_zero.yyx) - currentDepth));
 }
 
 const float shadowSharpness = 32.0;
@@ -194,9 +205,9 @@ float softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(float currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormal(p);
+    vec3 N = estimateNormal(p, currentDepth);
     vec3 L = normalize(lightPos - p);
     vec3 V = normalize(eye - p);
     vec3 R = normalize(reflect(-L, N));
@@ -230,7 +241,7 @@ vec3 phongContribForLight(vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
-vec3 phongIllumination(vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
+vec3 phongIllumination(float currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
 {
     vec3 colour = ambientLight;
 
@@ -242,7 +253,7 @@ vec3 phongIllumination(vec3 diffuse, vec3 specular, float shininess, vec3 worldP
         vec3 toLight = normalize(lightPos - worldPoint);
         float shadow = softShadow(worldPoint, toLight, 0.1, 100.0);
 
-        vec3 lightContrib = phongContribForLight(diffuse, specular, shininess, worldPoint, cameraPoint, lightPos, light[1].xyz);
+        vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, lightPos, light[1].xyz);
         colour += lightContrib * shadow;
     }
 
@@ -289,7 +300,7 @@ void main()
         vec3 specular = vec3(1.0, 1.0, 1.0);
         float shininess = 10.0;
 
-        vec3 litColour = phongIllumination(diffuse, specular, shininess, worldPoint, rayOrigin);
+        vec3 litColour = phongIllumination(dist, diffuse, specular, shininess, worldPoint, rayOrigin);
 
         color = vec4(litColour, 1.0);
     }

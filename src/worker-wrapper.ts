@@ -2,6 +2,7 @@ import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
 import { rmat3, rmat4, rvec3 } from "./gl-matrix-ts";
 import { SdfScene } from "./sdf-scene";
+import { toRadian } from "./common";
 
 export class WorkerWrapper
 {
@@ -44,6 +45,7 @@ export class WorkerWrapper
 
     public doRender = (totalWidth: number, totalHeight: number, cameraPosition: rvec3, cameraMatrix: rmat3, time: number, sdfScene: SdfScene) =>
     {
+        const cameraZDir = totalHeight / Math.tan(toRadian(45) * 0.5);
         const message: WorkerRenderRequest = {
             type: 'render',
             buffer: this.imageData,
@@ -55,7 +57,7 @@ export class WorkerWrapper
             lightData: sdfScene.getLightDataArray(),
             operations: sdfScene.getOperationNumbers(),
             shapeData: sdfScene.getShapeDataArray(),
-            cameraPosition, cameraMatrix, totalHeight, totalWidth, time
+            cameraPosition, cameraMatrix, cameraZDir, totalHeight, totalWidth, time
         };
         this.worker.postMessage(message, [this.imageData]);
     }
