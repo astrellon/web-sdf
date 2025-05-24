@@ -59,12 +59,16 @@ function startup()
         function testRender()
         {
             const t = Math.sin(Date.now() / 1000);
-            gl.uniform3f(uColour, t * 0.5 + 0.5, 0.2, 0.1);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-            // requestAnimationFrame(testRender);
-        }
+            const x = Math.sin(t) * 7;
+            const z = Math.cos(t) * 7;
+            sdfScene.setLight(0, {position: {x, z, y: 1.5}});
 
-        requestAnimationFrame(testRender);
+            gl.uniformMatrix2x4fv(uLights, false, sdfScene.getLightDataArray());
+            gl.uniform1i(uNumLights, sdfScene.getNumLights());
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(testRender);
+        }
 
         sdfScene.setShape(0, {
             type: 'sphere',
@@ -84,6 +88,22 @@ function startup()
             diffuseColour: {x: 0.2, y: 0.25, z: 0.3, w: 1.0}
         });
         sdfScene.setOperations([0, 2, 'union', 1, 'subtraction']);
+
+        sdfScene.setLight(0, {
+            position: {x: 4, y: 2, z: 3},
+            colour: {x: 1.0, y: 0.8, z: 0.6, w: 1}
+        });
+        sdfScene.setLight(1, {
+            position: {x: -4, y: -2, z: 3},
+            colour: {x: 0.2, y: 1.0, z: 0.6, w: 1}
+        });
+
+        const uLights = gl.getUniformLocation(shader.program, 'uLights');
+        const uNumLights = gl.getUniformLocation(shader.program, 'uNumLights');
+        gl.uniformMatrix2x4fv(uLights, false, sdfScene.getLightDataArray());
+        gl.uniform1i(uNumLights, sdfScene.getNumLights());
+
+        requestAnimationFrame(testRender);
     }
 }
 

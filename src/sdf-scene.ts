@@ -1,13 +1,13 @@
 import { Opaque } from "./common";
-import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero, vec4 } from "./gl-matrix-ts";
+import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero, vec4, vec4Clone, vec4One, vec4Zero } from "./gl-matrix-ts";
 
 interface Light
 {
     position: vec3;
     radius: number;
-    colour: vec3;
+    colour: vec4;
 }
-export const lightDataSize = 3 + 1 + 3;
+export const lightDataSize = 3 + 1 + 4;
 
 export interface Camera
 {
@@ -181,11 +181,11 @@ export class SdfScene
         this.lightDataArray[dataIndex    ] = light.position.x;
         this.lightDataArray[dataIndex + 1] = light.position.y;
         this.lightDataArray[dataIndex + 2] = light.position.z;
-        this.lightDataArray[dataIndex + 2] = light.position.z;
         this.lightDataArray[dataIndex + 3] = light.radius;
         this.lightDataArray[dataIndex + 4] = light.colour.x;
         this.lightDataArray[dataIndex + 5] = light.colour.y;
         this.lightDataArray[dataIndex + 6] = light.colour.z;
+        this.lightDataArray[dataIndex + 7] = light.colour.w;
     }
 
     private updateShape(index: number)
@@ -236,7 +236,7 @@ export class SdfScene
         return {
             position: vec3Zero(),
             radius: 10,
-            colour: vec3One()
+            colour: vec4One()
         }
     }
 
