@@ -83,6 +83,8 @@ export default class WebGLSdfRenderer
     public enableShadows = true;
     public enableShowMarches = false;
 
+    public canvasScale = 1;
+
     private readonly cameraMatrixArray = new Float32Array(9);
 
     constructor(gl: WebGL2RenderingContext,
@@ -131,6 +133,11 @@ export default class WebGLSdfRenderer
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
+    public handleResize()
+    {
+        this.resizeCanvas(window.innerWidth, window.innerHeight);
+    }
+
     public orbitCamera(horizontal: number, vertical: number)
     {
         this.cameraRotationX += horizontal;
@@ -150,13 +157,14 @@ export default class WebGLSdfRenderer
 
     public resizeCanvas = (width: number, height: number) =>
     {
-        this.gl.canvas.width = width;
-        this.gl.canvas.height = height;
+        const scaledWidth = width * this.canvasScale;
+        const scaledHeight = height * this.canvasScale;
+        this.gl.canvas.width = scaledWidth;
+        this.gl.canvas.height = scaledHeight;
 
-        this.gl.viewport(0, 0, width, height);
+        this.gl.viewport(0, 0, scaledWidth, scaledHeight);
 
-        const aspectRatio = width / height;
-        console.log('Aspect', aspectRatio);
+        const aspectRatio = scaledWidth / scaledHeight;
         this.gl.uniform1f(this.uAspectRatio, aspectRatio);
     }
 

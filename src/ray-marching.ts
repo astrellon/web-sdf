@@ -159,7 +159,7 @@ export function estimateNormal(point: rvec3, currentDepth: number, scene: RayMar
     return vec3NormalizedValues(x, y, z);
 }
 
-export function estimateNormalPhongMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
+export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
 {
     const eps = currentDepth * 0.0015;
     const p1: vec3 = {x: point.x + eps, y: point.y, z: point.z};
@@ -203,7 +203,7 @@ export function estimateNormalPhongMaterial(point: rvec3, currentDepth: number, 
     //     sdf(pos + eps_zero.yyx)
     // ) - c);
 // }
-export function estimateNormalMaterial(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
+export function estimateNormalMaterialLambert(point: rvec3, currentDepth: number, scene: RayMarchSceneMaterial): vec3
 {
     const eps = currentDepth * 0.0015;
 

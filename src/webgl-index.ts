@@ -37,6 +37,31 @@ function startup()
         }
     });
 
+    document.getElementById('select-render-scale').addEventListener('change', (e: Event) =>
+    {
+        const selectedValue = (e.target as HTMLSelectElement).value;
+        const value = Number.parseFloat(selectedValue);
+        if (isFinite(value))
+        {
+            // canvasScale = value;
+            sdfRenderer.canvasScale = value;
+            sdfRenderer.handleResize();
+        }
+        else
+        {
+            console.warn('Unable to parse canvas scale', selectedValue);
+        }
+    })
+
+    window.addEventListener('resize', (e) =>
+    {
+        sdfRenderer.handleResize();
+        if (!renderEnabled)
+        {
+            render();
+        }
+    });
+
     const canvas = document.getElementById("main-canvas") as HTMLCanvasElement;
     if (!canvas)
     {
