@@ -4,7 +4,7 @@ import vertText from "./vert.glsl";
 import fragText from "./frag.glsl";
 import Shader from "./shader";
 import { SdfScene } from "./sdf-scene";
-import { mat3Identity, quat, quatIdentity, vec3, vec3Zero } from "./gl-matrix-ts";
+import { mat3Identity, quat, quatFromEuler, quatIdentity, quatMulTo, rquat, rvec3, vec3, vec3CrossBy, vec3Normalize, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
 
 const positions = [
     -1, -1,
@@ -15,6 +15,39 @@ const positions = [
     1, 1,
     -1, 1
 ];
+
+const tempAxisQuat = quatIdentity();
+function mat3ArraySetFromQuat(m: Float32Array, q: rquat)
+{
+    const x2 = q.x + q.x;
+    const y2 = q.y + q.y;
+    const z2 = q.z + q.z;
+
+    const xx = q.x * x2;
+    const yx = q.y * x2;
+    const yy = q.y * y2;
+    const zx = q.z * x2;
+    const zy = q.z * y2;
+    const zz = q.z * z2;
+    const wx = q.w * x2;
+    const wy = q.w * y2;
+    const wz = q.w * z2;
+
+    m[0] = 1 - yy - zz;
+    m[1] = yx - wz;
+    m[2] = zx + wy;
+
+    m[3] = yx + wz;
+    m[4] = 1 - xx - zz;
+    m[5] = zy - wx;
+
+    m[6] = zx - wy;
+    m[7] = zy + wx;
+    m[8] = 1 - xx - yy;
+
+    return m;
+}
+
 
 export default class WebGLSdfRenderer
 {
@@ -34,8 +67,23 @@ export default class WebGLSdfRenderer
 
     public readonly uAspectRatio: WebGLUniformLocation;
 
+    public readonly uMaxMarchingSteps: WebGLUniformLocation;
+    public readonly uEpsilon: WebGLUniformLocation;
+    public readonly uFlags: WebGLUniformLocation;
+
     public cameraPosition: vec3 = vec3Zero();
-    public cameraRotation: quat = quatIdentity();
+    public cameraTarget: vec3 = vec3Zero();
+    public cameraRotationX = 0;
+    public cameraRotationY = 0;
+    public cameraDistance = 10;
+
+    public maxMarchingSteps = 255;
+    public epsilon = 0.001;
+
+    public enableShadows = true;
+    public enableShowMarches = false;
+
+    private readonly cameraMatrixArray = new Float32Array(9);
 
     constructor(gl: WebGL2RenderingContext,
         shader: Shader,
@@ -47,7 +95,11 @@ export default class WebGLSdfRenderer
         uNumLights: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
         uCameraMatrix: WebGLUniformLocation,
-        uAspectRatio: WebGLUniformLocation)
+        uAspectRatio: WebGLUniformLocation,
+        uMaxMarchingSteps: WebGLUniformLocation,
+        uEpsilon: WebGLUniformLocation,
+        uFlags: WebGLUniformLocation,
+    )
     {
         this.gl = gl;
         this.shader = shader;
@@ -64,6 +116,10 @@ export default class WebGLSdfRenderer
         this.uCameraPosition = uCameraPosition;
         this.uCameraMatrix = uCameraMatrix;
         this.uAspectRatio = uAspectRatio;
+
+        this.uMaxMarchingSteps = uMaxMarchingSteps;
+        this.uEpsilon = uEpsilon;
+        this.uFlags = uFlags;
     }
 
     public setupCanvas()
@@ -73,6 +129,23 @@ export default class WebGLSdfRenderer
         // Firefox doesn't like having the canvas rendered to until something has happened, like a fillRect
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    }
+
+    public orbitCamera(horizontal: number, vertical: number)
+    {
+        this.cameraRotationX += horizontal;
+        this.cameraRotationY += vertical;
+
+        this.updateCamera();
+    }
+
+    public updateCamera()
+    {
+        quatFromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
+        const forward = vec3TransformQuat(vec3Zero(), {x: 0, y: 0, z: 1}, tempAxisQuat);
+
+        vec3ScaleAndAddBy(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
+        mat3ArraySetFromQuat(this.cameraMatrixArray, tempAxisQuat);
     }
 
     public resizeCanvas = (width: number, height: number) =>
@@ -89,17 +162,6 @@ export default class WebGLSdfRenderer
 
     public render(scene: SdfScene)
     {
-        const t = Date.now() / 1000;
-        const tx = Math.cos(t);
-        const ty = Math.sin(t);
-        const x = tx * 7;
-        const z = ty * 7;
-        scene.setLight(0, { position: { x, z, y: 1.5 } });
-
-        scene.setShape(1, {
-            position: { x: x / 5, y: z / 7, z: 0 },
-        });
-
         this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
         this.gl.uniform1i(this.uNumLights, scene.getNumLights());
 
@@ -111,12 +173,17 @@ export default class WebGLSdfRenderer
         this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
         this.gl.uniform1i(this.uNumLights, scene.getNumLights());
 
+        this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
+        this.gl.uniform1f(this.uEpsilon, this.epsilon);
+        this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
+
         this.gl.uniform3f(
             this.uCameraPosition,
             this.cameraPosition.x,
             this.cameraPosition.y,
             this.cameraPosition.z
         );
+        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixArray);
 
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
@@ -156,12 +223,15 @@ export default class WebGLSdfRenderer
         const uLights = this.getUniform(gl, shader, 'uLights');
         const uNumLights = this.getUniform(gl, shader, 'uNumLights');
 
-        gl.uniformMatrix3fv(uCameraMatrix, false, [1, 0, 0,  0, 1, 0,  0, 0, 1]);
+        const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
+        const uEpsilon = this.getUniform(gl, shader, 'uEpsilon');
+        const uFlags = this.getUniform(gl, shader, 'uFlags');
 
         return new WebGLSdfRenderer(gl, shader, positionBuffer,
             uShapes, uOperations, uNumOperations,
             uLights, uNumLights,
-            uCameraPosition, uCameraMatrix, uAspectRatio);
+            uCameraPosition, uCameraMatrix, uAspectRatio,
+            uMaxMarchingSteps, uEpsilon, uFlags);
     }
 
     private static getAttribute(gl: WebGL2RenderingContext, shader: Shader, name: string)

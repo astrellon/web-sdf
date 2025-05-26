@@ -1,11 +1,9 @@
 #version 300 es
 
-precision mediump float;
+precision lowp float;
 
-const int MAX_MARCHING_STEPS = 255;
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
-const float EPSILON = 0.01;
 
 const int ShapeTypeNone = -5000;
 const int ShapeTypeBox = -6000;
@@ -21,13 +19,6 @@ layout(location = 0) out vec4 color;
 
 in vec2 oPosition;
 
-// struct Light
-// {
-//     vec3 position;
-//     float radius;
-//     vec4 colour;
-// };
-
 uniform mat2x4 uLights[8];
 uniform int uNumLights;
 uniform mat3 uCameraMatrix;
@@ -36,6 +27,10 @@ uniform vec3 uCameraPosition;
 uniform mat4 uShapes[128];
 uniform int uOperations[128];
 uniform int uNumOperations;
+uniform int uMaxMarchingSteps;
+uniform float uEpsilon;
+
+uniform bvec4 uFlags;
 
 float sdfSphere(vec3 point, float radius)
 {
@@ -156,7 +151,7 @@ vec3 estimateNormal(vec3 point, float currentDepth)
 }
 
 // https://github.com/electricsquare/raymarching-workshop?tab=readme-ov-file#diffuse-term
-vec3 estimateNormalLambert(vec3 point, vec2 currentDepth)
+vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
 {
     // Use offset samples to compute gradient / normal
     // float d = sceneSDF(point);
@@ -169,28 +164,29 @@ vec3 estimateNormalLambert(vec3 point, vec2 currentDepth)
 }
 
 const float shadowSharpness = 32.0;
-float softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
     float result = 1.0;
+    int i = 0;
 
-    for (int i = 0; i < MAX_MARCHING_STEPS; i++)
+    for (; i < uMaxMarchingSteps; i++)
     {
         float dist = sceneSDF(rayOrigin + depth * rayDirection);
-        if (dist < EPSILON)
+        if (dist < uEpsilon)
         {
-            return 0.0;
+            return vec2(0.0, float(i));
         }
 
         result = min(result, shadowSharpness * dist / depth);
         depth += dist;
         if (depth >= far)
         {
-            return result;
+            return vec2(result, float(i));
         }
     }
 
-    return result;
+    return vec2(result, float(i));
 }
 
 /**
@@ -208,7 +204,7 @@ float softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(vec2 currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
     vec3 N = estimateNormalLambert(p, currentDepth);
 
@@ -245,45 +241,55 @@ vec3 phongContribForLight(vec2 currentDepth, vec3 diffuse, vec3 specular, float 
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
-vec3 phongIllumination(vec2 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
+vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
 {
     vec3 colour = ambientLight;
+    float light0Rays;
 
     for (int i = 0; i < uNumLights; i++)
     {
         mat2x4 light = uLights[i];
         vec3 lightPos = light[0].xyz;
 
-        vec3 toLight = normalize(lightPos - worldPoint);
-        float shadow = softShadow(worldPoint, toLight, 0.1, 100.0);
+        vec2 shadow = vec2(1.0, 0.0);
+        if (uFlags.x)
+        {
+            vec3 toLight = normalize(lightPos - worldPoint);
+            shadow = softShadow(worldPoint, toLight, 0.1, 100.0);
+
+            if (i == 1)
+            {
+                light0Rays = shadow.y;
+            }
+        }
 
         vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, lightPos, light[1].xyz);
-        colour += lightContrib * shadow;
+        colour += lightContrib * shadow.x;
     }
 
     // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
-    return colour;
+    return vec4(colour, light0Rays);
 }
 
-vec2 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec3 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
-    for (int i = 0; i < MAX_MARCHING_STEPS; i++)
+    for (int i = 0; i < uMaxMarchingSteps; i++)
     {
         float dist = sceneSDF(rayOrigin + depth * rayDirection);
-        if (dist < EPSILON)
+        if (dist < uEpsilon)
         {
-            return vec2(depth, dist);
+            return vec3(depth, dist, float(i));
         }
 
         depth += dist;
         if (depth >= far)
         {
-            return vec2(far, dist);
+            return vec3(far, dist, float(i));
         }
     }
 
-    return vec2(far, far);
+    return vec3(far, far, float(uMaxMarchingSteps));
 }
 
 void main()
@@ -291,9 +297,18 @@ void main()
     vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
     vec3 rayOrigin = uCameraPosition;
 
-    vec2 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
-    if (dist.x > MAX_DIST - EPSILON)
+    vec3 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+    vec4 litColour;
+
+    if (dist.x > MAX_DIST - uEpsilon)
     {
+        if (uFlags.y)
+        {
+            float r = dist.z / float(uMaxMarchingSteps);
+            color = vec4(r, 0, 0, 1);
+            return;
+        }
+
         color = vec4(0, 0, 0, 0);
     }
     else
@@ -305,10 +320,15 @@ void main()
         vec3 specular = vec3(1.0, 1.0, 1.0);
         float shininess = 10.0;
 
-        vec3 litColour = phongIllumination(dist, diffuse, specular, shininess, worldPoint, rayOrigin);
+        litColour = phongIllumination(dist, diffuse, specular, shininess, worldPoint, rayOrigin);
 
-        color = vec4(litColour, 1.0);
+        color = vec4(litColour.xyz, 1.0);
     }
 
-    // color = vec4(oPosition, 0, 1);
+    if (uFlags.y)
+    {
+        float r = dist.z / float(uMaxMarchingSteps);
+        float g = litColour.w / float(uMaxMarchingSteps);
+        color = vec4(r, g, 0, 1);
+    }
 }
