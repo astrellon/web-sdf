@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js && npm run copyHtml",
-    "copyHtml": "cp ./src/webgl-index.html ./src/canvas-index.html ./dist"
+    "copyHtml": "cp ./src/index.html ./src/canvas-index.html ./docs"
   },
   "author": "",
   "license": "ISC",
