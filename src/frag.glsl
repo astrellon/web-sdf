@@ -5,7 +5,7 @@ precision mediump float;
 const int MAX_MARCHING_STEPS = 255;
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
-const float EPSILON = 0.0001;
+const float EPSILON = 0.01;
 
 const int ShapeTypeNone = -5000;
 const int ShapeTypeBox = -6000;
@@ -138,7 +138,7 @@ float sceneSDF(vec3 point)
     return depthStack[0];
 }
 
-vec3 rayDirection(float fieldOfView, vec2 fragCoord)
+vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
 {
     vec2 xy = fragCoord / 2.0;
     float z = 2.0 / tan(radians(fieldOfView));
@@ -261,6 +261,7 @@ vec3 phongIllumination(vec2 currentDepth, vec3 diffuse, vec3 specular, float shi
         colour += lightContrib * shadow;
     }
 
+    // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
     return colour;
 }
 
@@ -287,7 +288,7 @@ vec2 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 
 void main()
 {
-    vec3 rayDir = rayDirection(45.0, oPosition);
+    vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
     vec3 rayOrigin = uCameraPosition;
 
     vec2 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);

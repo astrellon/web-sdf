@@ -1,5 +1,5 @@
 import { Opaque } from "./common";
-import { mat4, quat, quatIdentity, vec3, vec3One, vec3Zero, vec4, vec4Clone, vec4One, vec4Zero } from "./gl-matrix-ts";
+import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "./gl-matrix-ts";
 
 interface Light
 {
@@ -66,15 +66,7 @@ function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
     return SdfOpCodeMap[type] || SdfOpCodeNone;
 }
 
-type ShapeDataArray =
-[
-    vec3, number,           // position | max size
-    quat,                   // quaternion
-    ShapeTypeInt, vec3,     // shapeType | shapeParams
-    vec4,                   // diffuse
-    vec4,                   // specular
-];
-export const shapeDataSize = 4 + 4 + 4 + 4;// + 4;
+export const shapeDataSize = 4 + 4 + 4 + 4;
 
 export type ShapeOperation = number | SdfOpCode;
 
