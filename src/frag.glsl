@@ -145,24 +145,27 @@ vec3 rayDirection(float fieldOfView, vec2 fragCoord)
     return normalize(vec3(xy, -z));
 }
 
-vec3 estimateNormal(vec3 p, float currentDepth)
+vec3 estimateNormal(vec3 point, float currentDepth)
 {
+    vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(vec3(p.x + EPSILON, p.y, p.z)) - sceneSDF(vec3(p.x - EPSILON, p.y, p.z)),
-        sceneSDF(vec3(p.x, p.y + EPSILON, p.z)) - sceneSDF(vec3(p.x, p.y - EPSILON, p.z)),
-        sceneSDF(vec3(p.x, p.y, p.z  + EPSILON)) - sceneSDF(vec3(p.x, p.y, p.z - EPSILON))
+        sceneSDF(point + eps_zero.xyy) - sceneSDF(point - eps_zero.xyy),
+        sceneSDF(point + eps_zero.yxy) - sceneSDF(point - eps_zero.yxy),
+        sceneSDF(point + eps_zero.yyx) - sceneSDF(point - eps_zero.yyx)
     ));
 }
 
 // https://github.com/electricsquare/raymarching-workshop?tab=readme-ov-file#diffuse-term
-vec3 estimateNormalLambert(vec3 pos, float currentDepth)
+vec3 estimateNormalLambert(vec3 point, vec2 currentDepth)
 {
     // Use offset samples to compute gradient / normal
-    vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
+    // float d = sceneSDF(point);
+    float d = currentDepth.y;
+    vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(pos + eps_zero.xyy) - currentDepth,
-        sceneSDF(pos + eps_zero.yxy) - currentDepth,
-        sceneSDF(pos + eps_zero.yyx) - currentDepth));
+        sceneSDF(point + eps_zero.xyy) - d,
+        sceneSDF(point + eps_zero.yxy) - d,
+        sceneSDF(point + eps_zero.yyx) - d));
 }
 
 const float shadowSharpness = 32.0;
@@ -205,9 +208,10 @@ float softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(float currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(vec2 currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormal(p, currentDepth);
+    vec3 N = estimateNormalLambert(p, currentDepth);
+
     vec3 L = normalize(lightPos - p);
     vec3 V = normalize(eye - p);
     vec3 R = normalize(reflect(-L, N));
@@ -241,7 +245,7 @@ vec3 phongContribForLight(float currentDepth, vec3 diffuse, vec3 specular, float
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
 const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
-vec3 phongIllumination(float currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
+vec3 phongIllumination(vec2 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
 {
     vec3 colour = ambientLight;
 
@@ -260,7 +264,7 @@ vec3 phongIllumination(float currentDepth, vec3 diffuse, vec3 specular, float sh
     return colour;
 }
 
-float rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec2 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
     for (int i = 0; i < MAX_MARCHING_STEPS; i++)
@@ -268,17 +272,17 @@ float rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
         float dist = sceneSDF(rayOrigin + depth * rayDirection);
         if (dist < EPSILON)
         {
-            return depth;
+            return vec2(depth, dist);
         }
 
         depth += dist;
         if (depth >= far)
         {
-            return far;
+            return vec2(far, dist);
         }
     }
 
-    return far;
+    return vec2(far, far);
 }
 
 void main()
@@ -286,15 +290,15 @@ void main()
     vec3 rayDir = rayDirection(45.0, oPosition);
     vec3 rayOrigin = uCameraPosition;
 
-    float dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
-    if (dist > MAX_DIST - EPSILON)
+    vec2 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+    if (dist.x > MAX_DIST - EPSILON)
     {
         color = vec4(0, 0, 0, 0);
     }
     else
     {
         // The closest point on the surface to the eyepoint along the view ray
-        vec3 worldPoint = rayOrigin + dist * rayDir;
+        vec3 worldPoint = rayOrigin + dist.x * rayDir;
 
         vec3 diffuse = vec3(0.7, 0.2, 0.2);
         vec3 specular = vec3(1.0, 1.0, 1.0);

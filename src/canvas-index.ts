@@ -127,7 +127,7 @@ function doRender()
 
 function updateLights()
 {
-    const t = (Date.now() / 1000) * 3;
+    const t = Date.now() / 1000;
     // const t = 0;
     const x = Math.sin(t) * 7;
     const z = Math.cos(t) * 7;
