@@ -4,7 +4,7 @@ import vertText from "./vert.glsl";
 import fragText from "./frag.glsl";
 import Shader from "./shader";
 import { SdfScene } from "./sdf-scene";
-import { mat3Identity, quat, quatFromEuler, quatIdentity, quatMulTo, rquat, rvec3, vec3, vec3CrossBy, vec3Normalize, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
+import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
 
 const positions = [
     -1, -1,
