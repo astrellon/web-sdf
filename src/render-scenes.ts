@@ -383,9 +383,12 @@ export function renderScene2(request: WorkerRenderRequest)
                 const sceneCalc = (p: rvec3) => sceneFromDataNoRecursiveMaterial(p, shapeData, operations);
                 const colouredLight = phongIlluminationMaterial(sceneCalc, dist, closestPoint, cameraPosition, numLights, lightData);
                 colour = {
-                    x: Math.pow(colouredLight.x, 0.4545) * 255,
-                    y: Math.pow(colouredLight.y, 0.4545) * 255, // Gamma correction is colour ^ (1 / 2.2)
-                    z: Math.pow(colouredLight.z, 0.4545) * 255,
+                    // x: Math.pow(colouredLight.x, 0.4545) * 255,
+                    // y: Math.pow(colouredLight.y, 0.4545) * 255, // Gamma correction is colour ^ (1 / 2.2)
+                    // z: Math.pow(colouredLight.z, 0.4545) * 255,
+                    x: colouredLight.x * 255,
+                    y: colouredLight.y * 255,
+                    z: colouredLight.z * 255,
                     w: 255,
                 };
             }
