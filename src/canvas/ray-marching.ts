@@ -1,7 +1,7 @@
-import { toRadian } from "./common";
-import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy, rvec4, vec4Zero, vec4One, vec3NormalizeValues } from "./gl-matrix-ts";
-import mathf from "./gl-matrix-ts/mathf";
-import { lightDataSize } from "./sdf-scene";
+import { toRadian } from "../common";
+import { mat3, rvec2, vec2, vec2Length, vec2LengthValues, vec3, rvec3, vec3Normalized, vec3Sub, vec3Cross, vec3Normalize, vec3Zero, vec3ScaleAndAddBy, vec3NormalizedValues, vec3Dot, vec3Negated, vec3Scale, vec3AddTo, vec3MulTo, vec3Mul, vec3Length, vec3Abs, vec3SubFrom, vec3Max, vec3CrossBy, vec2Dot, vec3ScaleBy, rvec4, vec4Zero, vec4One, vec3NormalizeValues } from "../gl-matrix-ts";
+import mathf from "../gl-matrix-ts/mathf";
+import { lightDataSize } from "../ray-marching/sdf-scene";
 
 // Many functions were ported from GLSL from this page:
 // https://jamie-wong.com/2016/07/15/ray-marching-signed-distance-functions/

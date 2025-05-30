@@ -1,11 +1,11 @@
 import { WorkerWrapper } from "./worker-wrapper";
-import { mat3Identity, rvec3, vec3Zero } from "./gl-matrix-ts";
-import { quatIdentity, quatNormalize, quatSetAxisAngle } from "./gl-matrix-ts/quat";
+import { mat3Identity, rvec3, vec3Zero } from "../gl-matrix-ts";
+import { quatIdentity, quatNormalize, quatSetAxisAngle } from "../gl-matrix-ts/quat";
 import { renderScene1, renderScene2 } from "./render-scenes";
 import { WorkerRenderRequest } from "./states";
 import { createViewMatrix } from "./ray-marching";
-import { SdfScene } from "./sdf-scene";
-import { toRadian } from "./common";
+import { SdfScene } from "../ray-marching/sdf-scene";
+import { toRadian } from "../common";
 
 const workers: WorkerWrapper[] = [];
 const blocksX = 1;

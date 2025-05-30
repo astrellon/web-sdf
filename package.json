@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js && npm run copyHtml",
-    "copyHtml": "cp ./src/index.html ./src/canvas-index.html ./docs"
+    "copyHtml": "cp ./src/webgl/index.html ./src/canvas/canvas-index.html ./docs"
   },
   "author": "",
   "license": "ISC",
@@ -14,6 +14,8 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "preact": "^10.26.8",
+    "simple-data-store": "^3.3.1",
     "simple-signals": "^1.0.1"
   }
 }

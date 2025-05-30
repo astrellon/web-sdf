@@ -1,5 +1,5 @@
-import { Opaque } from "./common";
-import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "./gl-matrix-ts";
+import { Opaque } from "../common";
+import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "../gl-matrix-ts";
 
 interface Light
 {

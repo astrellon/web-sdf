@@ -13,18 +13,18 @@ const commonOptions = {
 
 build({
     ...commonOptions,
-    entryPoints: ['./src/webgl-index.ts'],
+    entryPoints: ['./src/webgl/webgl-index.tsx'],
     outfile: './docs/webgl-index.js',
 }).catch(() => process.exit(1))
 
 build({
     ...commonOptions,
-    entryPoints: ['./src/canvas-index.ts'],
+    entryPoints: ['./src/canvas/canvas-index.ts'],
     outfile: './docs/canvas-index.js',
 }).catch(() => process.exit(1))
 
 build({
     ...commonOptions,
-    entryPoints: ['./src/worker.ts'],
+    entryPoints: ['./src/canvas/worker.ts'],
     outfile: './docs/worker.js',
 }).catch(() => process.exit(1))

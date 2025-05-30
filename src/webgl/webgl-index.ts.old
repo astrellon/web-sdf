@@ -1,4 +1,7 @@
-import { SdfOpCodeIntersection, SdfScene } from "./sdf-scene";
+import { h, render } from 'preact';
+import { SdfOpCodeIntersection, SdfScene } from "../ray-marching/sdf-scene";
+import { WebGLApp } from "../components/webgl-app";
+import { store } from "../store/store";
 
 import WebGLSdfRenderer from "./webgl-sdf-renderer";
 
@@ -17,6 +20,13 @@ let elMaxMarchingStepValue = document.getElementById('max-marching-steps_value')
 let elEnableShadows = document.getElementById('enable-shadows') as HTMLInputElement;
 let elEnableShowMarching = document.getElementById('enable-show-marching') as HTMLInputElement;
 
+const appEl = document.getElementById("app");
+function renderApp()
+{
+    render(<WebGLApp state={store.state()} />, appEl);
+}
+store.subscribeAny(renderApp);
+
 function startup()
 {
     const toggleRenderButton = document.getElementById('toggle-render');
@@ -33,7 +43,7 @@ function startup()
             renderEnabled = true;
 
             time = Date.now();
-            requestAnimationFrame(render);
+            requestAnimationFrame(renderWebGL);
         }
     });
 
@@ -58,7 +68,7 @@ function startup()
         sdfRenderer.handleResize();
         if (!renderEnabled)
         {
-            render();
+            renderWebGL();
         }
     });
 
@@ -125,7 +135,7 @@ function startup()
         });
 
         time = Date.now();
-        requestAnimationFrame(render);
+        requestAnimationFrame(renderWebGL);
     }
 }
 
@@ -157,7 +167,7 @@ function onPointerMove(e: PointerEvent)
     mousePosX = e.clientX;
     mousePosY = e.clientY;
 
-    sdfRenderer.orbitCamera(dy, dx);
+    sdfRenderer.orbitCamera(-dy, -dx);
 
     manualRenderTrigger();
 }
@@ -190,8 +200,9 @@ function manualRenderTrigger()
     }
 }
 
-function render()
+function renderWebGL()
 {
+    console.log('Render called');
     let now = Date.now();
     deltaTime = time - now;
     time = now;
@@ -212,7 +223,7 @@ function render()
 
     if (renderEnabled)
     {
-        requestAnimationFrame(render);
+        requestAnimationFrame(renderWebGL);
     }
 }
 

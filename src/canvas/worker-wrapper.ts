@@ -1,8 +1,8 @@
 import Signal from "simple-signals";
 import { WorkerRenderRequest, WorkerResponses } from "./states";
-import { rmat3, rmat4, rvec3 } from "./gl-matrix-ts";
-import { SdfScene } from "./sdf-scene";
-import { toRadian } from "./common";
+import { rmat3, rmat4, rvec3 } from "../gl-matrix-ts";
+import { SdfScene } from "../ray-marching/sdf-scene";
+import { toRadian } from "../common";
 
 export class WorkerWrapper
 {

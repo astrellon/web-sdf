@@ -1,10 +1,10 @@
 // @ts-ignore These are handled by esbuild
-import vertText from "./vert.glsl";
+import vertText from "../shaders/vert.glsl";
 // @ts-ignore
-import fragText from "./frag.glsl";
-import Shader from "./shader";
-import { SdfScene } from "./sdf-scene";
-import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
+import fragText from "../shaders/frag.glsl";
+import Shader from "../shaders/shader";
+import { SdfScene } from "../ray-marching/sdf-scene";
+import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
 
 const positions = [
     -1, -1,

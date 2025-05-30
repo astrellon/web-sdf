@@ -1,4 +1,4 @@
-import { rmat3, rvec3 } from "./gl-matrix-ts";
+import { rmat3, rvec3 } from "../gl-matrix-ts";
 
 export interface WorkerRequest
 {

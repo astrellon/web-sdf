@@ -1,8 +1,8 @@
 import { WorkerRenderRequest } from "./states";
 import { sdfSphere, rayDirection, phongIllumination, sdfBox, sdfOpSub, sdfHexPrim, sdfOpIntersection, sdfOpUnion, sdfOpXor, RayWithMaterial, zeroColour, rayMarchMaterial, phongIlluminationMaterial, rayMarchDist } from "./ray-marching";
-import { mat4GetTranslation, mat4Identity, quatIdentity, quatSetAxisAngle, rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformMat3, vec3TransformQuat, vec3Zero } from "./gl-matrix-ts";
-import { SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, shapeDataSize, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-scene";
-import mathf from "./gl-matrix-ts/mathf";
+import { mat4GetTranslation, mat4Identity, quatIdentity, quatSetAxisAngle, rvec2, rvec3, rvec4, vec2Zero, vec3Length, vec3ScaleAndAddBy, vec3SubFrom, vec3TransformMat3, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
+import { SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, shapeDataSize, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "../ray-marching/sdf-scene";
+import mathf from "../gl-matrix-ts/mathf";
 
 const maxSize = 1.5;
 const transform = mat4Identity();

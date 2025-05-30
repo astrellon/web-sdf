@@ -12,6 +12,13 @@
                 overflow: hidden;
             }
 
+            #firefox-fix {
+                width: 10px;
+                height: 10px;
+                position: absolute;
+                backdrop-filter: blur(1px);
+            }
+
             body main {
                 position: absolute;
                 left: 0.5rem;
@@ -29,9 +36,10 @@
         </style>
     </head>
     <body>
-        <main>
-
-            <h1 id="main-h1">WebGL SDF</h1>
+        <div id="firefox-fix"></div>
+        <main id="app"></main>
+        <!-- <main>
+            <div id="test"></div>
             <button id="toggle-render">Stop</button>
             <select id="select-render-scale">
                 <option value="1">1x</option>
@@ -52,7 +60,7 @@
             </label>
 
         </main>
-        <canvas id="main-canvas" class="full-screen-canvas"></canvas>
+        <canvas id="main-canvas" class="full-screen-canvas"></canvas> -->
     </body>
     <script src="./webgl-index.js"></script>
 </html>
