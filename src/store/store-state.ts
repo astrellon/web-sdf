@@ -1,7 +1,7 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
 
-export interface RendererOptions
+export interface ViewportOptions
 {
     readonly renderScale: number;
     readonly renderEnabled: boolean;
@@ -12,7 +12,7 @@ export interface RendererOptions
 
 export interface ViewportState
 {
-    readonly options: RendererOptions;
+    readonly options: ViewportOptions;
 }
 
 export interface AppState
@@ -20,7 +20,7 @@ export interface AppState
     readonly viewports: ViewportState[];
 }
 
-export function setViewportOptions(index: number, options: Partial<RendererOptions>): Modifier<AppState>
+export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
 {
     return (state: AppState) =>
     {

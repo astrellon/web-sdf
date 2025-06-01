@@ -1,4 +1,5 @@
 const { build } = require('esbuild')
+const { sassPlugin } = require('esbuild-sass-plugin');
 
 const commonOptions = {
     tsconfig: './tsconfig.json',
@@ -6,6 +7,7 @@ const commonOptions = {
     bundle: true,
     sourcemap: true,
     logLevel: 'info',
+    plugins: [ sassPlugin() ],
     loader: {
         ".glsl": 'text'
     }

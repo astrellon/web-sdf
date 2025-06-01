@@ -1,5 +1,7 @@
 import { h, Component } from "preact";
 import { AppState } from "../store/store-state";
+import { WebGLViewport } from "./webgl-viewport";
+import WebGLViewportOptions from "./webgl-viewport-options";
 
 interface Props
 {
@@ -10,25 +12,14 @@ export class WebGLApp extends Component<Props>
 {
     public render()
     {
+        const { viewports } = this.props.state;
+
         return <div>
             <h1>WebGL SDF</h1>
-            <button onClick={this.onToggleRender}>Stop</button>
-            <select onChange={this.onChangeRenderScale}>
-                <option value="1">1x</option>
-                <option value="0.5">0.5x</option>
-                <option value="0.25">0.25x</option>
-                <option value="0.125">0.125x</option>
-            </select>
+            <div>
+                <WebGLViewport viewportIndex={0} options={viewports[0].options} />
+                <WebGLViewportOptions viewportIndex={0} options={viewports[0].options} />
+            </div>
         </div>
-    }
-
-    private onToggleRender = (e: Event) =>
-    {
-        console.log('Toggle render', e);
-    }
-
-    private onChangeRenderScale = (e: Event) =>
-    {
-        console.log('Changed render scale', e);
     }
 }

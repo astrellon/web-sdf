@@ -1,7 +1,7 @@
 import DataStore, { Modifier } from "simple-data-store";
-import { AppState, RendererOptions, ViewportState } from "./store-state";
+import { AppState, ViewportOptions, ViewportState } from "./store-state";
 
-export const defaultRenderOptions: RendererOptions = {
+export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
     renderEnabled: true,
     maxMarchingStep: 255,

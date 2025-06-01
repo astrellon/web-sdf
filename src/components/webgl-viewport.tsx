@@ -1,10 +1,12 @@
 import { h, Component, createRef } from "preact";
-import { RendererOptions } from "../store/store-state";
+import { ViewportOptions } from "../store/store-state";
 import WebGLSdfRenderer from "../webgl/webgl-sdf-renderer";
+import "./webgl-viewport.scss";
 
 interface Props
 {
-    readonly renderOptions: RendererOptions;
+    readonly viewportIndex: number;
+    readonly options: ViewportOptions;
 }
 
 export class WebGLViewport extends Component<Props>
@@ -15,11 +17,11 @@ export class WebGLViewport extends Component<Props>
     public componentDidMount(): void
     {
         this.renderer = WebGLSdfRenderer.create(this.canvasRef.current);
-        this.renderer.canvasScale = this.props.renderOptions.renderScale;
+        this.renderer.canvasScale = this.props.options.renderScale;
     }
 
     public render()
     {
-        return <canvas ref={this.canvasRef} />;
+        return <canvas className="viewport__canvas" ref={this.canvasRef} />;
     }
 }
