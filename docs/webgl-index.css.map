@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/webgl-viewport-options.scss", "../src/webgl-viewport.scss", "../src/webgl-app.scss"],
+  "sourcesContent": [".viewport-options {\n    position: absolute;\n    left: 0.5rem;\n    top: 0.5rem;\n}", ".viewport {\n    position: relative;\n    display: flex;\n    flex-grow: 1;\n\n    &__canvas {\n        display: flex;\n        flex-grow: 1;\n        z-index: -1;\n    }\n}", ".viewports {\n    display: flex;\n}"],
+  "mappings": "AAAA,CAAA,iBACI,SAAA,SACA,KAAA,MACA,IAAA,MCHJ,CAAA,SACI,SAAA,SACA,QAAA,KACA,UAAA,EAEA,CAAA,iBACI,QAAA,KACA,UAAA,EACA,QAAA,GCRR,CAAA,UACI,QAAA",
+  "names": []
+}

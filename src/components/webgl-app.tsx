@@ -1,7 +1,7 @@
-import { h, Component } from "preact";
+import { h, Component, Fragment } from "preact";
 import { AppState } from "../store/store-state";
 import { WebGLViewport } from "./webgl-viewport";
-import WebGLViewportOptions from "./webgl-viewport-options";
+import "./webgl-app.scss"
 
 interface Props
 {
@@ -14,12 +14,11 @@ export class WebGLApp extends Component<Props>
     {
         const { viewports } = this.props.state;
 
-        return <div>
+        return <Fragment>
             <h1>WebGL SDF</h1>
-            <div>
+            <div class="viewports">
                 <WebGLViewport viewportIndex={0} options={viewports[0].options} />
-                <WebGLViewportOptions viewportIndex={0} options={viewports[0].options} />
             </div>
-        </div>
+        </Fragment>
     }
 }

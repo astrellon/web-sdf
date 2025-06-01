@@ -1,6 +1,7 @@
 import { h, Component } from 'preact';
 import { setViewportOptions, ViewportOptions } from '../store/store-state';
 import { store } from '../store/store';
+import "./webgl-viewport-options.scss";
 
 interface Props
 {
@@ -14,7 +15,7 @@ export default class WebGLViewportOptions extends Component<Props>
     {
         const { renderEnabled, renderScale } = this.props.options;
 
-        return <div>
+        return <div class="viewport-options">
             <button onClick={this.onToggleRender}>{ renderEnabled ? 'Stop' : 'Start' }</button>
             <select onChange={this.onChangeRenderScale} value={renderScale}>
                 <option value="1">1x</option>

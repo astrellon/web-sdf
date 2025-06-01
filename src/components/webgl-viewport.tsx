@@ -1,6 +1,7 @@
 import { h, Component, createRef } from "preact";
 import { ViewportOptions } from "../store/store-state";
 import WebGLSdfRenderer from "../webgl/webgl-sdf-renderer";
+import WebGLViewportOptions from "./webgl-viewport-options";
 import "./webgl-viewport.scss";
 
 interface Props
@@ -22,6 +23,9 @@ export class WebGLViewport extends Component<Props>
 
     public render()
     {
-        return <canvas className="viewport__canvas" ref={this.canvasRef} />;
+        return <div class="viewport">
+            <WebGLViewportOptions viewportIndex={this.props.viewportIndex} options={this.props.options} />
+            <canvas className="viewport__canvas" ref={this.canvasRef} />
+        </div>
     }
 }
