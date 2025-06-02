@@ -30,7 +30,7 @@ export const ShapeTypeNone = -5e3 as ShapeTypeInt;
 export const ShapeTypeBox = -6e3 as ShapeTypeInt;
 export const ShapeTypeSphere = -7e3 as ShapeTypeInt;
 export const ShapeTypeHexPrism = -8e3 as ShapeTypeInt;
-interface Shape
+export interface Shape
 {
     position: vec3;
     rotation: quat;
@@ -39,6 +39,13 @@ interface Shape
     shapeParams: vec3;
     diffuseColour: vec4;
     specularColour: vec4;
+}
+
+export interface ShapeNode
+{
+    shape?: Shape;
+    childOpCode?: SdfOpCode;
+    children?: ShapeNode[];
 }
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
@@ -77,6 +84,10 @@ export class SdfScene
 
     private shapes: Shape[] = [];
     private shapeDataArray: number[] = [];
+
+    public rootShape: ShapeNode = {
+        childOpCode: 'none'
+    }
 
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
@@ -144,6 +155,11 @@ export class SdfScene
         }
 
         this.updateLight(index);
+    }
+
+    public updateShapesFromRootNode()
+    {
+
     }
 
     public setShape(index: number, shape: Partial<Shape>)
