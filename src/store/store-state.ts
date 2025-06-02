@@ -3,11 +3,12 @@ import { defaultRenderOptions, defaultViewport } from "./store";
 
 export interface ViewportOptions
 {
-    readonly renderScale: number;
-    readonly renderEnabled: boolean;
-    readonly maxMarchingStep: number;
+    readonly enableRender: boolean;
     readonly enableShadows: boolean;
     readonly enableShowMarching: boolean;
+    readonly renderScale: number;
+    readonly maxMarchingStep: number;
+    readonly epsilon: number;
 }
 
 export interface ViewportState

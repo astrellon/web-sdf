@@ -2,6 +2,9 @@
 import vertText from "../shaders/vert.glsl";
 // @ts-ignore
 import fragText from "../shaders/frag.glsl";
+// @ts-ignore
+import sdfFunctionsText from "../shaders/sdf-functions.glsl";
+
 import Shader from "../shaders/shader";
 import { SdfScene } from "../ray-marching/sdf-scene";
 import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
@@ -47,7 +50,6 @@ function mat3ArraySetFromQuat(m: Float32Array, q: rquat)
 
     return m;
 }
-
 
 export default class WebGLSdfRenderer
 {
@@ -126,16 +128,9 @@ export default class WebGLSdfRenderer
 
     public setupCanvas()
     {
-        this.resizeCanvas(window.innerWidth, window.innerHeight);
-
         // Firefox doesn't like having the canvas rendered to until something has happened, like a fillRect
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-    }
-
-    public handleResize()
-    {
-        this.resizeCanvas(window.innerWidth, window.innerHeight);
     }
 
     public orbitCamera(horizontal: number, vertical: number)
@@ -213,7 +208,11 @@ export default class WebGLSdfRenderer
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-        const shader = Shader.create(gl, vertText, fragText);
+        const includeLookup = {
+            'sdf-functions': sdfFunctionsText
+        }
+
+        const shader = Shader.create(gl, includeLookup, vertText, fragText);
         gl.useProgram(shader.program);
 
         const positionAttributeLoc = this.getAttribute(gl, shader, 'aPosition');
