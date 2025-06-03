@@ -1,3 +1,4 @@
+import equal from "fast-deep-equal";
 import { Opaque } from "../common";
 import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "../gl-matrix-ts";
 
@@ -159,7 +160,61 @@ export class SdfScene
 
     public updateShapesFromRootNode()
     {
+        const { operations, shapes } = SdfScene.createShapesFromNode(this.rootShape);
+        this.operations = operations;
+        this.shapes = shapes;
 
+        console.log('Shapes', this.shapes);
+        console.log('Operations', this.operations);
+
+        this.shapeDataArray.length = 0;
+        for (let i = 0; i < this.shapes.length; i++)
+        {
+            this.updateShape(i);
+        }
+        this.updateOperationNumbers();
+    }
+
+    public static createShapesFromNode(node: ShapeNode)
+    {
+        const opsStack: ShapeOperation[] = [];
+        const shapeStack: Shape[] = [];
+        this.pushToStack(opsStack, shapeStack, node);
+
+        opsStack.reverse();
+
+        return {
+            operations: opsStack,
+            shapes: shapeStack
+        };
+    }
+
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode)
+    {
+        if (node.childOpCode !== undefined && node.childOpCode !== 'none')
+        {
+            opsStack.push(node.childOpCode);
+        }
+
+        if (node.shape !== undefined)
+        {
+            let index = shapeStack.findIndex(s => equal(s, node.shape));
+            if (index < 0)
+            {
+                index = shapeStack.length;
+                shapeStack.push(node.shape);
+            }
+
+            opsStack.push(index);
+        }
+
+        if (node.children !== undefined)
+        {
+            for (const child of node.children)
+            {
+                this.pushToStack(opsStack, shapeStack, child);
+            }
+        }
     }
 
     public setShape(index: number, shape: Partial<Shape>)
