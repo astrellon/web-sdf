@@ -1,41 +1,27 @@
 import { h, Component } from 'preact';
+import { SdfScene, ShapeNode } from '../ray-marching/sdf-scene';
+import ShapeNodeView from './shape-node-view';
 import "./scene-graph.scss";
-import { SdfScene, Shape, ShapeNode } from '../ray-marching/sdf-scene';
 
 interface Props
 {
     readonly sdfScene: SdfScene;
 }
 
-const ShapeView = (props: {shape: Shape}) =>
-{
-    return <div>
-    </div>
-}
-
-
-const ShapeNodeView = (props: {node: ShapeNode}) =>
-{
-    return <div>
-        <div>
-            <strong>Op Code</strong> {props.node.childOpCode ?? 'none'}
-        </div>
-        <div>
-            <strong>Shape</strong> <ShapeView shape={props.node.shape} />
-        </div>
-        <div>
-            <strong>Children</strong> { (props.node.children || []).map(child => <ShapeNodeView node={child} />) } />
-        </div>
-    </div>
-}
-
 export default class SceneGraph extends Component<Props>
 {
-    public render(props: Props)
+    public render()
     {
         return <div class="scene-graph">
             <div class="scene-graph__contents outer-panel">
+                <ShapeNodeView node={this.props.sdfScene.rootShape} onChange={this.onChangeRootNode} />
             </div>
         </div>
+    }
+
+    private onChangeRootNode = (node: ShapeNode) =>
+    {
+        this.props.sdfScene.rootShape = node;
+        this.props.sdfScene.updateShapesFromRootNode();
     }
 }

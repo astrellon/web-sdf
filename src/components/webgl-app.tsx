@@ -28,7 +28,7 @@ export class WebGLApp extends Component<Props>
                 <div class="viewports">
                     <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
                 </div>
-                <SceneGraph />
+                <SceneGraph sdfScene={sdfScene} />
             </div>
         </Fragment>
     }
