@@ -14,6 +14,11 @@ export default class ShapeView extends Component<Props>
     {
         const shape = this.props.shape;
 
+        if (shape === undefined)
+        {
+            return <div>Empty shape</div>;
+        }
+
         return <div>
             <div>
                 <strong>Position</strong> <VectorView vector={shape.position} onChange={this.onChangePosition} />
@@ -74,6 +79,7 @@ export default class ShapeView extends Component<Props>
 
     private updateField = (value: any, field: keyof Required<Shape>) =>
     {
+        console.log('Update shape', field, value);
         const newShape = {...this.props.shape, [field]: value};
         this.props.onChange(newShape);
     }

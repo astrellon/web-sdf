@@ -55,6 +55,7 @@ export default class ShapeNodeView extends Component<Props>
 
     private updateField = (value: any, field: keyof ShapeNode) =>
     {
+        console.log('Update shape node', field, value);
         const newNode = {...this.props.node, [field]: value};
         this.props.onChange(newNode);
     }

@@ -1,5 +1,6 @@
 import { h, Component } from 'preact';
 import { rvec2, rvec3, rvec4 } from '../gl-matrix-ts';
+import "./vector-view.scss";
 
 type basicVector = rvec2 | rvec3 | rvec4;
 interface Props
@@ -26,7 +27,7 @@ export default class VectorView extends Component<Props>
         const isV3 = isVec3(v);
         const isV4 = isVec4(v);
 
-        return <div>
+        return <div class="vector">
             <input type='number' value={v.x} onChange={this.onChangeX} placeholder='x' />
             <input type='number' value={v.y} onChange={this.onChangeY} placeholder='y' />
 
@@ -69,6 +70,8 @@ export default class VectorView extends Component<Props>
             console.error('Unable to process vector field', field, strValue);
             return;
         }
+
+        console.log('Update vector field', field, value);
 
         this.props.onChange(v, {...v, [field]: value});
     }
