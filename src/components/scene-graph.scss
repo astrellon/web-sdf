@@ -1,0 +1,11 @@
+.scene-graph {
+    display: flex;
+    max-width: 300px;
+    flex-grow: 1;
+    padding: 1rem;
+
+    &__contents {
+        display: flex;
+        flex-grow: 1;
+    }
+}

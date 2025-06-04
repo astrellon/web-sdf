@@ -3,7 +3,7 @@ import { AppState, ViewportOptions, ViewportState } from "./store-state";
 
 export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
-    enableRender: true,
+    enableRender: false,
     maxMarchingStep: 255,
     enableShadows: true,
     enableShowMarching: false,

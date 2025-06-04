@@ -4,6 +4,7 @@ import { WebGLViewport } from "./webgl-viewport";
 import "./webgl-app.scss"
 import { SdfScene, Shape } from "../ray-marching/sdf-scene";
 import { quatIdentity, vec3Zero } from "../gl-matrix-ts";
+import SceneGraph from "./scene-graph";
 
 interface Props
 {
@@ -22,8 +23,12 @@ export class WebGLApp extends Component<Props>
             <nav class="navbar outer-panel">
                 <button>File</button>
             </nav>
-            <div class="viewports">
-                <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
+
+            <div class="main-view">
+                <div class="viewports">
+                    <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
+                </div>
+                <SceneGraph />
             </div>
         </Fragment>
     }
@@ -53,7 +58,7 @@ function loadDefaultSdfScene()
                 {
                     shape: createNewShape({
                         type: 'hexPrism',
-                        shapeParams: {x: 1.0, y: 2, z: 0},
+                        shapeParams: {x: 0.75, y: 2, z: 0},
                         maxSize: 1.5
                     })
                 },

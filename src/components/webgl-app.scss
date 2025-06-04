@@ -4,6 +4,12 @@
     padding: 1rem;
 }
 
+.main-view {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+}
+
 .navbar {
     margin: 1rem;
     padding: 0.5rem;
