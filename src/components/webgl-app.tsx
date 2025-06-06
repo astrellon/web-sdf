@@ -1,10 +1,11 @@
 import { h, Component, Fragment } from "preact";
-import { AppState } from "../store/store-state";
+import { AppState, setRootNode } from "../store/store-state";
 import { WebGLViewport } from "./webgl-viewport";
 import "./webgl-app.scss"
-import { SdfScene, Shape } from "../ray-marching/sdf-scene";
+import { SdfScene, Shape, ShapeNode } from "../ray-marching/sdf-scene";
 import { quatIdentity, vec3Zero } from "../gl-matrix-ts";
 import SceneGraph from "./scene-graph";
+import { store } from "../store/store";
 
 interface Props
 {
@@ -12,12 +13,13 @@ interface Props
 }
 
 const sdfScene = new SdfScene();
+store.subscribe(state => state.rootNode, (state) => sdfScene.updateShapesFromRootNode(state.rootNode));
 
 export class WebGLApp extends Component<Props>
 {
     public render()
     {
-        const { viewports } = this.props.state;
+        const { viewports, rootNode } = this.props.state;
 
         return <Fragment>
             <nav class="navbar outer-panel">
@@ -28,7 +30,7 @@ export class WebGLApp extends Component<Props>
                 <div class="viewports">
                     <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
                 </div>
-                <SceneGraph sdfScene={sdfScene} />
+                <SceneGraph sdfScene={sdfScene} rootNode={rootNode} />
             </div>
         </Fragment>
     }
@@ -51,42 +53,51 @@ function createNewShape(shape: Partial<Shape>): Shape
 
 function loadDefaultSdfScene()
 {
-    sdfScene.rootShape.children = [
-        {
-            childOpCode: "subtraction",
-            children: [
-                {
-                    shape: createNewShape({
-                        type: 'hexPrism',
-                        shapeParams: {x: 0.75, y: 2, z: 0},
-                        maxSize: 1.5
-                    })
-                },
-                {
-                    childOpCode: "union",
-                    children: [
-                        {
-                            shape: createNewShape({
-                                type: "sphere",
-                                shapeParams: { x: 1, y: 2, z: 1 },
-                                maxSize: 2.0,
-                                diffuseColour: { x: 0.1, y: 0.9, z: 0.2, w: 1.0, },
-                            }),
-                        },
-                        {
-                            shape: createNewShape({
-                                type: "box",
-                                shapeParams: { x: 6, y: 1, z: 6 },
-                                position: { x: 0, y: -1.5, z: 0 },
-                                diffuseColour: { x: 0.2, y: 0.25, z: 0.3, w: 1.0, },
-                            }),
-                        },
-                    ],
-                },
-            ],
-        },
-    ];
-    sdfScene.updateShapesFromRootNode();
+    const defaultRootNode: ShapeNode = {
+        name: 'Root',
+        children: [
+            {
+                name: 'Root',
+                childOpCode: "subtraction",
+                children: [
+                    {
+                        name: 'Hex Prism',
+                        shape: SdfScene.createNewShape({
+                            type: 'hexPrism',
+                            shapeParams: {x: 0.75, y: 2, z: 0},
+                            maxSize: 1.5
+                        })
+                    },
+                    {
+                        name: 'Box & Sphere',
+                        childOpCode: "union",
+                        children: [
+                            {
+                                name: 'Sphere',
+                                shape: createNewShape({
+                                    type: "sphere",
+                                    shapeParams: { x: 1, y: 2, z: 1 },
+                                    maxSize: 2.0,
+                                    diffuseColour: { x: 0.1, y: 0.9, z: 0.2, w: 1.0, },
+                                }),
+                            },
+                            {
+                                name: 'Box',
+                                shape: createNewShape({
+                                    type: "box",
+                                    shapeParams: { x: 6, y: 1, z: 6 },
+                                    position: { x: 0, y: -1.5, z: 0 },
+                                    diffuseColour: { x: 0.2, y: 0.25, z: 0.3, w: 1.0, },
+                                }),
+                            },
+                        ],
+                    },
+                ],
+            },
+        ]
+    }
+
+    store.execute(setRootNode(defaultRootNode));
 
     sdfScene.setLight(0, {
         position: {x: 4, y: 2, z: 3},

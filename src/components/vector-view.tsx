@@ -28,14 +28,14 @@ export default class VectorView extends Component<Props>
         const isV4 = isVec4(v);
 
         return <div class="vector">
-            <input type='number' value={v.x} onChange={this.onChangeX} placeholder='x' />
-            <input type='number' value={v.y} onChange={this.onChangeY} placeholder='y' />
+            <input type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
+            <input type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
 
             { isV3 &&
-            <input type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' />
+            <input type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
             }
             { isV4 &&
-            <input type='number' value={v.w} onChange={this.onChangeW} placeholder='w' />
+            <input type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
             }
         </div>;
     }

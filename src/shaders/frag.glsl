@@ -24,6 +24,11 @@ uniform bvec4 uFlags;
 
 #include <sdf-functions>
 
+vec3 quatMul( vec4 q, vec3 v )
+{
+    return v + 2.0 * cross(cross(v, q.xyz ) + q.w * v, q.xyz);
+}
+
 float getDistanceToShape(int index, vec3 samplePoint)
 {
     mat4 shape = uShapes[index];
@@ -32,12 +37,14 @@ float getDistanceToShape(int index, vec3 samplePoint)
     vec3 testPoint = point - samplePoint;
     // return sphereSDF(samplePoint);
 
-    // quat rotation = shape[1];
+    vec4 rotation = shape[1];
+
+    vec3 transPoint = quatMul(rotation, testPoint);
 
     int type = int(round(shape[2].x));
     vec3 params = shape[2].yzw;
 
-    return getDistToType(type, testPoint, params);
+    return getDistToType(type, transPoint, params);
 }
 
 float sceneSDF(vec3 point)

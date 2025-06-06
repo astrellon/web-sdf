@@ -60,6 +60,8 @@ export class WebGLViewport extends Component<Props>
 
     public render()
     {
+        this.requestRender();
+
         return <div class="viewport outer-panel">
             <canvas className="viewport__canvas" ref={this.canvasRef} />
             <WebGLViewportOptions viewportIndex={this.props.viewportIndex} options={this.props.options} />

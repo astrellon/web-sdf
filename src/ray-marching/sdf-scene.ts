@@ -4,6 +4,7 @@ import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "../gl-matrix-
 
 interface Light
 {
+    name: string;
     position: vec3;
     radius: number;
     colour: vec4;
@@ -44,6 +45,7 @@ export interface Shape
 
 export interface ShapeNode
 {
+    name: string;
     shape?: Shape;
     childOpCode?: SdfOpCode;
     children?: ShapeNode[];
@@ -85,10 +87,6 @@ export class SdfScene
 
     private shapes: Shape[] = [];
     private shapeDataArray: number[] = [];
-
-    public rootShape: ShapeNode = {
-        childOpCode: 'none'
-    }
 
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
@@ -148,7 +146,7 @@ export class SdfScene
 
         if (index >= this.lights.length)
         {
-            this.lights[index] = { ...this.createNewLight(), ...light };
+            this.lights[index] = { ...SdfScene.createNewLight(), ...light };
         }
         else
         {
@@ -158,9 +156,9 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode()
+    public updateShapesFromRootNode(node: ShapeNode)
     {
-        const { operations, shapes } = SdfScene.createShapesFromNode(this.rootShape);
+        const { operations, shapes } = SdfScene.createShapesFromNode(node);
         this.operations = operations;
         this.shapes = shapes;
 
@@ -226,7 +224,7 @@ export class SdfScene
 
         if (index >= this.shapes.length)
         {
-            this.shapes[index] = { ...this.createNewShape(), ...shape };
+            this.shapes[index] = SdfScene.createNewShape(shape);
         }
         else
         {
@@ -294,16 +292,17 @@ export class SdfScene
         });
     }
 
-    private createNewLight(): Light
+    public static createNewLight(): Light
     {
         return {
+            name: 'Unnamed Light',
             position: vec3Zero(),
             radius: 10,
             colour: vec4One()
         }
     }
 
-    private createNewShape(): Shape
+    public static createNewShape(partial: Partial<Shape>): Shape
     {
         return {
             position: vec3Zero(),
@@ -312,7 +311,9 @@ export class SdfScene
             type: "none",
             shapeParams: vec3Zero(),
             diffuseColour: {x: 0.7, y: 0.3, z: 0.2, w: 1.0},
-            specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0}
+            specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0},
+
+            ...partial
         }
     }
 }

@@ -1,6 +1,7 @@
 import { h, Component } from 'preact';
 import { SdfOpCode, Shape, ShapeNode } from '../ray-marching/sdf-scene';
 import ShapeView from './shape-view';
+import "./shape-node-view.scss";
 
 interface Props
 {
@@ -8,13 +9,28 @@ interface Props
     readonly onChange: (newShapeNode: ShapeNode) => void;
 }
 
-export default class ShapeNodeView extends Component<Props>
+interface State
 {
+    readonly show: boolean;
+}
+
+export default class ShapeNodeView extends Component<Props, State>
+{
+    constructor()
+    {
+        super();
+        this.state = {
+            show: false
+        }
+    }
+
     public render()
     {
-        const selectedOpCode = this.props.node.childOpCode ?? 'none';
-        const children = this.props.node.children || [];
-        return <div>
+        const { node } = this.props;
+        const selectedOpCode = node.childOpCode ?? 'none';
+        const children = node.children || [];
+
+        return <div class="shape-node-view">
             <div>
                 <strong>Op Code</strong> <select value={selectedOpCode} onChange={this.onChangeOpCode}>
                     <option value='none'>None</option>
@@ -24,7 +40,7 @@ export default class ShapeNodeView extends Component<Props>
                 </select>
             </div>
             <div>
-                <strong>Shape</strong> <ShapeView shape={this.props.node.shape} onChange={this.onChangeShape} />
+                <strong>Shape</strong> <ShapeView shape={node.shape} onChange={this.onChangeShape} />
             </div>
             <div>
                 <strong>Children</strong> {
