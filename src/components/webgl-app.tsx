@@ -19,7 +19,7 @@ export class WebGLApp extends Component<Props>
 {
     public render()
     {
-        const { viewports, rootNode } = this.props.state;
+        const { viewports, rootNode, selectedNode } = this.props.state;
 
         return <Fragment>
             <nav class="navbar outer-panel">
@@ -30,7 +30,7 @@ export class WebGLApp extends Component<Props>
                 <div class="viewports">
                     <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
                 </div>
-                <SceneGraph sdfScene={sdfScene} rootNode={rootNode} />
+                <SceneGraph sdfScene={sdfScene} rootNode={rootNode} selectedNode={selectedNode} />
             </div>
         </Fragment>
     }

@@ -21,6 +21,7 @@ export interface AppState
 {
     readonly viewports: ViewportState[];
     readonly rootNode: ShapeNode;
+    readonly selectedNode?: ShapeNode;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -42,5 +43,10 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
 
 export function setRootNode(rootNode: ShapeNode): Modifier<AppState>
 {
-    return () => { return { rootNode } }
+    return () => { return { rootNode } };
+}
+
+export function setSelectedNode(selectedNode?: ShapeNode): Modifier<AppState>
+{
+    return () => { return { selectedNode } };
 }
