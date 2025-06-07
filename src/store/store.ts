@@ -15,8 +15,8 @@ export const defaultViewport: ViewportState = {
 }
 export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
-    rootNode: {
+    nodes: [{
         name: 'Root',
         shape: SdfScene.createNewShape({})
-    }
+    }]
 });

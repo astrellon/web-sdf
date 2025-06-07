@@ -20,8 +20,8 @@ export interface ViewportState
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly rootNode: ShapeNode;
-    readonly selectedNode?: ShapeNode;
+    readonly nodes: ShapeNode[];
+    readonly selectedNodeIndex?: number;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -41,9 +41,27 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
-export function setRootNode(rootNode: ShapeNode): Modifier<AppState>
+// export function setRootNode(rootNode: ShapeNode): Modifier<AppState>
+// {
+//     linkParents(rootNode, null);
+//     return () => { return { rootNode } };
+// }
+
+function linkParents(node: ShapeNode, parent?: ShapeNode)
 {
-    return () => { return { rootNode } };
+    node.parent = parent;
+    if (node.children != null)
+    {
+        for (const child of node.children)
+        {
+            linkParents(child, node);
+        }
+    }
+}
+
+export function updateToRoot(newNode: ShapeNode, oldNode: ShapeNode): Modifier<AppState>
+{
+
 }
 
 export function setSelectedNode(selectedNode?: ShapeNode): Modifier<AppState>

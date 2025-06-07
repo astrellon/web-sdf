@@ -6,7 +6,7 @@ import "./shape-node-view.scss";
 interface Props
 {
     readonly node: ShapeNode;
-    readonly onChange: (newShapeNode: ShapeNode) => void;
+    readonly onChange: (newShapeNode: ShapeNode, oldShapeNode: ShapeNode) => void;
 }
 
 interface State
@@ -28,9 +28,12 @@ export default class ShapeNodeView extends Component<Props, State>
     {
         const { node } = this.props;
         const selectedOpCode = node.childOpCode ?? 'none';
-        const children = node.children || [];
+        // const children = node.children || [];
 
         return <div class="shape-node-view">
+            <div>
+                <strong>Name</strong> <input type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
+            </div>
             <div>
                 <strong>Op Code</strong> <select value={selectedOpCode} onChange={this.onChangeOpCode}>
                     <option value='none'>None</option>
@@ -42,12 +45,18 @@ export default class ShapeNodeView extends Component<Props, State>
             <div>
                 <strong>Shape</strong> <ShapeView shape={node.shape} onChange={this.onChangeShape} />
             </div>
-            <div>
+            {/* <div>
                 <strong>Children</strong> {
                     children.map((child, i) => <ShapeNodeView key={i} node={child} onChange={(n) => this.onChangeChild(i, n)}/>)
                 }
-            </div>
+            </div> */}
         </div>
+    }
+
+    private onChangeName = (e: Event) =>
+    {
+        const value = (e.target as HTMLInputElement).value;
+        this.updateField(value, 'name');
     }
 
     private onChangeOpCode = (e: Event) =>
@@ -73,6 +82,6 @@ export default class ShapeNodeView extends Component<Props, State>
     {
         console.log('Update shape node', field, value);
         const newNode = {...this.props.node, [field]: value};
-        this.props.onChange(newNode);
+        this.props.onChange(newNode, this.props.node);
     }
 }

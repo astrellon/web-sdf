@@ -48,7 +48,8 @@ export interface ShapeNode
     name: string;
     shape?: Shape;
     childOpCode?: SdfOpCode;
-    children?: ShapeNode[];
+    parentIndex?: number;
+    childrenIndices?: number[];
 }
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
@@ -156,9 +157,9 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode(node: ShapeNode)
+    public updateShapesFromRootNode(nodes: ShapeNode[])
     {
-        const { operations, shapes } = SdfScene.createShapesFromNode(node);
+        const { operations, shapes } = SdfScene.createShapesFromNode(nodes);
         this.operations = operations;
         this.shapes = shapes;
 
@@ -173,11 +174,11 @@ export class SdfScene
         this.updateOperationNumbers();
     }
 
-    public static createShapesFromNode(node: ShapeNode)
+    public static createShapesFromNode(nodes: ShapeNode[])
     {
         const opsStack: ShapeOperation[] = [];
         const shapeStack: Shape[] = [];
-        this.pushToStack(opsStack, shapeStack, node);
+        this.pushToStack(opsStack, shapeStack, nodes[0], nodes);
 
         opsStack.reverse();
 
@@ -187,7 +188,7 @@ export class SdfScene
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode)
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode, nodes: ShapeNode[])
     {
         if (node.childOpCode !== undefined && node.childOpCode !== 'none')
         {
@@ -206,11 +207,11 @@ export class SdfScene
             opsStack.push(index);
         }
 
-        if (node.children !== undefined)
+        if (node.childrenIndices !== undefined)
         {
-            for (const child of node.children)
+            for (const childIndex of node.childrenIndices)
             {
-                this.pushToStack(opsStack, shapeStack, child);
+                this.pushToStack(opsStack, shapeStack, nodes[childIndex], nodes);
             }
         }
     }
