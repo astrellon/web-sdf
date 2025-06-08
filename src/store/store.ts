@@ -1,6 +1,5 @@
 import DataStore from "simple-data-store";
 import { AppState, ViewportOptions, ViewportState } from "./store-state";
-import { makeShapeNodeId, SdfScene } from "../ray-marching/sdf-scene";
 
 export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
@@ -15,9 +14,5 @@ export const defaultViewport: ViewportState = {
 }
 export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
-    nodes: [{
-        id: makeShapeNodeId(),
-        name: 'Root',
-        shape: SdfScene.createNewShape({})
-    }]
+    nodes: {}
 });

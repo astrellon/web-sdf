@@ -1,6 +1,6 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
-import { ShapeNode, ShapeNodeId } from "../ray-marching/sdf-scene";
+import { ShapeNode, ShapeNodeId, ShapeNodes } from "../ray-marching/sdf-scene";
 
 export interface ViewportOptions
 {
@@ -20,7 +20,8 @@ export interface ViewportState
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly nodes: ShapeNode[];
+    readonly nodes: ShapeNodes;
+    readonly rootNodeId?: ShapeNodeId;
     readonly selectedNodeId?: ShapeNodeId;
 }
 
@@ -41,30 +42,53 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
+export function updateNode(node: ShapeNode): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const newNodes = {
+            ...state.nodes,
+            [node.id]: node
+        };
+
+        return { nodes: newNodes };
+    }
+}
+
+export function setNodes(nodes: ShapeNodes): Modifier<AppState>
+{
+    return () => { return { nodes } }
+}
+
 // export function setRootNode(rootNode: ShapeNode): Modifier<AppState>
 // {
 //     linkParents(rootNode, null);
 //     return () => { return { rootNode } };
 // }
 
-function linkParents(node: ShapeNode, parent?: ShapeNode)
+// function linkParents(node: ShapeNode, parent?: ShapeNode)
+// {
+//     node.parent = parent;
+//     if (node.children != null)
+//     {
+//         for (const child of node.children)
+//         {
+//             linkParents(child, node);
+//         }
+//     }
+// }
+
+// export function updateToRoot(newNode: ShapeNode, oldNode: ShapeNode): Modifier<AppState>
+// {
+
+// }
+
+export function setRootNode(rootNodeId?: ShapeNodeId): Modifier<AppState>
 {
-    node.parent = parent;
-    if (node.children != null)
-    {
-        for (const child of node.children)
-        {
-            linkParents(child, node);
-        }
-    }
+    return () => { return { rootNodeId } };
 }
 
-export function updateToRoot(newNode: ShapeNode, oldNode: ShapeNode): Modifier<AppState>
+export function setSelectedNode(selectedNodeId?: ShapeNodeId): Modifier<AppState>
 {
-
-}
-
-export function setSelectedNode(selectedNode?: ShapeNode): Modifier<AppState>
-{
-    return () => { return { selectedNode } };
+    return () => { return { selectedNodeId } };
 }

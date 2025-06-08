@@ -168,9 +168,15 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode(rootNode: ShapeNode, nodes: ShapeNodes)
+    public updateShapesFromRootNode(rootNodeId: ShapeNodeId, nodes: ShapeNodes)
     {
-        const { operations, shapes } = SdfScene.createShapesFromNode(rootNode, nodes);
+        const rootNode = nodes[rootNodeId];
+        if (!rootNode)
+        {
+            return;
+        }
+
+        const { operations, shapes } = SdfScene.createShapesFromNode(nodes[rootNodeId], nodes);
         this.operations = operations;
         this.shapes = shapes;
 
@@ -220,9 +226,9 @@ export class SdfScene
 
         if (node.childrenIds !== undefined)
         {
-            for (const childIndex of node.childrenIds)
+            for (const childId of node.childrenIds)
             {
-                this.pushToStack(opsStack, shapeStack, nodes[childIndex], nodes);
+                this.pushToStack(opsStack, shapeStack, nodes[childId], nodes);
             }
         }
     }

@@ -70,13 +70,13 @@ export default class ShapeNodeView extends Component<Props, State>
         this.updateField(shape, 'shape');
     }
 
-    private onChangeChild = (index: number, child: ShapeNode) =>
-    {
-        const children = this.props.node.children !== undefined ? [...this.props.node.children] : [];
-        children[index] = child;
+    // private onChangeChild = (index: number, child: ShapeNode) =>
+    // {
+    //     const children = this.props.node.children !== undefined ? [...this.props.node.children] : [];
+    //     children[index] = child;
 
-        this.updateField(children, 'children');
-    }
+    //     this.updateField(children, 'children');
+    // }
 
     private updateField = (value: any, field: keyof ShapeNode) =>
     {
