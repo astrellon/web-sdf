@@ -43,13 +43,24 @@ export interface Shape
     specularColour: vec4;
 }
 
+export type ShapeNodeId = Opaque<string, 'ShapeNodeId'>;
+export function makeShapeNodeId(): ShapeNodeId
+{
+    return crypto.randomUUID() as ShapeNodeId;
+}
+
 export interface ShapeNode
 {
+    id: ShapeNodeId;
     name: string;
     shape?: Shape;
     childOpCode?: SdfOpCode;
-    parentIndex?: number;
-    childrenIndices?: number[];
+    parentId?: ShapeNodeId;
+    childrenIds?: ShapeNodeId[];
+}
+export interface ShapeNodes
+{
+    [shapeNodeId: string]: ShapeNode
 }
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
@@ -157,9 +168,9 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode(nodes: ShapeNode[])
+    public updateShapesFromRootNode(rootNode: ShapeNode, nodes: ShapeNodes)
     {
-        const { operations, shapes } = SdfScene.createShapesFromNode(nodes);
+        const { operations, shapes } = SdfScene.createShapesFromNode(rootNode, nodes);
         this.operations = operations;
         this.shapes = shapes;
 
@@ -174,11 +185,11 @@ export class SdfScene
         this.updateOperationNumbers();
     }
 
-    public static createShapesFromNode(nodes: ShapeNode[])
+    public static createShapesFromNode(rootNode: ShapeNode, nodes: ShapeNodes)
     {
         const opsStack: ShapeOperation[] = [];
         const shapeStack: Shape[] = [];
-        this.pushToStack(opsStack, shapeStack, nodes[0], nodes);
+        this.pushToStack(opsStack, shapeStack, rootNode, nodes);
 
         opsStack.reverse();
 
@@ -188,7 +199,7 @@ export class SdfScene
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode, nodes: ShapeNode[])
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode, nodes: ShapeNodes)
     {
         if (node.childOpCode !== undefined && node.childOpCode !== 'none')
         {
@@ -207,9 +218,9 @@ export class SdfScene
             opsStack.push(index);
         }
 
-        if (node.childrenIndices !== undefined)
+        if (node.childrenIds !== undefined)
         {
-            for (const childIndex of node.childrenIndices)
+            for (const childIndex of node.childrenIds)
             {
                 this.pushToStack(opsStack, shapeStack, nodes[childIndex], nodes);
             }

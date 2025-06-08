@@ -1,6 +1,6 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
-import { ShapeNode } from "../ray-marching/sdf-scene";
+import { ShapeNode, ShapeNodeId } from "../ray-marching/sdf-scene";
 
 export interface ViewportOptions
 {
@@ -21,7 +21,7 @@ export interface AppState
 {
     readonly viewports: ViewportState[];
     readonly nodes: ShapeNode[];
-    readonly selectedNodeIndex?: number;
+    readonly selectedNodeId?: ShapeNodeId;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
