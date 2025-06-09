@@ -1,0 +1,22 @@
+.shape-node-tree-item {
+    padding: 0.5rem;
+
+    &:first-child {
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+
+    &:last-child {
+        border-radius: 0 0 0.75rem 0.75rem;
+    }
+
+    &.is-selected {
+        background: rgba(0.8, 0.9, 1.0, 0.2);
+
+        &:hover {
+            background: rgba(0.8, 0.9, 1.0, 0.3);
+        }
+    }
+    &:hover {
+        background: rgba(0.8, 0.9, 1.0, 0.1);
+    }
+}

@@ -35,7 +35,6 @@ export default class ShapeNodeView extends Component<Props, State>
         }
 
         const selectedOpCode = node.childOpCode ?? 'none';
-        // const children = node.children || [];
 
         return <div class="shape-node-view">
             <div>
