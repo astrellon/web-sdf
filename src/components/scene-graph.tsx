@@ -22,8 +22,12 @@ export default class SceneGraph extends Component<Props>
 
         return <div class="scene-graph">
             <div class="scene-graph__contents outer-panel">
-                <ShapeNodeTree currentNodeId={rootNodeId} depth={0} nodes={nodes} selectedNodeId={selectedNodeId} />
-                <ShapeNodeView node={nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
+                <div class="inner-panel">
+                    <ShapeNodeTree currentNodeId={rootNodeId} depth={0} nodes={nodes} selectedNodeId={selectedNodeId} />
+                </div>
+                <div class="inner-panel">
+                    <ShapeNodeView node={nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
+                </div>
             </div>
         </div>
     }

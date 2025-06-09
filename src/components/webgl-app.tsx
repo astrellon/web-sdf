@@ -26,11 +26,12 @@ export class WebGLApp extends Component<Props>
     public render()
     {
         const { viewports, rootNodeId, selectedNodeId, nodes } = this.props.state;
+        console.log('App render', this.props.state);
 
         return <Fragment>
-            <nav class="navbar outer-panel">
+            {/* <nav class="navbar outer-panel">
                 <button>File</button>
-            </nav>
+            </nav> */}
 
             <div class="main-view">
                 <div class="viewports">

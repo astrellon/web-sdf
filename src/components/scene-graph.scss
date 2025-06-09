@@ -7,5 +7,14 @@
     &__contents {
         display: flex;
         flex-grow: 1;
+        flex-direction: column;
+        padding: 0.5rem;
+        &>* {
+            margin-top: 0.75rem;
+        }
+
+        &>:first-child {
+            margin-top: 0;
+        }
     }
 }

@@ -27,6 +27,13 @@ export default class ShapeNodeView extends Component<Props, State>
     public render()
     {
         const { node } = this.props;
+        if (node == undefined)
+        {
+            return <div class="shape-node-view">
+                No node selected
+            </div>
+        }
+
         const selectedOpCode = node.childOpCode ?? 'none';
         // const children = node.children || [];
 

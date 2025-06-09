@@ -11,6 +11,7 @@ html, body {
     height: 100%;
     overflow: hidden;
     display: flex;
+    background: #d0d1d2;
 }
 
 body>main {
@@ -20,9 +21,14 @@ body>main {
 }
 
 .outer-panel {
-    // https://neumorphism.io/#e0e0e0
     border-radius: 0.75rem;
-    background: #e0e0e0;
-    box-shadow:  10px 10px 30px #bebebe,
-                -10px -10px 30px #ffffff;
+    background: #e0e2e4;
+    box-shadow: 0 0 30px #8c8e8f;
+    border: 2px solid #ecedee;
+}
+
+.inner-panel {
+    border-radius: 0.75rem;
+    background: #d0d2d4;
+    padding: 0.5rem;
 }
