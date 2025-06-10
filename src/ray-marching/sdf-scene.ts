@@ -1,6 +1,7 @@
 import equal from "fast-deep-equal";
 import { Opaque } from "../common";
 import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "../gl-matrix-ts";
+import { SdfTree } from "./sdf-tree";
 
 interface Light
 {
@@ -10,13 +11,6 @@ interface Light
     colour: vec4;
 }
 export const lightDataSize = 3 + 1 + 4;
-
-export interface Camera
-{
-    position: vec3;
-    rotation: quat;
-    fieldOfView: number;
-}
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
@@ -168,15 +162,15 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode(rootNodeId: ShapeNodeId, nodes: ShapeNodes)
+    public updateShapesFromRootNode(sdfTree: SdfTree)
     {
-        const rootNode = nodes[rootNodeId];
+        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
         {
             return;
         }
 
-        const { operations, shapes } = SdfScene.createShapesFromNode(nodes[rootNodeId], nodes);
+        const { operations, shapes } = SdfScene.createShapesFromNode(sdfTree);
         this.operations = operations;
         this.shapes = shapes;
 
@@ -191,11 +185,17 @@ export class SdfScene
         this.updateOperationNumbers();
     }
 
-    public static createShapesFromNode(rootNode: ShapeNode, nodes: ShapeNodes)
+    public static createShapesFromNode(sdfTree: SdfTree)
     {
+        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
+        if (!rootNode)
+        {
+            return;
+        }
+
         const opsStack: ShapeOperation[] = [];
         const shapeStack: Shape[] = [];
-        this.pushToStack(opsStack, shapeStack, rootNode, nodes);
+        this.pushToStack(opsStack, shapeStack, rootNode, sdfTree.nodes);
 
         opsStack.reverse();
 

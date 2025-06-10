@@ -14,5 +14,7 @@ export const defaultViewport: ViewportState = {
 }
 export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
-    nodes: {}
+    sdfTree: {
+        nodes: {}
+    }
 });

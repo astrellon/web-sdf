@@ -13,19 +13,18 @@ interface Props
 }
 
 const sdfScene = new SdfScene();
-store.subscribe(state => state.nodes, updateFromStoreChange);
-store.subscribe(state => state.rootNodeId, updateFromStoreChange);
+store.subscribe(state => state.sdfTree, updateFromStoreChange);
 
 function updateFromStoreChange(state: AppState)
 {
-    sdfScene.updateShapesFromRootNode(state.rootNodeId, state.nodes);
+    sdfScene.updateShapesFromRootNode(state.sdfTree);
 }
 
 export class WebGLApp extends Component<Props>
 {
     public render()
     {
-        const { viewports, rootNodeId, selectedNodeId, nodes } = this.props.state;
+        const { viewports, sdfTree, selectedNodeId } = this.props.state;
         console.log('App render', this.props.state);
 
         return <Fragment>
@@ -37,7 +36,7 @@ export class WebGLApp extends Component<Props>
                 <div class="viewports">
                     <WebGLViewport viewportIndex={0} options={viewports[0].options} sdfScene={sdfScene} />
                 </div>
-                <SceneGraph sdfScene={sdfScene} rootNodeId={rootNodeId} selectedNodeId={selectedNodeId} nodes={nodes} />
+                <SceneGraph sdfScene={sdfScene} sdfTree={sdfTree} selectedNodeId={selectedNodeId} />
             </div>
         </Fragment>
     }

@@ -1,6 +1,7 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
 import { ShapeNode, ShapeNodeId, ShapeNodes } from "../ray-marching/sdf-scene";
+import { SdfTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/sdf-tree";
 
 export interface ViewportOptions
 {
@@ -20,8 +21,7 @@ export interface ViewportState
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly nodes: ShapeNodes;
-    readonly rootNodeId?: ShapeNodeId;
+    readonly sdfTree: SdfTree;
     readonly selectedNodeId?: ShapeNodeId;
 }
 
@@ -46,46 +46,27 @@ export function updateNode(node: ShapeNode): Modifier<AppState>
 {
     return (state: AppState) =>
     {
-        const newNodes = {
-            ...state.nodes,
-            [node.id]: node
-        };
-
-        return { nodes: newNodes };
+        const sdfTree = sdfTreeUpdateNode(state.sdfTree, node);
+        return { sdfTree };
     }
 }
 
 export function setNodes(nodes: ShapeNodes): Modifier<AppState>
 {
-    return () => { return { nodes } }
+    return (state: AppState) =>
+    {
+        const sdfTree = sdfTreeSetNodes(state.sdfTree, nodes);
+        return { sdfTree }
+    }
 }
-
-// export function setRootNode(rootNode: ShapeNode): Modifier<AppState>
-// {
-//     linkParents(rootNode, null);
-//     return () => { return { rootNode } };
-// }
-
-// function linkParents(node: ShapeNode, parent?: ShapeNode)
-// {
-//     node.parent = parent;
-//     if (node.children != null)
-//     {
-//         for (const child of node.children)
-//         {
-//             linkParents(child, node);
-//         }
-//     }
-// }
-
-// export function updateToRoot(newNode: ShapeNode, oldNode: ShapeNode): Modifier<AppState>
-// {
-
-// }
 
 export function setRootNode(rootNodeId?: ShapeNodeId): Modifier<AppState>
 {
-    return () => { return { rootNodeId } };
+    return (state: AppState) =>
+    {
+        const sdfTree = sdfTreeSetRootNodeId(state.sdfTree, rootNodeId);
+        return { sdfTree };
+    };
 }
 
 export function setSelectedNode(selectedNodeId?: ShapeNodeId): Modifier<AppState>

@@ -1,12 +1,12 @@
 import { h, Component } from 'preact';
-import { ShapeNode, ShapeNodeId, ShapeNodes } from '../ray-marching/sdf-scene';
+import { ShapeNode, ShapeNodeId } from '../ray-marching/sdf-scene';
+import { SdfTree } from '../ray-marching/sdf-tree';
 import ShapeNodeTreeItem from './shape-node-tree-item';
 import './shape-node-tree.scss';
 
 interface Props
 {
-    readonly nodes: ShapeNodes;
-    readonly currentNodeId: ShapeNodeId;
+    readonly sdfTree: SdfTree;
     readonly selectedNodeId?: ShapeNodeId;
     readonly onItemClicked: (node: ShapeNode) => void;
 }
@@ -22,9 +22,15 @@ export default class ShapeNodeTree extends Component<Props>
 
     private renderNodeTree = () =>
     {
-        const { nodes, currentNodeId, selectedNodeId, onItemClicked } = this.props;
-        const stack = [{node: nodes[currentNodeId], depth: 0}];
+        const { sdfTree, selectedNodeId, onItemClicked } = this.props;
+        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         const result: h.JSX.Element[] = [];
+        if (rootNode == undefined)
+        {
+            return result;
+        }
+
+        const stack = [{node: sdfTree.nodes[sdfTree.rootNodeId], depth: 0}];
 
         while (stack.length > 0)
         {
@@ -36,7 +42,7 @@ export default class ShapeNodeTree extends Component<Props>
             {
                 for (const childId of node.childrenIds)
                 {
-                    stack.push({node: nodes[childId], depth: depth + 1});
+                    stack.push({node: sdfTree.nodes[childId], depth: depth + 1});
                 }
             }
         }

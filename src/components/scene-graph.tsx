@@ -5,11 +5,11 @@ import { store } from '../store/store';
 import { setSelectedNode, updateNode } from '../store/store-state';
 import ShapeNodeTree from './shape-node-tree';
 import "./scene-graph.scss";
+import { SdfTree } from '../ray-marching/sdf-tree';
 
 interface Props
 {
-    readonly nodes: ShapeNodes;
-    readonly rootNodeId?: ShapeNodeId;
+    readonly sdfTree: SdfTree;
     readonly selectedNodeId?: ShapeNodeId;
     readonly sdfScene: SdfScene;
 }
@@ -18,15 +18,15 @@ export default class SceneGraph extends Component<Props>
 {
     public render()
     {
-        const { nodes, selectedNodeId, rootNodeId } = this.props;
+        const { sdfTree, selectedNodeId } = this.props;
 
         return <div class="scene-graph">
             <div class="scene-graph__contents outer-panel">
                 <div class="inner-panel">
-                    <ShapeNodeTree currentNodeId={rootNodeId} nodes={nodes} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
+                    <ShapeNodeTree sdfTree={sdfTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
                 </div>
                 <div class="inner-panel">
-                    <ShapeNodeView node={nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
+                    <ShapeNodeView node={sdfTree.nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
                 </div>
             </div>
         </div>
@@ -40,6 +40,5 @@ export default class SceneGraph extends Component<Props>
     private onChangeSelectedNode = (newNode: ShapeNode, oldNode: ShapeNode) =>
     {
         store.execute(updateNode(newNode));
-        this.props.sdfScene.updateShapesFromRootNode(this.props.rootNodeId, this.props.nodes);
     }
 }
