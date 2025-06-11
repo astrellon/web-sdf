@@ -1,16 +1,16 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
-import { ShapeNode, ShapeNodeId, ShapeNodes } from "../ray-marching/sdf-scene";
 import { SdfTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/sdf-tree";
+import { SceneNode, SceneNodes, ShapeNodeId } from "../ray-marching/sdf-entities";
 
 export interface ViewportOptions
 {
-    readonly enableRender: boolean;
     readonly enableShadows: boolean;
     readonly enableShowMarching: boolean;
     readonly renderScale: number;
     readonly maxMarchingStep: number;
     readonly epsilon: number;
+    readonly pixelated: boolean;
 }
 
 export interface ViewportState
@@ -42,7 +42,7 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
-export function updateNode(node: ShapeNode): Modifier<AppState>
+export function updateNode(node: SceneNode): Modifier<AppState>
 {
     return (state: AppState) =>
     {
@@ -51,7 +51,7 @@ export function updateNode(node: ShapeNode): Modifier<AppState>
     }
 }
 
-export function setNodes(nodes: ShapeNodes): Modifier<AppState>
+export function setNodes(nodes: SceneNodes): Modifier<AppState>
 {
     return (state: AppState) =>
     {

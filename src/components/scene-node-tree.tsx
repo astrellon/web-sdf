@@ -1,21 +1,21 @@
 import { h, Component } from 'preact';
-import { ShapeNode, ShapeNodeId } from '../ray-marching/sdf-scene';
 import { SdfTree } from '../ray-marching/sdf-tree';
-import ShapeNodeTreeItem from './shape-node-tree-item';
-import './shape-node-tree.scss';
+import ShapeNodeTreeItem from './scene-node-tree-item';
+import { SceneNode, ShapeNodeId } from '../ray-marching/sdf-entities';
+import './scene-node-tree.scss';
 
 interface Props
 {
     readonly sdfTree: SdfTree;
     readonly selectedNodeId?: ShapeNodeId;
-    readonly onItemClicked: (node: ShapeNode) => void;
+    readonly onItemClicked: (node: SceneNode) => void;
 }
 
-export default class ShapeNodeTree extends Component<Props>
+export default class SceneNodeTree extends Component<Props>
 {
     public render()
     {
-        return <div class='shape-node-tree'>
+        return <div class='scene-node-tree'>
             { this.renderNodeTree() }
         </div>
     }

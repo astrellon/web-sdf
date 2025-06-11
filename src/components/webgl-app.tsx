@@ -1,11 +1,12 @@
 import { h, Component, Fragment } from "preact";
 import { AppState, setNodes, setRootNode } from "../store/store-state";
 import { WebGLViewport } from "./webgl-viewport";
-import "./webgl-app.scss"
-import { makeShapeNodeId, SdfOpCode, SdfScene, Shape, ShapeNode, ShapeNodes } from "../ray-marching/sdf-scene";
-import { quatIdentity, vec3Zero } from "../gl-matrix-ts";
+import { quatIdentity, rquat, rvec3, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
 import SceneGraph from "./scene-graph";
 import { store } from "../store/store";
+import { SdfScene } from "../ray-marching/sdf-scene";
+import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape } from "../ray-marching/sdf-entities";
+import "./webgl-app.scss"
 
 interface Props
 {
@@ -45,8 +46,6 @@ export class WebGLApp extends Component<Props>
 function createNewShape(shape: Partial<Shape>): Shape
 {
     return {
-        position: vec3Zero(),
-        rotation: quatIdentity(),
         maxSize: 0,
         type: "none",
         shapeParams: vec3Zero(),
@@ -56,18 +55,40 @@ function createNewShape(shape: Partial<Shape>): Shape
         ...shape
     };
 }
+function createNewLight(light: Partial<Light>): Light
+{
+    return {
+        colour: vec4One(),
+        radius: 10,
 
-function createNewShapeNode(name: string, shape?: Partial<Shape>, childOpCode?: SdfOpCode): ShapeNode
+        ...light
+    }
+}
+
+function createNewLightNode(name: string, light?: Partial<Light>, position?: rvec3, rotation?: rquat): SceneNode
 {
     return {
         name,
+        position: position ?? vec3Zero(),
+        rotation: rotation ?? quatIdentity(),
+        id: makeShapeNodeId(),
+        light: light != undefined ? createNewLight(light) : undefined
+    }
+}
+
+function createNewShapeNode(name: string, shape?: Partial<Shape>, position?: rvec3, rotation?: rquat, childOpCode?: SdfOpCode): SceneNode
+{
+    return {
+        name,
+        position: position ?? vec3Zero(),
+        rotation: rotation ?? quatIdentity(),
         id: makeShapeNodeId(),
         shape: shape != undefined ? createNewShape(shape) : undefined,
         childOpCode
     }
 }
 
-function addChild(parent: ShapeNode, child: ShapeNode)
+function addChild(parent: SceneNode, child: SceneNode)
 {
     if (parent.childrenIds == undefined)
     {
@@ -76,9 +97,9 @@ function addChild(parent: ShapeNode, child: ShapeNode)
     parent.childrenIds.push(child.id);
 }
 
-function makeNodeMap(...nodes: ShapeNode[])
+function makeNodeMap(...nodes: SceneNode[])
 {
-    const result: ShapeNodes = {};
+    const result: SceneNodes = {};
     for (const node of nodes)
     {
         result[node.id] = node;
@@ -88,7 +109,7 @@ function makeNodeMap(...nodes: ShapeNode[])
 
 function loadDefaultSdfScene()
 {
-    // const defaultRootNode: ShapeNode = {
+    // const defaultRootNode: SceneNode = {
     //     name: 'Root',
     //     children: [
     //         {
@@ -131,13 +152,13 @@ function loadDefaultSdfScene()
     //         },
     //     ]
     // }
-    const rootNode = createNewShapeNode('Root', null, 'subtraction');
+    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'subtraction');
     const hexPrism = createNewShapeNode('Hex Prism', {
         type: 'hexPrism',
         shapeParams: {x: 0.75, y: 2, z: 0},
         maxSize: 1.5
     });
-    const boxAndSphere = createNewShapeNode('Box & Sphere', null, 'union');
+    const boxAndSphere = createNewShapeNode('Box & Sphere', undefined, undefined, undefined, 'union');
 
     addChild(rootNode, hexPrism);
     addChild(rootNode, boxAndSphere);
@@ -145,9 +166,8 @@ function loadDefaultSdfScene()
     const box = createNewShapeNode('Box', {
         type: "box",
         shapeParams: { x: 6, y: 1, z: 6 },
-        position: { x: 0, y: -1.5, z: 0 },
         diffuseColour: { x: 0.2, y: 0.25, z: 0.3, w: 1.0, },
-    });
+    }, { x: 0, y: -1.5, z: 0 });
     const sphere = createNewShapeNode('Sphere', {
         type: "sphere",
         shapeParams: { x: 1, y: 2, z: 1 },
@@ -157,19 +177,19 @@ function loadDefaultSdfScene()
     addChild(boxAndSphere, box);
     addChild(boxAndSphere, sphere);
 
-    const nodes = makeNodeMap(rootNode, hexPrism, boxAndSphere, box, sphere);
+    const redLight = createNewLightNode('Red Light', {
+        colour: {x: 1.0, y: 0.8, z: 0.6, w: 1}
+    }, {x: 4, y: 2, z: 3});
+    const greenLight = createNewLightNode('Green Light', {
+        colour: {x: 0.2, y: 1.0, z: 0.6, w: 1}
+    }, {x: -4, y: 2, z: 3});
+    addChild(rootNode, redLight);
+    addChild(rootNode, greenLight);
+
+    const nodes = makeNodeMap(rootNode, hexPrism, boxAndSphere, box, sphere, redLight, greenLight);
 
     store.execute(setRootNode(rootNode.id));
     store.execute(setNodes(nodes));
-
-    sdfScene.setLight(0, {
-        position: {x: 4, y: 2, z: 3},
-        colour: {x: 1.0, y: 0.8, z: 0.6, w: 1}
-    });
-    sdfScene.setLight(1, {
-        position: {x: -4, y: 2, z: 3},
-        colour: {x: 0.2, y: 1.0, z: 0.6, w: 1}
-    });
 }
 
 loadDefaultSdfScene();

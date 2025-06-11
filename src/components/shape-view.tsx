@@ -1,7 +1,7 @@
 import { h, Component } from 'preact';
-import { Shape } from '../ray-marching/sdf-scene';
 import VectorView from './vector-view';
-import { quat, vec3, vec4 } from '../gl-matrix-ts';
+import { vec3, vec4 } from '../gl-matrix-ts';
+import { Shape } from '../ray-marching/sdf-entities';
 
 interface Props
 {
@@ -21,12 +21,6 @@ export default class ShapeView extends Component<Props>
 
         return <div>
             <div>
-                <strong>Position</strong> <VectorView vector={shape.position} onChange={this.onChangePosition} />
-            </div>
-            <div>
-                <strong>Rotation</strong> <VectorView vector={shape.rotation} onChange={this.onChangeRotation} />
-            </div>
-            <div>
                 <strong>Type</strong> <select value={shape.type ?? 'none'} onChange={this.onChangeType}>
                     <option value='none'>None</option>
                     <option value='box'>Box</option>
@@ -44,16 +38,6 @@ export default class ShapeView extends Component<Props>
                 <strong>Specular Colour</strong> <VectorView vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
             </div>
         </div>
-    }
-
-    private onChangePosition = (oldVec: vec3, newVec: vec3) =>
-    {
-        this.updateField(newVec, 'position');
-    }
-
-    private onChangeRotation = (oldQuat: quat, newQuat: quat) =>
-    {
-        this.updateField(newQuat, 'rotation');
     }
 
     private onChangeType = (e: Event) =>

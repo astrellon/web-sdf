@@ -1,12 +1,12 @@
-import { ShapeNode, ShapeNodeId, ShapeNodes } from "./sdf-scene";
+import { SceneNode, SceneNodes, ShapeNodeId } from "./sdf-entities";
 
 export interface SdfTree
 {
-    readonly nodes: ShapeNodes;
+    readonly nodes: SceneNodes;
     readonly rootNodeId?: ShapeNodeId;
 }
 
-export function sdfTreeUpdateNode(tree: SdfTree, node: ShapeNode): SdfTree
+export function sdfTreeUpdateNode(tree: SdfTree, node: SceneNode): SdfTree
 {
     const newNodes = {
         ...tree.nodes,
@@ -24,7 +24,7 @@ export function sdfTreeSetRootNodeId(tree: SdfTree, rootNodeId: ShapeNodeId): Sd
     return { ...tree, rootNodeId }
 }
 
-export function sdfTreeSetNodes(tree: SdfTree, nodes: ShapeNodes): SdfTree
+export function sdfTreeSetNodes(tree: SdfTree, nodes: SceneNodes): SdfTree
 {
     return { ...tree, nodes }
 }

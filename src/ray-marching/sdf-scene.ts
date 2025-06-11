@@ -1,61 +1,27 @@
 import equal from "fast-deep-equal";
-import { Opaque } from "../common";
-import { quat, quatIdentity, vec3, vec3Zero, vec4, vec4One } from "../gl-matrix-ts";
+import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SdfTree } from "./sdf-tree";
+import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-entities";
 
-interface Light
+interface ShaderLight
 {
-    name: string;
-    position: vec3;
-    radius: number;
-    colour: vec4;
+    readonly position: rvec3;
+    readonly radius: number;
+    readonly colour: rvec4;
 }
 export const lightDataSize = 3 + 1 + 4;
 
-export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
-export type SdfOpCodeInt = Opaque<number, "sdfOpCode">;
-export const SdfOpCodeNone = -5e2 as SdfOpCodeInt;
-export const SdfOpCodeUnion = -6e2 as SdfOpCodeInt;
-export const SdfOpCodeIntersection = -7e2 as SdfOpCodeInt;
-export const SdfOpCodeSubtraction = -8e2 as SdfOpCodeInt;
-export const SdfOpCodeXor = -9e2 as SdfOpCodeInt;
+interface ShaderShape
+{
+    readonly position: rvec3;
+    readonly maxSize: number;
+    readonly rotation: rquat;
+    readonly shapeType: ShapeTypeInt;
+    readonly shapeParams: rvec3;
+    readonly diffuseColour: rvec4;
+}
+export const shapeDataSize = 4 + 4 + 4 + 4;
 
-export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
-export type ShapeTypeInt = Opaque<number, "shapeType">;
-export const ShapeTypeNone = -5e3 as ShapeTypeInt;
-export const ShapeTypeBox = -6e3 as ShapeTypeInt;
-export const ShapeTypeSphere = -7e3 as ShapeTypeInt;
-export const ShapeTypeHexPrism = -8e3 as ShapeTypeInt;
-export interface Shape
-{
-    position: vec3;
-    rotation: quat;
-    maxSize: number;
-    type: ShapeType;
-    shapeParams: vec3;
-    diffuseColour: vec4;
-    specularColour: vec4;
-}
-
-export type ShapeNodeId = Opaque<string, 'ShapeNodeId'>;
-export function makeShapeNodeId(): ShapeNodeId
-{
-    return crypto.randomUUID() as ShapeNodeId;
-}
-
-export interface ShapeNode
-{
-    id: ShapeNodeId;
-    name: string;
-    shape?: Shape;
-    childOpCode?: SdfOpCode;
-    parentId?: ShapeNodeId;
-    childrenIds?: ShapeNodeId[];
-}
-export interface ShapeNodes
-{
-    [shapeNodeId: string]: ShapeNode
-}
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
 {
@@ -82,16 +48,14 @@ function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
     return SdfOpCodeMap[type] || SdfOpCodeNone;
 }
 
-export const shapeDataSize = 4 + 4 + 4 + 4;
-
 export type ShapeOperation = number | SdfOpCode;
 
 export class SdfScene
 {
-    private lights: Light[] = [];
+    private lights: ShaderLight[] = [];
     private lightDataArray: number[] = [];
 
-    private shapes: Shape[] = [];
+    private shapes: ShaderShape[] = [];
     private shapeDataArray: number[] = [];
 
     private operations: ShapeOperation[] = [];
@@ -143,7 +107,7 @@ export class SdfScene
         return this.numberOperations;
     }
 
-    public setLight(index: number, light: Partial<Light>)
+    public setLight(index: number, light: Partial<ShaderLight>)
     {
         if (index < 0)
         {
@@ -170,18 +134,27 @@ export class SdfScene
             return;
         }
 
-        const { operations, shapes } = SdfScene.createShapesFromNode(sdfTree);
+        const { operations, shapes, lights } = SdfScene.createShapesFromNode(sdfTree);
         this.operations = operations;
         this.shapes = shapes;
+        this.lights = lights;
 
         console.log('Shapes', this.shapes);
         console.log('Operations', this.operations);
+        console.log('Lights', this.lights);
 
         this.shapeDataArray.length = 0;
         for (let i = 0; i < this.shapes.length; i++)
         {
             this.updateShape(i);
         }
+
+        this.lightDataArray.length = 0;
+        for (let i = 0; i < this.lights.length; i++)
+        {
+            this.updateLight(i);
+        }
+
         this.updateOperationNumbers();
     }
 
@@ -194,46 +167,61 @@ export class SdfScene
         }
 
         const opsStack: ShapeOperation[] = [];
-        const shapeStack: Shape[] = [];
-        this.pushToStack(opsStack, shapeStack, rootNode, sdfTree.nodes);
+        const shapeStack: ShaderShape[] = [];
+        const lights: ShaderLight[] = [];
+        this.pushToStack(opsStack, shapeStack, lights, rootNode, sdfTree.nodes);
 
         opsStack.reverse();
 
         return {
             operations: opsStack,
-            shapes: shapeStack
+            shapes: shapeStack,
+            lights
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: Shape[], node: ShapeNode, nodes: ShapeNodes)
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], node: SceneNode, nodes: SceneNodes)
     {
         if (node.childOpCode !== undefined && node.childOpCode !== 'none')
         {
             opsStack.push(node.childOpCode);
         }
 
-        if (node.shape !== undefined)
+        if (node.shape != undefined)
         {
             let index = shapeStack.findIndex(s => equal(s, node.shape));
             if (index < 0)
             {
                 index = shapeStack.length;
-                shapeStack.push(node.shape);
+                const converted = SdfScene.convertToShape(node);
+                if (converted != null)
+                {
+                    shapeStack.push(converted);
+                }
             }
 
             opsStack.push(index);
+        }
+
+        if (node.light != undefined)
+        {
+            const converted = SdfScene.convertToLight(node);
+            if (converted != null)
+            {
+                lights.push(converted);
+            }
         }
 
         if (node.childrenIds !== undefined)
         {
             for (const childId of node.childrenIds)
             {
-                this.pushToStack(opsStack, shapeStack, nodes[childId], nodes);
+                this.pushToStack(opsStack, shapeStack, lights, nodes[childId], nodes);
             }
         }
     }
 
-    public setShape(index: number, shape: Partial<Shape>)
+    public setShape(index: number, shape: Partial<ShaderShape>)
     {
         if (index < 0)
         {
@@ -282,7 +270,7 @@ export class SdfScene
         this.shapeDataArray[dataIndex +  6] = shape.rotation.z;
         this.shapeDataArray[dataIndex +  7] = shape.rotation.w;
 
-        this.shapeDataArray[dataIndex +  8] = toShapeTypeInt(shape.type);
+        this.shapeDataArray[dataIndex +  8] = shape.shapeType;
         this.shapeDataArray[dataIndex +  9] = shape.shapeParams.x;
         this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
@@ -310,26 +298,58 @@ export class SdfScene
         });
     }
 
-    public static createNewLight(): Light
+    public static convertToShape(sceneNode: SceneNode): ShaderShape | null
+    {
+        const shape = sceneNode.shape;
+        if (shape == null)
+        {
+            return null;
+        }
+
+        return {
+            diffuseColour: shape.diffuseColour,
+            maxSize: shape.maxSize,
+            position: sceneNode.position,
+            rotation: sceneNode.rotation,
+            shapeParams: shape.shapeParams,
+            shapeType: toShapeTypeInt(shape.type)
+        }
+    }
+
+    public static convertToLight(sceneNode: SceneNode): ShaderLight | null
+    {
+        const light = sceneNode.light;
+        if (light == null)
+        {
+            return null;
+        }
+
+        return {
+            colour: light.colour,
+            position: sceneNode.position,
+            radius: light.radius
+        }
+    }
+
+    public static createNewLight(): ShaderLight
     {
         return {
-            name: 'Unnamed Light',
             position: vec3Zero(),
             radius: 10,
             colour: vec4One()
         }
     }
 
-    public static createNewShape(partial: Partial<Shape>): Shape
+    public static createNewShape(partial: Partial<ShaderShape>): ShaderShape
     {
         return {
             position: vec3Zero(),
             rotation: quatIdentity(),
             maxSize: 0,
-            type: "none",
+            shapeType: ShapeTypeNone,
             shapeParams: vec3Zero(),
             diffuseColour: {x: 0.7, y: 0.3, z: 0.2, w: 1.0},
-            specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0},
+            // specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0},
 
             ...partial
         }

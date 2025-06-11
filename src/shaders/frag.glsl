@@ -94,7 +94,6 @@ vec3 estimateNormal(vec3 point, float currentDepth)
 vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
 {
     // Use offset samples to compute gradient / normal
-    // float d = sceneSDF(point);
     float d = currentDepth.y;
     vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
@@ -103,7 +102,7 @@ vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
         sceneSDF(point + eps_zero.yyx) - d));
 }
 
-const float shadowSharpness = 32.0;
+const float shadowSharpness = 128.0;
 vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
@@ -195,7 +194,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
         if (uFlags.x)
         {
             vec3 toLight = normalize(lightPos - worldPoint);
-            shadow = softShadow(worldPoint, toLight, 0.1, 100.0);
+            shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
 
             if (i == 1)
             {

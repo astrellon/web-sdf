@@ -26,11 +26,13 @@ export default class WebGLViewportOptions extends Component<Props>
 {
     public render(props: Props)
     {
-        const { enableRender, renderScale, enableShadows, enableShowMarching, epsilon, maxMarchingStep } = this.props.options;
+        const { pixelated, renderScale, enableShadows, enableShowMarching, epsilon, maxMarchingStep } = this.props.options;
 
         return <div class="viewport-options">
-            <button onClick={this.toggleRender}>{ enableRender ? 'Stop' : 'Start' }</button>
+            <button onClick={this.togglePixelated}>{ pixelated ? 'Smooth' : 'Pixelated' }</button>
             <select onChange={this.changeRenderScale} value={renderScale}>
+                <option value="2">2x</option>
+                <option value="1.5">1.5x</option>
                 <option value="1">1x</option>
                 <option value="0.5">0.5x</option>
                 <option value="0.25">0.25x</option>
@@ -67,9 +69,9 @@ export default class WebGLViewportOptions extends Component<Props>
         this.updateOptions({ maxMarchingStep: Math.round(value) });
     }
 
-    private toggleRender = (e: Event) =>
+    private togglePixelated = (e: Event) =>
     {
-        this.updateOptions({ enableRender: !this.props.options.enableRender });
+        this.updateOptions({ pixelated: !this.props.options.pixelated });
     }
 
     private toggleShadows = (e: Event) =>

@@ -1,13 +1,13 @@
 import { h, Component } from 'preact';
-import { ShapeNode } from '../ray-marching/sdf-scene';
-import './shape-node-tree-item.scss';
+import { SceneNode } from '../ray-marching/sdf-entities';
+import './scene-node-tree-item.scss';
 
 interface Props
 {
-    readonly node: ShapeNode;
+    readonly node: SceneNode;
     readonly depth: number;
     readonly isSelected: boolean;
-    readonly onClicked: (node: ShapeNode) => void;
+    readonly onClicked: (node: SceneNode) => void;
 }
 
 export default class ShapeNodeTreeItem extends Component<Props>
@@ -16,7 +16,7 @@ export default class ShapeNodeTreeItem extends Component<Props>
     {
         const { depth, node, isSelected } = this.props;
 
-        const className = 'shape-node-tree-item' + (isSelected ? ' is-selected' : '');
+        const className = 'scene-node-tree-item' + (isSelected ? ' is-selected' : '');
         return <div class={className} style={{'paddingLeft': (depth + 1) * 0.5 + 'rem'}} onClick={this.onClick}>
             + {node.name}
         </div>

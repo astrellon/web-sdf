@@ -1,11 +1,12 @@
 import { h, Component } from 'preact';
-import { SdfScene, ShapeNode, ShapeNodeId, ShapeNodes } from '../ray-marching/sdf-scene';
-import ShapeNodeView from './shape-node-view';
+import { SdfScene } from '../ray-marching/sdf-scene';
+import SceneNodeView from './scene-node-view';
 import { store } from '../store/store';
 import { setSelectedNode, updateNode } from '../store/store-state';
-import ShapeNodeTree from './shape-node-tree';
-import "./scene-graph.scss";
+import SceneNodeTree from './scene-node-tree';
 import { SdfTree } from '../ray-marching/sdf-tree';
+import { SceneNode, ShapeNodeId } from '../ray-marching/sdf-entities';
+import "./scene-graph.scss";
 
 interface Props
 {
@@ -23,21 +24,21 @@ export default class SceneGraph extends Component<Props>
         return <div class="scene-graph">
             <div class="scene-graph__contents outer-panel">
                 <div class="inner-panel">
-                    <ShapeNodeTree sdfTree={sdfTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
+                    <SceneNodeTree sdfTree={sdfTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
                 </div>
                 <div class="inner-panel">
-                    <ShapeNodeView node={sdfTree.nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
+                    <SceneNodeView node={sdfTree.nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
                 </div>
             </div>
         </div>
     }
 
-    private onNodeClicked = (node: ShapeNode) =>
+    private onNodeClicked = (node: SceneNode) =>
     {
         store.execute(setSelectedNode(node.id));
     }
 
-    private onChangeSelectedNode = (newNode: ShapeNode, oldNode: ShapeNode) =>
+    private onChangeSelectedNode = (newNode: SceneNode, oldNode: SceneNode) =>
     {
         store.execute(updateNode(newNode));
     }

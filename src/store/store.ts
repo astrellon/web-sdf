@@ -3,11 +3,11 @@ import { AppState, ViewportOptions, ViewportState } from "./store-state";
 
 export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
-    enableRender: false,
     maxMarchingStep: 255,
     enableShadows: true,
     enableShowMarching: false,
-    epsilon: 0.001
+    epsilon: 0.001,
+    pixelated: false
 }
 export const defaultViewport: ViewportState = {
     options: defaultRenderOptions

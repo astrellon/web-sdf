@@ -62,8 +62,14 @@ export class WebGLViewport extends Component<Props>
     {
         this.requestRender();
 
-        return <div class="viewport outer-panel">
-            <canvas className="viewport__canvas" ref={this.canvasRef} />
+        let canvasClassName = 'viewport__canvas';
+        if (this.props.options.pixelated)
+        {
+            canvasClassName += ' is-pixelated';
+        }
+
+        return <div class='viewport outer-panel'>
+            <canvas className={canvasClassName} ref={this.canvasRef} />
             <WebGLViewportOptions viewportIndex={this.props.viewportIndex} options={this.props.options} />
         </div>
     }
@@ -94,11 +100,6 @@ export class WebGLViewport extends Component<Props>
             this.updateCanvasSize();
         }
         this.renderer.render(this.props.sdfScene);
-
-        if(this.props.options.enableRender)
-        {
-            this.requestRender();
-        }
     }
 
     private onPointerDown = (e: PointerEvent) =>
@@ -150,11 +151,7 @@ export class WebGLViewport extends Component<Props>
 
     private manualRenderTrigger = () =>
     {
-        // If the renderer is not enabled, then we'll manually call a render
-        if (!this.props.options.enableRender)
-        {
-            this.requestRender();
-        }
+        this.requestRender();
     }
 
     private requestRender = () =>
