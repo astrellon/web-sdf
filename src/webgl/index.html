@@ -3,65 +3,11 @@
     <head>
         <title>WebGL SDF</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>
-            html, body {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
-            }
-
-            #firefox-fix {
-                width: 10px;
-                height: 10px;
-                position: absolute;
-                backdrop-filter: blur(1px);
-            }
-
-            body main {
-                position: absolute;
-                left: 0.5rem;
-                top: 0.5rem;
-            }
-
-            .full-screen-canvas {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-            }
-        </style>
         <link rel="stylesheet" href="webgl-index.css">
     </head>
     <body>
         <div id="firefox-fix"></div>
         <main id="app"></main>
-        <!-- <main>
-            <div id="test"></div>
-            <button id="toggle-render">Stop</button>
-            <select id="select-render-scale">
-                <option value="1">1x</option>
-                <option value="0.5">0.5x</option>
-                <option value="0.25">0.25x</option>
-                <option value="0.125">0.125x</option>
-            </select>
-            <label>Enable shadows
-                <input type="checkbox" id="enable-shadows" />
-            </label>
-            <label>Show number of marches
-                <input type="checkbox" id="enable-show-marching" />
-            </label>
-            <label>
-                Max Marching Steps
-                <input type="range" id="max-marching-steps" min="0" max="1000" value="255" />
-                <span id="max-marching-steps_value">255</span>
-            </label>
-
-        </main>
-        <canvas id="main-canvas" class="full-screen-canvas"></canvas> -->
     </body>
     <script src="./webgl-index.js"></script>
 </html>
