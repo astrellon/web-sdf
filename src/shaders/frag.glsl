@@ -14,6 +14,8 @@ uniform int uNumLights;
 uniform mat3 uCameraMatrix;
 uniform vec3 uCameraPosition;
 
+uniform mat2x4 uMaterials[32];
+
 uniform mat4 uShapes[128];
 uniform int uOperations[128];
 uniform int uNumOperations;

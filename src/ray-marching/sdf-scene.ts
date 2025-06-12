@@ -2,6 +2,7 @@ import equal from "fast-deep-equal";
 import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SdfTree } from "./sdf-tree";
 import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-entities";
+import mathf from "../gl-matrix-ts/mathf";
 
 interface ShaderLight
 {
@@ -11,6 +12,11 @@ interface ShaderLight
 }
 export const lightDataSize = 3 + 1 + 4;
 
+interface ShaderMaterialIndex
+{
+    readonly index: number;
+    readonly weight: number;
+}
 interface ShaderShape
 {
     readonly position: rvec3;
@@ -18,10 +24,16 @@ interface ShaderShape
     readonly rotation: rquat;
     readonly shapeType: ShapeTypeInt;
     readonly shapeParams: rvec3;
-    readonly diffuseColour: rvec4;
+    readonly material: number;
 }
 export const shapeDataSize = 4 + 4 + 4 + 4;
 
+interface ShaderMaterial
+{
+    readonly diffuseColour: rvec4;
+    readonly specularColour: rvec4;
+}
+export const materialDataSize = 4 + 4;
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
 {
@@ -55,6 +67,9 @@ export class SdfScene
     private lights: ShaderLight[] = [];
     private lightDataArray: number[] = [];
 
+    private materials: ShaderMaterial[] = [];
+    private materialDataArray: number[] = [];
+
     private shapes: ShaderShape[] = [];
     private shapeDataArray: number[] = [];
 
@@ -74,6 +89,21 @@ export class SdfScene
     public getNumLights()
     {
         return this.lights.length;
+    }
+
+    public getMaterials()
+    {
+        return this.materials;
+    }
+
+    public getMaterialDataArray()
+    {
+        return this.materialDataArray;
+    }
+
+    public getNumMaterials()
+    {
+        return this.materials.length;
     }
 
     public getShapeDataArray()
@@ -124,6 +154,25 @@ export class SdfScene
         }
 
         this.updateLight(index);
+    }
+
+    public setMaterial(index: number, material: Partial<ShaderMaterial>)
+    {
+        if (index < 0)
+        {
+            throw new Error(`Out of bounds material index ${index}`);
+        }
+
+        if (index >= this.materials.length)
+        {
+            this.materials[index] = { ...SdfScene.createNewMaterial(), ...material };
+        }
+        else
+        {
+            this.materials[index] = { ...this.materials[index], ...material };
+        }
+
+        this.updateMaterial(index);
     }
 
     public updateShapesFromRootNode(sdfTree: SdfTree)
@@ -255,6 +304,21 @@ export class SdfScene
         this.lightDataArray[dataIndex + 7] = light.colour.w;
     }
 
+    private updateMaterial(index: number)
+    {
+        const dataIndex = index * materialDataSize;
+        const material = this.materials[index];
+
+        this.materialDataArray[dataIndex    ] = material.diffuseColour.x;
+        this.materialDataArray[dataIndex + 1] = material.diffuseColour.y;
+        this.materialDataArray[dataIndex + 2] = material.diffuseColour.z;
+        this.materialDataArray[dataIndex + 3] = material.diffuseColour.w;
+        this.materialDataArray[dataIndex + 4] = material.specularColour.x;
+        this.materialDataArray[dataIndex + 5] = material.specularColour.y;
+        this.materialDataArray[dataIndex + 6] = material.specularColour.z;
+        this.materialDataArray[dataIndex + 7] = material.specularColour.w;
+    }
+
     private updateShape(index: number)
     {
         const dataIndex = index * shapeDataSize;
@@ -275,15 +339,7 @@ export class SdfScene
         this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
 
-        this.shapeDataArray[dataIndex + 12] = shape.diffuseColour.x;
-        this.shapeDataArray[dataIndex + 13] = shape.diffuseColour.y;
-        this.shapeDataArray[dataIndex + 14] = shape.diffuseColour.z;
-        this.shapeDataArray[dataIndex + 15] = shape.diffuseColour.w;
-
-        // this.shapeDataArray[dataIndex + 16] = shape.specularColour.x;
-        // this.shapeDataArray[dataIndex + 17] = shape.specularColour.y;
-        // this.shapeDataArray[dataIndex + 18] = shape.specularColour.z;
-        // this.shapeDataArray[dataIndex + 19] = shape.specularColour.w;
+        this.shapeDataArray[dataIndex + 12] = Math.round(shape.material);
     }
 
     private updateOperationNumbers()
@@ -307,7 +363,7 @@ export class SdfScene
         }
 
         return {
-            diffuseColour: shape.diffuseColour,
+            material: shape.material,
             maxSize: shape.maxSize,
             position: sceneNode.position,
             rotation: sceneNode.rotation,
@@ -331,6 +387,14 @@ export class SdfScene
         }
     }
 
+    public static createNewMaterial(): ShaderMaterial
+    {
+        return {
+            diffuseColour: vec4One(),
+            specularColour: vec4One()
+        }
+    }
+
     public static createNewLight(): ShaderLight
     {
         return {
@@ -348,8 +412,7 @@ export class SdfScene
             maxSize: 0,
             shapeType: ShapeTypeNone,
             shapeParams: vec3Zero(),
-            diffuseColour: {x: 0.7, y: 0.3, z: 0.2, w: 1.0},
-            // specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0},
+            material: 0,
 
             ...partial
         }
