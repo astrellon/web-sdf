@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import { SceneTree } from '../ray-marching/scene-tree';
+import { SceneTree, sdfTreeFlatten } from '../ray-marching/scene-tree';
 import ShapeNodeTreeItem from './scene-node-tree-item';
 import { SceneNode, ShapeNodeId } from '../ray-marching/scene-entities';
 import './scene-node-tree.scss';
@@ -30,21 +30,12 @@ export default class SceneNodeTree extends Component<Props>
             return result;
         }
 
-        const stack = [{node: sdfTree.nodes[sdfTree.rootNodeId], depth: 0}];
-
-        while (stack.length > 0)
+        const flattenedTree = sdfTreeFlatten(sdfTree);
+        console.log(flattenedTree);
+        for (const entry of flattenedTree)
         {
-            const { node, depth } = stack[0];
-            stack.splice(0, 1);
-
-            result.push(<ShapeNodeTreeItem isSelected={node.id === selectedNodeId} depth={depth} key={node.id} node={node} onClicked={onItemClicked} />);
-            if (node.childrenIds != null)
-            {
-                for (const childId of node.childrenIds)
-                {
-                    stack.push({node: sdfTree.nodes[childId], depth: depth + 1});
-                }
-            }
+            const isSelected = entry.node.id === selectedNodeId;
+            result.push(<ShapeNodeTreeItem isSelected={isSelected} depth={entry.depth} key={entry.node.id} node={entry.node} onClicked={onItemClicked} />);
         }
 
         return result;
