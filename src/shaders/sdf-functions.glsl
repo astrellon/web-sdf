@@ -28,22 +28,25 @@ float sdfBox(vec3 point, vec3 size)
         + length(max(d, 0.0));              // outside distance
 }
 
-float opUnion(float d1, float d2)
+vec2 opUnion(vec2 d1, vec2 d2)
 {
-    return min(d1, d2);
+    return d1.x < d2.x ? d1 : d2;
+    // return min(d1, d2);
 }
 
-float opSubtraction(float d1, float d2)
+vec2 opSubtraction(vec2 d1, vec2 d2)
 {
-    return max(-d1, d2);
+    return -d1.x > d2.x ? vec2(-d1.x, d1.y) : d2;
+    // return max(-d1, d2);
 }
 
-float opIntersection(float d1, float d2)
+vec2 opIntersection(vec2 d1, vec2 d2)
 {
-    return max(d1, d2);
+    return d1.x > d2.x ? d1 : d2;
+    // return max(d1, d2);
 }
 
-float applyOpCode(int opCode, float dist1, float dist2)
+vec2 applyOpCode(int opCode, vec2 dist1, vec2 dist2)
 {
     switch (opCode)
     {
@@ -52,7 +55,7 @@ float applyOpCode(int opCode, float dist1, float dist2)
         case SdfOpCodeSubtraction: return opSubtraction(dist1, dist2);
     }
 
-    return 100.0;
+    return vec2(100.0, -1);
 }
 
 float getDistToType(int type, vec3 point, vec3 params)

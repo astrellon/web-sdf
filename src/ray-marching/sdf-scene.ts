@@ -1,5 +1,5 @@
 import equal from "fast-deep-equal";
-import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4One } from "../gl-matrix-ts";
+import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4ApproxEquals, vec4One } from "../gl-matrix-ts";
 import { SdfTree } from "./sdf-tree";
 import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-entities";
 import mathf from "../gl-matrix-ts/mathf";
@@ -183,14 +183,16 @@ export class SdfScene
             return;
         }
 
-        const { operations, shapes, lights } = SdfScene.createShapesFromNode(sdfTree);
+        const { operations, shapes, lights, materials } = SdfScene.createShapesFromNode(sdfTree);
         this.operations = operations;
         this.shapes = shapes;
         this.lights = lights;
+        this.materials = materials;
 
         console.log('Shapes', this.shapes);
         console.log('Operations', this.operations);
         console.log('Lights', this.lights);
+        console.log('Materials', this.materials);
 
         this.shapeDataArray.length = 0;
         for (let i = 0; i < this.shapes.length; i++)
@@ -202,6 +204,12 @@ export class SdfScene
         for (let i = 0; i < this.lights.length; i++)
         {
             this.updateLight(i);
+        }
+
+        this.materialDataArray.length = 0;
+        for (let i = 0; i < this.materials.length; i++)
+        {
+            this.updateMaterial(i);
         }
 
         this.updateOperationNumbers();
@@ -218,18 +226,19 @@ export class SdfScene
         const opsStack: ShapeOperation[] = [];
         const shapeStack: ShaderShape[] = [];
         const lights: ShaderLight[] = [];
-        this.pushToStack(opsStack, shapeStack, lights, rootNode, sdfTree.nodes);
+        const materials: ShaderMaterial[] = [];
+        this.pushToStack(opsStack, shapeStack, lights, materials, rootNode, sdfTree.nodes);
 
         opsStack.reverse();
 
         return {
             operations: opsStack,
             shapes: shapeStack,
-            lights
+            lights, materials
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], node: SceneNode, nodes: SceneNodes)
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], node: SceneNode, nodes: SceneNodes)
     {
         if (node.childOpCode !== undefined && node.childOpCode !== 'none')
         {
@@ -242,7 +251,7 @@ export class SdfScene
             if (index < 0)
             {
                 index = shapeStack.length;
-                const converted = SdfScene.convertToShape(node);
+                const converted = SdfScene.convertToShape(node, materials);
                 if (converted != null)
                 {
                     shapeStack.push(converted);
@@ -265,7 +274,7 @@ export class SdfScene
         {
             for (const childId of node.childrenIds)
             {
-                this.pushToStack(opsStack, shapeStack, lights, nodes[childId], nodes);
+                this.pushToStack(opsStack, shapeStack, lights, materials, nodes[childId], nodes);
             }
         }
     }
@@ -340,6 +349,9 @@ export class SdfScene
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
 
         this.shapeDataArray[dataIndex + 12] = Math.round(shape.material);
+        this.shapeDataArray[dataIndex + 13] = 0; // Unused, but needed for padding
+        this.shapeDataArray[dataIndex + 14] = 0;
+        this.shapeDataArray[dataIndex + 15] = 0;
     }
 
     private updateOperationNumbers()
@@ -354,7 +366,7 @@ export class SdfScene
         });
     }
 
-    public static convertToShape(sceneNode: SceneNode): ShaderShape | null
+    public static convertToShape(sceneNode: SceneNode, materials: ShaderMaterial[]): ShaderShape | null
     {
         const shape = sceneNode.shape;
         if (shape == null)
@@ -362,8 +374,19 @@ export class SdfScene
             return null;
         }
 
+        let materialIndex = this.findApproxMaterial(shape, materials);
+        if (materialIndex < 0)
+        {
+            materialIndex = materials.length;
+
+            materials.push({
+                diffuseColour: shape.diffuseColour,
+                specularColour: shape.specularColour
+            });
+        }
+
         return {
-            material: shape.material,
+            material: materialIndex,
             maxSize: shape.maxSize,
             position: sceneNode.position,
             rotation: sceneNode.rotation,
@@ -416,5 +439,25 @@ export class SdfScene
 
             ...partial
         }
+    }
+
+    private static findApproxMaterial(material: ShaderMaterial, materials: ShaderMaterial[])
+    {
+        for (let i = 0; i < materials.length; i++)
+        {
+            const current = materials[i];
+            if (!vec4ApproxEquals(current.diffuseColour, material.diffuseColour))
+            {
+                continue;
+            }
+            if (!vec4ApproxEquals(current.specularColour, material.specularColour))
+            {
+                continue;
+            }
+
+            return i;
+        }
+
+        return -1;
     }
 }

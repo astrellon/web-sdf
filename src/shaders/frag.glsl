@@ -31,7 +31,7 @@ vec3 quatMul( vec4 q, vec3 v )
     return v + 2.0 * cross(cross(v, q.xyz ) + q.w * v, q.xyz);
 }
 
-float getDistanceToShape(int index, vec3 samplePoint)
+vec2 getDistanceToShape(int index, vec3 samplePoint)
 {
     mat4 shape = uShapes[index];
 
@@ -46,28 +46,31 @@ float getDistanceToShape(int index, vec3 samplePoint)
     int type = int(round(shape[2].x));
     vec3 params = shape[2].yzw;
 
-    return getDistToType(type, transPoint, params);
+    float dist = getDistToType(type, transPoint, params);
+    float material = shape[3].x;
+
+    return vec2(dist, material);
 }
 
-float sceneSDF(vec3 point)
+vec2 sceneSDF(vec3 point)
 {
     int depthStackIndex = -1;
-    float depthStack[32];
+    vec2 depthStack[32];
 
     for (int operationsIndex = 0; operationsIndex < uNumOperations; operationsIndex++)
     {
-        int operation = uOperations[operationsIndex];
+        int operationOrIndex = uOperations[operationsIndex];
 
-        if (operation <= SdfOpCodeNone)
+        if (operationOrIndex <= SdfOpCodeNone)
         {
-            float lastD2 = depthStack[depthStackIndex--];
-            float lastD1 = depthStack[depthStackIndex--];
-            float dist = applyOpCode(operation, lastD2, lastD1);
+            vec2 lastD2 = depthStack[depthStackIndex--];
+            vec2 lastD1 = depthStack[depthStackIndex--];
+            vec2 dist = applyOpCode(operationOrIndex, lastD2, lastD1);
             depthStack[++depthStackIndex] = dist;
         }
         else
         {
-            float dist = getDistanceToShape(operation, point);
+            vec2 dist = getDistanceToShape(operationOrIndex, point);
             depthStack[++depthStackIndex] = dist;
         }
     }
@@ -86,9 +89,9 @@ vec3 estimateNormal(vec3 point, float currentDepth)
 {
     vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(point + eps_zero.xyy) - sceneSDF(point - eps_zero.xyy),
-        sceneSDF(point + eps_zero.yxy) - sceneSDF(point - eps_zero.yxy),
-        sceneSDF(point + eps_zero.yyx) - sceneSDF(point - eps_zero.yyx)
+        sceneSDF(point + eps_zero.xyy).x - sceneSDF(point - eps_zero.xyy).x,
+        sceneSDF(point + eps_zero.yxy).x - sceneSDF(point - eps_zero.yxy).x,
+        sceneSDF(point + eps_zero.yyx).x - sceneSDF(point - eps_zero.yyx).x
     ));
 }
 
@@ -99,9 +102,9 @@ vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
     float d = currentDepth.y;
     vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(point + eps_zero.xyy) - d,
-        sceneSDF(point + eps_zero.yxy) - d,
-        sceneSDF(point + eps_zero.yyx) - d));
+        sceneSDF(point + eps_zero.xyy).x - d,
+        sceneSDF(point + eps_zero.yxy).x - d,
+        sceneSDF(point + eps_zero.yyx).x - d));
 }
 
 const float shadowSharpness = 128.0;
@@ -113,7 +116,7 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 
     for (; i < uMaxMarchingSteps; i++)
     {
-        float dist = sceneSDF(rayOrigin + depth * rayDirection);
+        float dist = sceneSDF(rayOrigin + depth * rayDirection).x;
         if (dist < uEpsilon)
         {
             return vec2(0.0, float(i));
@@ -212,25 +215,25 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     return vec4(colour, light0Rays);
 }
 
-vec3 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
     for (int i = 0; i < uMaxMarchingSteps; i++)
     {
-        float dist = sceneSDF(rayOrigin + depth * rayDirection);
-        if (dist < uEpsilon)
+        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection);
+        if (dist.x < uEpsilon)
         {
-            return vec3(depth, dist, float(i));
+            return vec4(depth, dist.x, float(i), dist.y);
         }
 
-        depth += dist;
+        depth += dist.x;
         if (depth >= far)
         {
-            return vec3(far, dist, float(i));
+            return vec4(far, dist.x, float(i), dist.y);
         }
     }
 
-    return vec3(far, far, float(uMaxMarchingSteps));
+    return vec4(far, far, float(uMaxMarchingSteps), -1);
 }
 
 void main()
@@ -238,7 +241,7 @@ void main()
     vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
     vec3 rayOrigin = uCameraPosition;
 
-    vec3 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+    vec4 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
     vec4 litColour;
 
     if (dist.x > MAX_DIST - uEpsilon)
@@ -260,8 +263,14 @@ void main()
         vec3 diffuse = vec3(0.7, 0.2, 0.2);
         vec3 specular = vec3(1.0, 1.0, 1.0);
         float shininess = 10.0;
+        if (dist.w >= 0.0)
+        {
+            mat2x4 material = uMaterials[int(dist.w)];
+            diffuse = material[0].xyz;
+            specular = material[1].xyz;
+        }
 
-        litColour = phongIllumination(dist, diffuse, specular, shininess, worldPoint, rayOrigin);
+        litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
 
         fragColour = vec4(litColour.xyz, 1.0);
     }

@@ -61,6 +61,8 @@ export default class WebGLSdfRenderer
     public readonly uOperations: WebGLUniformLocation;
     public readonly uNumOperations: WebGLUniformLocation;
 
+    public readonly uMaterials: WebGLUniformLocation;
+
     public readonly uLights: WebGLUniformLocation;
     public readonly uNumLights: WebGLUniformLocation;
 
@@ -97,6 +99,7 @@ export default class WebGLSdfRenderer
         uNumOperations: WebGLUniformLocation,
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
+        uMaterials: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
         uCameraMatrix: WebGLUniformLocation,
         uAspectRatio: WebGLUniformLocation,
@@ -113,6 +116,8 @@ export default class WebGLSdfRenderer
 
         this.uOperations = uOperations;
         this.uNumOperations = uNumOperations;
+
+        this.uMaterials = uMaterials;
 
         this.uLights = uLights;
         this.uNumLights = uNumLights;
@@ -176,6 +181,8 @@ export default class WebGLSdfRenderer
         this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
         this.gl.uniform1i(this.uNumLights, scene.getNumLights());
 
+        this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+
         this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
@@ -227,6 +234,8 @@ export default class WebGLSdfRenderer
         const uOperations = this.getUniform(gl, shader, 'uOperations');
         const uNumOperations = this.getUniform(gl, shader, 'uNumOperations');
 
+        const uMaterials = this.getUniform(gl, shader, 'uMaterials');
+
         const uLights = this.getUniform(gl, shader, 'uLights');
         const uNumLights = this.getUniform(gl, shader, 'uNumLights');
 
@@ -237,6 +246,7 @@ export default class WebGLSdfRenderer
         return new WebGLSdfRenderer(gl, shader, positionBuffer,
             uShapes, uOperations, uNumOperations,
             uLights, uNumLights,
+            uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,
             uMaxMarchingSteps, uEpsilon, uFlags);
     }
