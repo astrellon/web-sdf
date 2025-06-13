@@ -116,6 +116,19 @@ vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
         sceneSDF(point + eps_zero.yyx).x - d));
 }
 
+vec3 estimateNormalTetrahedron(vec3 point, vec3 currentDepth)
+{
+    float h = 0.0015 * currentDepth.x;
+    const vec2 k = vec2(1, -1);
+
+    return normalize(
+        k.xyy * sceneSDF(point + k.xyy * h).x +
+        k.yyx * sceneSDF(point + k.yyx * h).x +
+        k.yxy * sceneSDF(point + k.yxy * h).x +
+        k.xxx * sceneSDF(point + k.xxx * h).x );
+
+}
+
 const float shadowSharpness = 128.0;
 vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
@@ -239,7 +252,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
  */
 vec3 lambertContribForLight(vec3 currentDepth, vec3 diffuse, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormalLambert(p, currentDepth);
+    vec3 N = estimateNormalTetrahedron(p, currentDepth);
 
     vec3 L = normalize(lightPos - p);
     vec3 V = normalize(eye - p);
