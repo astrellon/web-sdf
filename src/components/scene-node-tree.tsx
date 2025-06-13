@@ -31,7 +31,6 @@ export default class SceneNodeTree extends Component<Props>
         }
 
         const flattenedTree = sdfTreeFlatten(sdfTree);
-        console.log(flattenedTree);
         for (const entry of flattenedTree)
         {
             const isSelected = entry.node.id === selectedNodeId;
