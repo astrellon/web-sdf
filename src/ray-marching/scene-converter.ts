@@ -76,7 +76,6 @@ export class SceneConverter
     private numberOperations: number[] = [];
 
     private previousTree?: SceneTree;
-    private sceneDirty: boolean = true;
 
     public getLightDataArray()
     {
@@ -179,6 +178,11 @@ export class SceneConverter
 
     public updateShapesFromTree(sdfTree: SceneTree)
     {
+        if (this.previousTree === sdfTree)
+        {
+            return;
+        }
+
         const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
         {
@@ -186,35 +190,46 @@ export class SceneConverter
         }
 
         const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sdfTree);
-        this.operations = operations;
-        this.shapes = shapes;
-        this.lights = lights;
-        this.materials = materials;
-
-        console.log('Shapes', this.shapes);
-        console.log('Operations', this.operations);
-        console.log('Lights', this.lights);
-        console.log('Materials', this.materials);
-
-        this.shapeDataArray.length = 0;
-        for (let i = 0; i < this.shapes.length; i++)
+        if (!equal(this.operations, operations))
         {
-            this.updateShape(i);
+            this.operations = operations;
+            console.log('Operations', this.operations);
+
+            this.updateOperationNumbers();
         }
 
-        this.lightDataArray.length = 0;
-        for (let i = 0; i < this.lights.length; i++)
+        if (!equal(this.shapes, shapes))
         {
-            this.updateLight(i);
+            console.log('Shapes', this.shapes);
+            this.shapes = shapes;
+            this.shapeDataArray.length = 0;
+            for (let i = 0; i < this.shapes.length; i++)
+            {
+                this.updateShape(i);
+            }
         }
 
-        this.materialDataArray.length = 0;
-        for (let i = 0; i < this.materials.length; i++)
+        if (!equal(this.lights, lights))
         {
-            this.updateMaterial(i);
+            this.lights = lights;
+            console.log('Lights', this.lights);
+            this.lightDataArray.length = 0;
+            for (let i = 0; i < this.lights.length; i++)
+            {
+                this.updateLight(i);
+            }
         }
 
-        this.updateOperationNumbers();
+        if (!equal(this.materials, materials))
+        {
+            this.materials = materials;
+            console.log('Materials', this.materials);
+            this.materialDataArray.length = 0;
+            for (let i = 0; i < this.materials.length; i++)
+            {
+                this.updateMaterial(i);
+            }
+        }
     }
 
     public static createShapesFromNode(sdfTree: SceneTree)

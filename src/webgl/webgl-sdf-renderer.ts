@@ -91,6 +91,11 @@ export default class WebGLSdfRenderer
 
     private readonly cameraMatrixArray = new Float32Array(9);
 
+    private prevShapes: any;
+    private prevOperations: any;
+    private prevMaterials: any;
+    private prevLights: any;
+
     constructor(gl: WebGL2RenderingContext,
         shader: Shader,
         positionBuffer: WebGLBuffer,
@@ -170,18 +175,36 @@ export default class WebGLSdfRenderer
 
     public render(scene: SceneConverter)
     {
-        this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
-        this.gl.uniform1i(this.uNumLights, scene.getNumLights());
+        if (this.prevLights !== scene.getLights())
+        {
+            console.info('Rendering new lights');
+            this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
+            this.gl.uniform1i(this.uNumLights, scene.getNumLights());
+            this.prevLights = scene.getLights();
+        }
 
-        const ops = scene.getOperationNumbers();
-        this.gl.uniform1i(this.uNumOperations, ops.length);
-        this.gl.uniform1iv(this.uOperations, ops);
+        if (this.prevOperations !== scene.getOperations())
+        {
+            console.info('Rendering new operations');
+            const ops = scene.getOperationNumbers();
+            this.gl.uniform1i(this.uNumOperations, ops.length);
+            this.gl.uniform1iv(this.uOperations, ops);
+            this.prevOperations = scene.getOperations();
+        }
 
-        this.gl.uniformMatrix4fv(this.uShapes, false, scene.getShapeDataArray());
-        this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
-        this.gl.uniform1i(this.uNumLights, scene.getNumLights());
+        if (this.prevShapes !== scene.getShapes())
+        {
+            console.info('Rendering new shapes');
+            this.gl.uniformMatrix4fv(this.uShapes, false, scene.getShapeDataArray());
+            this.prevShapes = scene.getShapes();
+        }
 
-        this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+        if (this.prevMaterials !== scene.getMaterials())
+        {
+            console.info('Rendering new materials');
+            this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+            this.prevMaterials = scene.getMaterials();
+        }
 
         this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
