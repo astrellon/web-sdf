@@ -5,6 +5,10 @@ precision lowp float;
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
 
+const int UNLIT = 0;
+const int LAMBERT = 1;
+const int PHONG = 2;
+
 layout(location = 0) out vec4 fragColour;
 
 in vec2 oPosition;
@@ -369,17 +373,18 @@ void main()
             shininess = material[1].w;
         }
 
-        if (lightingModel == 0)
+        switch (lightingModel)
         {
-            litColour = vec4(diffuse, 1.0);
-        }
-        else if (lightingModel == 1)
-        {
-            litColour = lambertIllumination(dist.xyz, diffuse, worldPoint, rayOrigin);
-        }
-        else if (lightingModel == 2)
-        {
-            litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+            default:
+            case UNLIT:
+                litColour = vec4(diffuse, 1.0);
+                break;
+            case LAMBERT:
+                litColour = lambertIllumination(dist.xyz, diffuse, worldPoint, rayOrigin);
+                break;
+            case PHONG:
+                litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+                break;
         }
 
         fragColour = vec4(litColour.xyz, 1.0);
