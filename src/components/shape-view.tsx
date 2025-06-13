@@ -1,7 +1,7 @@
 import { h, Component } from 'preact';
 import VectorView from './vector-view';
 import { vec3, vec4 } from '../gl-matrix-ts';
-import { Shape } from '../ray-marching/sdf-entities';
+import { Shape } from '../ray-marching/scene-entities';
 
 interface Props
 {
@@ -19,6 +19,8 @@ export default class ShapeView extends Component<Props>
             return <div>Empty shape</div>;
         }
 
+        const isPhong = shape.lightingModel === 'phong';
+
         return <div>
             <div>
                 <strong>Type</strong> <select value={shape.type ?? 'none'} onChange={this.onChangeType}>
@@ -32,10 +34,20 @@ export default class ShapeView extends Component<Props>
                 <strong>Shape Params</strong> <VectorView vector={shape.shapeParams} onChange={this.onChangeShapeParams} />
             </div>
             <div>
+                <strong>Lighting Model</strong> <select value={shape.lightingModel} onChange={this.onChangeLightingModel}>
+                    <option value='unlit'>Unlit</option>
+                    <option value='lambert'>Lambert</option>
+                    <option value='phong'>Phong</option>
+                </select>
+            </div>
+            <div>
                 <strong>Diffuse Colour</strong> <VectorView vector={shape.diffuseColour} onChange={this.onChangeDiffuseColour} />
             </div>
             <div>
-                <strong>Specular Colour</strong> <VectorView vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
+                <strong>Specular Colour</strong> <VectorView disabled={!isPhong} vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
+            </div>
+            <div>
+                <strong>Shininess</strong> <input disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
             </div>
         </div>
     }
@@ -44,6 +56,21 @@ export default class ShapeView extends Component<Props>
     {
         const value = (e.target as HTMLSelectElement).value;
         this.updateField(value, 'type');
+    }
+
+    private onChangeLightingModel = (e: Event) =>
+    {
+        const value = (e.target as HTMLSelectElement).value;
+        this.updateField(value, 'lightingModel');
+    }
+
+    private onChangeShininess = (e: Event) =>
+    {
+        const value = parseFloat((e.target as HTMLInputElement).value);
+        if (isFinite(value))
+        {
+            this.updateField(value, 'shininess');
+        }
     }
 
     private onChangeShapeParams = (oldVec: vec3, newVec: vec3) =>

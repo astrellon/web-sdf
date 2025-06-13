@@ -1,7 +1,7 @@
 import equal from "fast-deep-equal";
-import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4One } from "../gl-matrix-ts";
-import { SdfTree } from "./sdf-tree";
-import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-entities";
+import { quatIdentity, rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
+import { SceneTree } from "./scene-tree";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./scene-entities";
 
 interface ShaderLight
 {
@@ -11,6 +11,11 @@ interface ShaderLight
 }
 export const lightDataSize = 3 + 1 + 4;
 
+interface ShaderMaterialIndex
+{
+    readonly index: number;
+    readonly weight: number;
+}
 interface ShaderShape
 {
     readonly position: rvec3;
@@ -18,10 +23,18 @@ interface ShaderShape
     readonly rotation: rquat;
     readonly shapeType: ShapeTypeInt;
     readonly shapeParams: rvec3;
-    readonly diffuseColour: rvec4;
+    readonly material: number;
 }
 export const shapeDataSize = 4 + 4 + 4 + 4;
 
+interface ShaderMaterial
+{
+    readonly diffuseColour: rvec3;
+    readonly lightingModel: LightingModelInt;
+    readonly specularColour: rvec3;
+    readonly shininess: number;
+}
+export const materialDataSize = 4 + 4;
 
 const SdfOpCodeMap: { readonly [key: string]: SdfOpCodeInt } =
 {
@@ -38,6 +51,12 @@ const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
     'sphere': ShapeTypeSphere,
     'hexPrism': ShapeTypeHexPrism,
 }
+const LightingModelMap: { readonly [key: string]: LightingModelInt} =
+{
+    'unlit': LightingModelUnlit,
+    'lambert': LightingModelLambert,
+    'phong': LightingModelPhong
+}
 
 function toShapeTypeInt(type: ShapeType): ShapeTypeInt
 {
@@ -47,19 +66,28 @@ function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
 {
     return SdfOpCodeMap[type] || SdfOpCodeNone;
 }
+function toLightingModelInt(type: LightingModelType): LightingModelInt
+{
+    return LightingModelMap[type] || LightingModelUnlit;
+}
 
 export type ShapeOperation = number | SdfOpCode;
 
-export class SdfScene
+export class SceneConverter
 {
     private lights: ShaderLight[] = [];
     private lightDataArray: number[] = [];
+
+    private materials: ShaderMaterial[] = [];
+    private materialDataArray: number[] = [];
 
     private shapes: ShaderShape[] = [];
     private shapeDataArray: number[] = [];
 
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
+
+    private previousTree?: SceneTree;
 
     public getLightDataArray()
     {
@@ -74,6 +102,21 @@ export class SdfScene
     public getNumLights()
     {
         return this.lights.length;
+    }
+
+    public getMaterials()
+    {
+        return this.materials;
+    }
+
+    public getMaterialDataArray()
+    {
+        return this.materialDataArray;
+    }
+
+    public getNumMaterials()
+    {
+        return this.materials.length;
     }
 
     public getShapeDataArray()
@@ -116,7 +159,7 @@ export class SdfScene
 
         if (index >= this.lights.length)
         {
-            this.lights[index] = { ...SdfScene.createNewLight(), ...light };
+            this.lights[index] = { ...SceneConverter.createNewLight(), ...light };
         }
         else
         {
@@ -126,39 +169,82 @@ export class SdfScene
         this.updateLight(index);
     }
 
-    public updateShapesFromRootNode(sdfTree: SdfTree)
+    public setMaterial(index: number, material: Partial<ShaderMaterial>)
     {
+        if (index < 0)
+        {
+            throw new Error(`Out of bounds material index ${index}`);
+        }
+
+        if (index >= this.materials.length)
+        {
+            this.materials[index] = { ...SceneConverter.createNewMaterial(), ...material };
+        }
+        else
+        {
+            this.materials[index] = { ...this.materials[index], ...material };
+        }
+
+        this.updateMaterial(index);
+    }
+
+    public updateShapesFromTree(sdfTree: SceneTree)
+    {
+        if (this.previousTree === sdfTree)
+        {
+            return;
+        }
+
         const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
         {
             return;
         }
 
-        const { operations, shapes, lights } = SdfScene.createShapesFromNode(sdfTree);
-        this.operations = operations;
-        this.shapes = shapes;
-        this.lights = lights;
-
-        console.log('Shapes', this.shapes);
-        console.log('Operations', this.operations);
-        console.log('Lights', this.lights);
-
-        this.shapeDataArray.length = 0;
-        for (let i = 0; i < this.shapes.length; i++)
+        const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sdfTree);
+        if (!equal(this.operations, operations))
         {
-            this.updateShape(i);
+            this.operations = operations;
+            console.log('Operations', this.operations);
+
+            this.updateOperationNumbers();
         }
 
-        this.lightDataArray.length = 0;
-        for (let i = 0; i < this.lights.length; i++)
+        if (!equal(this.shapes, shapes))
         {
-            this.updateLight(i);
+            console.log('Shapes', this.shapes);
+            this.shapes = shapes;
+            this.shapeDataArray.length = 0;
+            for (let i = 0; i < this.shapes.length; i++)
+            {
+                this.updateShape(i);
+            }
         }
 
-        this.updateOperationNumbers();
+        if (!equal(this.lights, lights))
+        {
+            this.lights = lights;
+            console.log('Lights', this.lights);
+            this.lightDataArray.length = 0;
+            for (let i = 0; i < this.lights.length; i++)
+            {
+                this.updateLight(i);
+            }
+        }
+
+        if (!equal(this.materials, materials))
+        {
+            this.materials = materials;
+            console.log('Materials', this.materials);
+            this.materialDataArray.length = 0;
+            for (let i = 0; i < this.materials.length; i++)
+            {
+                this.updateMaterial(i);
+            }
+        }
     }
 
-    public static createShapesFromNode(sdfTree: SdfTree)
+    public static createShapesFromNode(sdfTree: SceneTree)
     {
         const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
@@ -169,18 +255,19 @@ export class SdfScene
         const opsStack: ShapeOperation[] = [];
         const shapeStack: ShaderShape[] = [];
         const lights: ShaderLight[] = [];
-        this.pushToStack(opsStack, shapeStack, lights, rootNode, sdfTree.nodes);
+        const materials: ShaderMaterial[] = [];
+        this.pushToStack(opsStack, shapeStack, lights, materials, rootNode, sdfTree.nodes);
 
         opsStack.reverse();
 
         return {
             operations: opsStack,
             shapes: shapeStack,
-            lights
+            lights, materials
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], node: SceneNode, nodes: SceneNodes)
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], node: SceneNode, nodes: SceneNodes)
     {
         if (node.childOpCode !== undefined && node.childOpCode !== 'none')
         {
@@ -193,7 +280,7 @@ export class SdfScene
             if (index < 0)
             {
                 index = shapeStack.length;
-                const converted = SdfScene.convertToShape(node);
+                const converted = SceneConverter.convertToShape(node, materials);
                 if (converted != null)
                 {
                     shapeStack.push(converted);
@@ -205,7 +292,7 @@ export class SdfScene
 
         if (node.light != undefined)
         {
-            const converted = SdfScene.convertToLight(node);
+            const converted = SceneConverter.convertToLight(node);
             if (converted != null)
             {
                 lights.push(converted);
@@ -216,7 +303,7 @@ export class SdfScene
         {
             for (const childId of node.childrenIds)
             {
-                this.pushToStack(opsStack, shapeStack, lights, nodes[childId], nodes);
+                this.pushToStack(opsStack, shapeStack, lights, materials, nodes[childId], nodes);
             }
         }
     }
@@ -230,7 +317,7 @@ export class SdfScene
 
         if (index >= this.shapes.length)
         {
-            this.shapes[index] = SdfScene.createNewShape(shape);
+            this.shapes[index] = SceneConverter.createNewShape(shape);
         }
         else
         {
@@ -255,6 +342,21 @@ export class SdfScene
         this.lightDataArray[dataIndex + 7] = light.colour.w;
     }
 
+    private updateMaterial(index: number)
+    {
+        const dataIndex = index * materialDataSize;
+        const material = this.materials[index];
+
+        this.materialDataArray[dataIndex    ] = material.diffuseColour.x;
+        this.materialDataArray[dataIndex + 1] = material.diffuseColour.y;
+        this.materialDataArray[dataIndex + 2] = material.diffuseColour.z;
+        this.materialDataArray[dataIndex + 3] = material.lightingModel;
+        this.materialDataArray[dataIndex + 4] = material.specularColour.x;
+        this.materialDataArray[dataIndex + 5] = material.specularColour.y;
+        this.materialDataArray[dataIndex + 6] = material.specularColour.z;
+        this.materialDataArray[dataIndex + 7] = material.shininess;
+    }
+
     private updateShape(index: number)
     {
         const dataIndex = index * shapeDataSize;
@@ -275,15 +377,10 @@ export class SdfScene
         this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
         this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
 
-        this.shapeDataArray[dataIndex + 12] = shape.diffuseColour.x;
-        this.shapeDataArray[dataIndex + 13] = shape.diffuseColour.y;
-        this.shapeDataArray[dataIndex + 14] = shape.diffuseColour.z;
-        this.shapeDataArray[dataIndex + 15] = shape.diffuseColour.w;
-
-        // this.shapeDataArray[dataIndex + 16] = shape.specularColour.x;
-        // this.shapeDataArray[dataIndex + 17] = shape.specularColour.y;
-        // this.shapeDataArray[dataIndex + 18] = shape.specularColour.z;
-        // this.shapeDataArray[dataIndex + 19] = shape.specularColour.w;
+        this.shapeDataArray[dataIndex + 12] = Math.round(shape.material);
+        this.shapeDataArray[dataIndex + 13] = 0; // Unused, but needed for padding
+        this.shapeDataArray[dataIndex + 14] = 0;
+        this.shapeDataArray[dataIndex + 15] = 0;
     }
 
     private updateOperationNumbers()
@@ -298,7 +395,7 @@ export class SdfScene
         });
     }
 
-    public static convertToShape(sceneNode: SceneNode): ShaderShape | null
+    public static convertToShape(sceneNode: SceneNode, materials: ShaderMaterial[]): ShaderShape | null
     {
         const shape = sceneNode.shape;
         if (shape == null)
@@ -306,8 +403,21 @@ export class SdfScene
             return null;
         }
 
-        return {
+        const material: ShaderMaterial = {
             diffuseColour: shape.diffuseColour,
+            lightingModel: toLightingModelInt(shape.lightingModel),
+            specularColour: shape.specularColour,
+            shininess: shape.shininess
+        }
+        let materialIndex = this.findApproxMaterial(material, materials);
+        if (materialIndex < 0)
+        {
+            materialIndex = materials.length;
+            materials.push(material);
+        }
+
+        return {
+            material: materialIndex,
             maxSize: shape.maxSize,
             position: sceneNode.position,
             rotation: sceneNode.rotation,
@@ -331,6 +441,16 @@ export class SdfScene
         }
     }
 
+    public static createNewMaterial(): ShaderMaterial
+    {
+        return {
+            diffuseColour: vec3One(),
+            lightingModel: LightingModelLambert,
+            specularColour: vec3One(),
+            shininess: 10
+        }
+    }
+
     public static createNewLight(): ShaderLight
     {
         return {
@@ -348,10 +468,34 @@ export class SdfScene
             maxSize: 0,
             shapeType: ShapeTypeNone,
             shapeParams: vec3Zero(),
-            diffuseColour: {x: 0.7, y: 0.3, z: 0.2, w: 1.0},
-            // specularColour: {x: 1.0, y: 0.8, z: 0.9, w: 1.0},
+            material: 0,
 
             ...partial
         }
+    }
+
+    private static findApproxMaterial(material: ShaderMaterial, materials: ShaderMaterial[])
+    {
+        for (let i = 0; i < materials.length; i++)
+        {
+            const current = materials[i];
+            if (current.lightingModel !== material.lightingModel ||
+                Math.abs(current.shininess - material.shininess) < 0.0001)
+            {
+                continue;
+            }
+            if (!vec3ApproxEquals(current.diffuseColour, material.diffuseColour))
+            {
+                continue;
+            }
+            if (!vec3ApproxEquals(current.specularColour, material.specularColour))
+            {
+                continue;
+            }
+
+            return i;
+        }
+
+        return -1;
     }
 }

@@ -1,6 +1,6 @@
 import { h, Component } from 'preact';
 import ShapeView from './shape-view';
-import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/sdf-entities';
+import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import { quat, vec3 } from '../gl-matrix-ts';
 import LightView from './light-view';

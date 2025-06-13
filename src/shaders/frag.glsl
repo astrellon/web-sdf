@@ -14,6 +14,8 @@ uniform int uNumLights;
 uniform mat3 uCameraMatrix;
 uniform vec3 uCameraPosition;
 
+uniform mat2x4 uMaterials[32];
+
 uniform mat4 uShapes[128];
 uniform int uOperations[128];
 uniform int uNumOperations;
@@ -29,13 +31,22 @@ vec3 quatMul( vec4 q, vec3 v )
     return v + 2.0 * cross(cross(v, q.xyz ) + q.w * v, q.xyz);
 }
 
-float getDistanceToShape(int index, vec3 samplePoint)
+vec2 getDistanceToShape(int index, vec3 samplePoint)
 {
     mat4 shape = uShapes[index];
 
     vec3 point = shape[0].xyz;
+    float maxSize = shape[0].w;
+
     vec3 testPoint = point - samplePoint;
-    // return sphereSDF(samplePoint);
+    // if (maxSize > 0.0)
+    // {
+    //     float testDist = length(testPoint);
+    //     if (testDist > maxSize + 3.0)
+    //     {
+    //         return vec2(testDist - 3.0, -1.0);
+    //     }
+    // }
 
     vec4 rotation = shape[1];
 
@@ -44,28 +55,31 @@ float getDistanceToShape(int index, vec3 samplePoint)
     int type = int(round(shape[2].x));
     vec3 params = shape[2].yzw;
 
-    return getDistToType(type, transPoint, params);
+    float dist = getDistToType(type, transPoint, params);
+    float material = shape[3].x;
+
+    return vec2(dist, material);
 }
 
-float sceneSDF(vec3 point)
+vec2 sceneSDF(vec3 point)
 {
     int depthStackIndex = -1;
-    float depthStack[32];
+    vec2 depthStack[32];
 
     for (int operationsIndex = 0; operationsIndex < uNumOperations; operationsIndex++)
     {
-        int operation = uOperations[operationsIndex];
+        int operationOrIndex = uOperations[operationsIndex];
 
-        if (operation <= SdfOpCodeNone)
+        if (operationOrIndex <= SdfOpCodeNone)
         {
-            float lastD2 = depthStack[depthStackIndex--];
-            float lastD1 = depthStack[depthStackIndex--];
-            float dist = applyOpCode(operation, lastD2, lastD1);
+            vec2 lastD2 = depthStack[depthStackIndex--];
+            vec2 lastD1 = depthStack[depthStackIndex--];
+            vec2 dist = applyOpCode(operationOrIndex, lastD2, lastD1);
             depthStack[++depthStackIndex] = dist;
         }
         else
         {
-            float dist = getDistanceToShape(operation, point);
+            vec2 dist = getDistanceToShape(operationOrIndex, point);
             depthStack[++depthStackIndex] = dist;
         }
     }
@@ -80,13 +94,13 @@ vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
     return normalize(vec3(xy, -z));
 }
 
-vec3 estimateNormal(vec3 point, float currentDepth)
+vec3 estimateNormalPhong(vec3 point, vec3 currentDepth)
 {
-    vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
+    vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(point + eps_zero.xyy) - sceneSDF(point - eps_zero.xyy),
-        sceneSDF(point + eps_zero.yxy) - sceneSDF(point - eps_zero.yxy),
-        sceneSDF(point + eps_zero.yyx) - sceneSDF(point - eps_zero.yyx)
+        sceneSDF(point + eps_zero.xyy).x - sceneSDF(point - eps_zero.xyy).x,
+        sceneSDF(point + eps_zero.yxy).x - sceneSDF(point - eps_zero.yxy).x,
+        sceneSDF(point + eps_zero.yyx).x - sceneSDF(point - eps_zero.yyx).x
     ));
 }
 
@@ -97,9 +111,22 @@ vec3 estimateNormalLambert(vec3 point, vec3 currentDepth)
     float d = currentDepth.y;
     vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
-        sceneSDF(point + eps_zero.xyy) - d,
-        sceneSDF(point + eps_zero.yxy) - d,
-        sceneSDF(point + eps_zero.yyx) - d));
+        sceneSDF(point + eps_zero.xyy).x - d,
+        sceneSDF(point + eps_zero.yxy).x - d,
+        sceneSDF(point + eps_zero.yyx).x - d));
+}
+
+vec3 estimateNormalTetrahedron(vec3 point, vec3 currentDepth)
+{
+    float h = 0.0015 * currentDepth.x;
+    const vec2 k = vec2(1, -1);
+
+    return normalize(
+        k.xyy * sceneSDF(point + k.xyy * h).x +
+        k.yyx * sceneSDF(point + k.yyx * h).x +
+        k.yxy * sceneSDF(point + k.yxy * h).x +
+        k.xxx * sceneSDF(point + k.xxx * h).x );
+
 }
 
 const float shadowSharpness = 128.0;
@@ -111,7 +138,7 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 
     for (; i < uMaxMarchingSteps; i++)
     {
-        float dist = sceneSDF(rayOrigin + depth * rayDirection);
+        float dist = sceneSDF(rayOrigin + depth * rayDirection).x;
         if (dist < uEpsilon)
         {
             return vec2(0.0, float(i));
@@ -128,6 +155,8 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
     return vec2(result, float(i));
 }
 
+const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
+
 /**
  * Lighting contribution of a single point light source via Phong illumination.
  *
@@ -135,7 +164,7 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * diffuse: Diffuse color
  * specular: Specular color
- * alpha: Shininess coefficient
+ * shininess: Shininess coefficient
  * p: position of point being lit
  * eye: the position of the camera
  * lightPos: the position of the light
@@ -143,9 +172,9 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormalLambert(p, currentDepth);
+    vec3 N = estimateNormalPhong(p, currentDepth);
 
     vec3 L = normalize(lightPos - p);
     vec3 V = normalize(eye - p);
@@ -164,8 +193,9 @@ vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float 
         // component
         return lightIntensity * (diffuse * dotLN);
     }
-    return lightIntensity * (diffuse * dotLN + specular * pow(dotRV, alpha));
+    return lightIntensity * (diffuse * dotLN + specular * pow(dotRV, shininess));
 }
+
 
 /**
  * Lighting via Phong illumination.
@@ -179,7 +209,6 @@ vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float 
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
 vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
 {
     vec3 colour = ambientLight;
@@ -210,25 +239,96 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     return vec4(colour, light0Rays);
 }
 
-vec3 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+/**
+ * Lighting contribution of a single point light source via Lambert illumination.
+ *
+ * The vec3 returned is the RGB color of the light's contribution.
+ *
+ * diffuse: Diffuse color
+ * p: position of point being lit
+ * eye: the position of the camera
+ * lightPos: the position of the light
+ * lightIntensity: color/intensity of the light
+ */
+vec3 lambertContribForLight(vec3 currentDepth, vec3 diffuse, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+{
+    vec3 N = estimateNormalTetrahedron(p, currentDepth);
+
+    vec3 L = normalize(lightPos - p);
+    vec3 V = normalize(eye - p);
+    vec3 R = normalize(reflect(-L, N));
+
+    float dotLN = dot(L, N);
+
+    if (dotLN < 0.0) {
+        // Light not visible from this point on the surface
+        return vec3(0.0, 0.0, 0.0);
+    }
+
+    return lightIntensity * (diffuse * dotLN);
+}
+
+/**
+ * Lighting via Phong illumination.
+ *
+ * The vec3 returned is the RGB color of that point after lighting is applied.
+ * diffuse: Diffuse color
+ * specular: Specular color
+ * alpha: Shininess coefficient
+ * worldPoint: position of point being lit
+ * eye: the position of the camera
+ *
+ * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
+ */
+vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 cameraPoint)
+{
+    vec3 colour = ambientLight;
+    float light0Rays;
+
+    for (int i = 0; i < uNumLights; i++)
+    {
+        mat2x4 light = uLights[i];
+        vec3 lightPos = light[0].xyz;
+
+        vec2 shadow = vec2(1.0, 0.0);
+        if (uFlags.x)
+        {
+            vec3 toLight = normalize(lightPos - worldPoint);
+            shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+
+            if (i == 1)
+            {
+                light0Rays = shadow.y;
+            }
+        }
+
+        vec3 lightContrib = lambertContribForLight(currentDepth, diffuse, worldPoint, cameraPoint, lightPos, light[1].xyz);
+        colour += lightContrib * shadow.x;
+    }
+
+    // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
+    return vec4(colour, light0Rays);
+}
+
+vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = near;
     for (int i = 0; i < uMaxMarchingSteps; i++)
     {
-        float dist = sceneSDF(rayOrigin + depth * rayDirection);
-        if (dist < uEpsilon)
+        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection);
+        if (dist.x < uEpsilon)
         {
-            return vec3(depth, dist, float(i));
+            return vec4(depth, dist.x, float(i), dist.y);
         }
 
-        depth += dist;
+        depth += dist.x;
         if (depth >= far)
         {
-            return vec3(far, dist, float(i));
+            return vec4(far, dist.x, float(i), dist.y);
         }
     }
 
-    return vec3(far, far, float(uMaxMarchingSteps));
+    return vec4(far, far, float(uMaxMarchingSteps), -1);
 }
 
 void main()
@@ -236,7 +336,7 @@ void main()
     vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
     vec3 rayOrigin = uCameraPosition;
 
-    vec3 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+    vec4 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
     vec4 litColour;
 
     if (dist.x > MAX_DIST - uEpsilon)
@@ -255,11 +355,32 @@ void main()
         // The closest point on the surface to the eyepoint along the view ray
         vec3 worldPoint = rayOrigin + dist.x * rayDir;
 
+        int lightingModel = 0;
         vec3 diffuse = vec3(0.7, 0.2, 0.2);
         vec3 specular = vec3(1.0, 1.0, 1.0);
         float shininess = 10.0;
+        if (dist.w >= 0.0)
+        {
+            mat2x4 material = uMaterials[int(dist.w)];
+            diffuse = material[0].xyz;
+            lightingModel = int(round(material[0].w));
 
-        litColour = phongIllumination(dist, diffuse, specular, shininess, worldPoint, rayOrigin);
+            specular = material[1].xyz;
+            shininess = material[1].w;
+        }
+
+        if (lightingModel == 0)
+        {
+            litColour = vec4(diffuse, 1.0);
+        }
+        else if (lightingModel == 1)
+        {
+            litColour = lambertIllumination(dist.xyz, diffuse, worldPoint, rayOrigin);
+        }
+        else if (lightingModel == 2)
+        {
+            litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+        }
 
         fragColour = vec4(litColour.xyz, 1.0);
     }

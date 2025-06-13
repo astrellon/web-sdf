@@ -1,28 +1,28 @@
 import { h, Component } from 'preact';
-import { SdfScene } from '../ray-marching/sdf-scene';
+import { SceneConverter } from '../ray-marching/scene-converter';
 import SceneNodeView from './scene-node-view';
 import { store } from '../store/store';
 import { setSelectedNode, updateNode } from '../store/store-state';
 import SceneNodeTree from './scene-node-tree';
-import { SdfTree } from '../ray-marching/sdf-tree';
-import { SceneNode, ShapeNodeId } from '../ray-marching/sdf-entities';
-import "./scene-graph.scss";
+import { SceneTree } from '../ray-marching/scene-tree';
+import { SceneNode, ShapeNodeId } from '../ray-marching/scene-entities';
+import "./scene-tree-view.scss";
 
 interface Props
 {
-    readonly sdfTree: SdfTree;
+    readonly sdfTree: SceneTree;
     readonly selectedNodeId?: ShapeNodeId;
-    readonly sdfScene: SdfScene;
+    readonly sdfScene: SceneConverter;
 }
 
-export default class SceneGraph extends Component<Props>
+export default class SceneGraphView extends Component<Props>
 {
     public render()
     {
         const { sdfTree, selectedNodeId } = this.props;
 
-        return <div class="scene-graph">
-            <div class="scene-graph__contents outer-panel">
+        return <div class="scene-tree">
+            <div class="scene-tree__contents outer-panel">
                 <div class="inner-panel">
                     <SceneNodeTree sdfTree={sdfTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
                 </div>
