@@ -2,10 +2,10 @@ import { h, Component, Fragment } from "preact";
 import { AppState, setNodes, setRootNode } from "../store/store-state";
 import { WebGLViewport } from "./webgl-viewport";
 import { quatIdentity, rquat, rvec3, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
-import SceneGraph from "./scene-graph";
+import SceneGraph from "./scene-tree-view";
 import { store } from "../store/store";
-import { SdfScene } from "../ray-marching/sdf-scene";
-import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape } from "../ray-marching/sdf-entities";
+import { SceneConverter } from "../ray-marching/scene-converter";
+import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape } from "../ray-marching/scene-entities";
 import "./webgl-app.scss"
 
 interface Props
@@ -13,12 +13,12 @@ interface Props
     readonly state: AppState;
 }
 
-const sdfScene = new SdfScene();
+const sdfScene = new SceneConverter();
 store.subscribe(state => state.sdfTree, updateFromStoreChange);
 
 function updateFromStoreChange(state: AppState)
 {
-    sdfScene.updateShapesFromRootNode(state.sdfTree);
+    sdfScene.updateShapesFromTree(state.sdfTree);
 }
 
 export class WebGLApp extends Component<Props>

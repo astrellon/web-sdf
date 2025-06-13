@@ -2,14 +2,14 @@ import { h, Component, createRef } from "preact";
 import { ViewportOptions } from "../store/store-state";
 import WebGLSdfRenderer from "../webgl/webgl-sdf-renderer";
 import WebGLViewportOptions from "./webgl-viewport-options";
-import { SdfScene } from "../ray-marching/sdf-scene";
+import { SceneConverter } from "../ray-marching/scene-converter";
 import "./webgl-viewport.scss";
 
 interface Props
 {
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
-    readonly sdfScene: SdfScene;
+    readonly sdfScene: SceneConverter;
 }
 
 export class WebGLViewport extends Component<Props>

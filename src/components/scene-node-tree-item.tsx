@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import { SceneNode } from '../ray-marching/sdf-entities';
+import { SceneNode } from '../ray-marching/scene-entities';
 import './scene-node-tree-item.scss';
 
 interface Props

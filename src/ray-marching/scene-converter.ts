@@ -1,8 +1,7 @@
 import equal from "fast-deep-equal";
 import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4ApproxEquals, vec4One } from "../gl-matrix-ts";
-import { SdfTree } from "./sdf-tree";
-import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./sdf-entities";
-import mathf from "../gl-matrix-ts/mathf";
+import { SceneTree } from "./scene-tree";
+import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./scene-entities";
 
 interface ShaderLight
 {
@@ -62,7 +61,7 @@ function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
 
 export type ShapeOperation = number | SdfOpCode;
 
-export class SdfScene
+export class SceneConverter
 {
     private lights: ShaderLight[] = [];
     private lightDataArray: number[] = [];
@@ -75,6 +74,9 @@ export class SdfScene
 
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
+
+    private previousTree?: SceneTree;
+    private sceneDirty: boolean = true;
 
     public getLightDataArray()
     {
@@ -146,7 +148,7 @@ export class SdfScene
 
         if (index >= this.lights.length)
         {
-            this.lights[index] = { ...SdfScene.createNewLight(), ...light };
+            this.lights[index] = { ...SceneConverter.createNewLight(), ...light };
         }
         else
         {
@@ -165,7 +167,7 @@ export class SdfScene
 
         if (index >= this.materials.length)
         {
-            this.materials[index] = { ...SdfScene.createNewMaterial(), ...material };
+            this.materials[index] = { ...SceneConverter.createNewMaterial(), ...material };
         }
         else
         {
@@ -175,7 +177,7 @@ export class SdfScene
         this.updateMaterial(index);
     }
 
-    public updateShapesFromRootNode(sdfTree: SdfTree)
+    public updateShapesFromTree(sdfTree: SceneTree)
     {
         const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
@@ -183,7 +185,7 @@ export class SdfScene
             return;
         }
 
-        const { operations, shapes, lights, materials } = SdfScene.createShapesFromNode(sdfTree);
+        const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sdfTree);
         this.operations = operations;
         this.shapes = shapes;
         this.lights = lights;
@@ -215,7 +217,7 @@ export class SdfScene
         this.updateOperationNumbers();
     }
 
-    public static createShapesFromNode(sdfTree: SdfTree)
+    public static createShapesFromNode(sdfTree: SceneTree)
     {
         const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
         if (!rootNode)
@@ -251,7 +253,7 @@ export class SdfScene
             if (index < 0)
             {
                 index = shapeStack.length;
-                const converted = SdfScene.convertToShape(node, materials);
+                const converted = SceneConverter.convertToShape(node, materials);
                 if (converted != null)
                 {
                     shapeStack.push(converted);
@@ -263,7 +265,7 @@ export class SdfScene
 
         if (node.light != undefined)
         {
-            const converted = SdfScene.convertToLight(node);
+            const converted = SceneConverter.convertToLight(node);
             if (converted != null)
             {
                 lights.push(converted);
@@ -288,7 +290,7 @@ export class SdfScene
 
         if (index >= this.shapes.length)
         {
-            this.shapes[index] = SdfScene.createNewShape(shape);
+            this.shapes[index] = SceneConverter.createNewShape(shape);
         }
         else
         {

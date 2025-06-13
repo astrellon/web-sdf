@@ -1,7 +1,7 @@
 import { Modifier } from "simple-data-store";
 import { defaultRenderOptions, defaultViewport } from "./store";
-import { SdfTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/sdf-tree";
-import { SceneNode, SceneNodes, ShapeNodeId } from "../ray-marching/sdf-entities";
+import { SceneTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/scene-tree";
+import { SceneNode, SceneNodes, ShapeNodeId } from "../ray-marching/scene-entities";
 
 export interface ViewportOptions
 {
@@ -21,7 +21,7 @@ export interface ViewportState
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly sdfTree: SdfTree;
+    readonly sdfTree: SceneTree;
     readonly selectedNodeId?: ShapeNodeId;
 }
 

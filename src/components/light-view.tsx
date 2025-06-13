@@ -1,7 +1,7 @@
 import { h, Component } from 'preact';
 import VectorView from './vector-view';
 import { vec4 } from '../gl-matrix-ts';
-import { Light } from '../ray-marching/sdf-entities';
+import { Light } from '../ray-marching/scene-entities';
 
 interface Props
 {

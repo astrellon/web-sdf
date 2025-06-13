@@ -6,7 +6,7 @@ import fragText from "../shaders/frag.glsl";
 import sdfFunctionsText from "../shaders/sdf-functions.glsl";
 
 import Shader from "../shaders/shader";
-import { SdfScene } from "../ray-marching/sdf-scene";
+import { SceneConverter } from "../ray-marching/scene-converter";
 import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
 
 const positions = [
@@ -168,7 +168,7 @@ export default class WebGLSdfRenderer
         this.gl.uniform1f(this.uAspectRatio, aspectRatio);
     }
 
-    public render(scene: SdfScene)
+    public render(scene: SceneConverter)
     {
         this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
         this.gl.uniform1i(this.uNumLights, scene.getNumLights());

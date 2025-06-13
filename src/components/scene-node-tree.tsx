@@ -1,12 +1,12 @@
 import { h, Component } from 'preact';
-import { SdfTree } from '../ray-marching/sdf-tree';
+import { SceneTree } from '../ray-marching/scene-tree';
 import ShapeNodeTreeItem from './scene-node-tree-item';
-import { SceneNode, ShapeNodeId } from '../ray-marching/sdf-entities';
+import { SceneNode, ShapeNodeId } from '../ray-marching/scene-entities';
 import './scene-node-tree.scss';
 
 interface Props
 {
-    readonly sdfTree: SdfTree;
+    readonly sdfTree: SceneTree;
     readonly selectedNodeId?: ShapeNodeId;
     readonly onItemClicked: (node: SceneNode) => void;
 }
