@@ -5,6 +5,7 @@ import "./vector-view.scss";
 type basicVector = rvec2 | rvec3 | rvec4;
 interface Props
 {
+    readonly disabled?: boolean;
     readonly vector: basicVector;
     readonly onChange: (oldVector: basicVector, newVector: basicVector) => void;
 }
@@ -24,18 +25,19 @@ export default class VectorView extends Component<Props>
     public render()
     {
         const v = this.props.vector;
+        const disabled = this.props.disabled;
         const isV3 = isVec3(v);
         const isV4 = isVec4(v);
 
         return <div class="vector">
-            <input type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
-            <input type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
+            <input disabled={disabled} type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
+            <input disabled={disabled} type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
 
             { isV3 &&
-            <input type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
+            <input disabled={disabled} type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
             }
             { isV4 &&
-            <input type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
+            <input disabled={disabled} type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
             }
         </div>;
     }

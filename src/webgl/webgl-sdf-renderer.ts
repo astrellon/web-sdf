@@ -201,9 +201,9 @@ export default class WebGLSdfRenderer
 
         if (this.prevMaterials !== scene.getMaterials())
         {
-            console.info('Rendering new materials');
-            this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
             this.prevMaterials = scene.getMaterials();
+            console.info('Rendering new materials', this.prevMaterials);
+            this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
         }
 
         this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);

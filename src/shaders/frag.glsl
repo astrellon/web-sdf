@@ -36,8 +36,17 @@ vec2 getDistanceToShape(int index, vec3 samplePoint)
     mat4 shape = uShapes[index];
 
     vec3 point = shape[0].xyz;
+    float maxSize = shape[0].w;
+
     vec3 testPoint = point - samplePoint;
-    // return sphereSDF(samplePoint);
+    // if (maxSize > 0.0)
+    // {
+    //     float testDist = length(testPoint);
+    //     if (testDist > maxSize + 3.0)
+    //     {
+    //         return vec2(testDist - 3.0, -1.0);
+    //     }
+    // }
 
     vec4 rotation = shape[1];
 
@@ -85,9 +94,9 @@ vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
     return normalize(vec3(xy, -z));
 }
 
-vec3 estimateNormal(vec3 point, float currentDepth)
+vec3 estimateNormalPhong(vec3 point, vec3 currentDepth)
 {
-    vec2 eps_zero = vec2(currentDepth * 0.0015, 0.0);
+    vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);
     return normalize(vec3(
         sceneSDF(point + eps_zero.xyy).x - sceneSDF(point - eps_zero.xyy).x,
         sceneSDF(point + eps_zero.yxy).x - sceneSDF(point - eps_zero.yxy).x,
@@ -133,6 +142,8 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
     return vec2(result, float(i));
 }
 
+const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
+
 /**
  * Lighting contribution of a single point light source via Phong illumination.
  *
@@ -140,7 +151,7 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * diffuse: Diffuse color
  * specular: Specular color
- * alpha: Shininess coefficient
+ * shininess: Shininess coefficient
  * p: position of point being lit
  * eye: the position of the camera
  * lightPos: the position of the light
@@ -148,9 +159,9 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float alpha, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormalLambert(p, currentDepth);
+    vec3 N = estimateNormalPhong(p, currentDepth);
 
     vec3 L = normalize(lightPos - p);
     vec3 V = normalize(eye - p);
@@ -169,8 +180,9 @@ vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float 
         // component
         return lightIntensity * (diffuse * dotLN);
     }
-    return lightIntensity * (diffuse * dotLN + specular * pow(dotRV, alpha));
+    return lightIntensity * (diffuse * dotLN + specular * pow(dotRV, shininess));
 }
+
 
 /**
  * Lighting via Phong illumination.
@@ -184,7 +196,6 @@ vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float 
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
 vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 cameraPoint)
 {
     vec3 colour = ambientLight;
@@ -208,6 +219,77 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
         }
 
         vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, lightPos, light[1].xyz);
+        colour += lightContrib * shadow.x;
+    }
+
+    // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
+    return vec4(colour, light0Rays);
+}
+
+/**
+ * Lighting contribution of a single point light source via Lambert illumination.
+ *
+ * The vec3 returned is the RGB color of the light's contribution.
+ *
+ * diffuse: Diffuse color
+ * p: position of point being lit
+ * eye: the position of the camera
+ * lightPos: the position of the light
+ * lightIntensity: color/intensity of the light
+ */
+vec3 lambertContribForLight(vec3 currentDepth, vec3 diffuse, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+{
+    vec3 N = estimateNormalLambert(p, currentDepth);
+
+    vec3 L = normalize(lightPos - p);
+    vec3 V = normalize(eye - p);
+    vec3 R = normalize(reflect(-L, N));
+
+    float dotLN = dot(L, N);
+
+    if (dotLN < 0.0) {
+        // Light not visible from this point on the surface
+        return vec3(0.0, 0.0, 0.0);
+    }
+
+    return lightIntensity * (diffuse * dotLN);
+}
+
+/**
+ * Lighting via Phong illumination.
+ *
+ * The vec3 returned is the RGB color of that point after lighting is applied.
+ * diffuse: Diffuse color
+ * specular: Specular color
+ * alpha: Shininess coefficient
+ * worldPoint: position of point being lit
+ * eye: the position of the camera
+ *
+ * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
+ */
+vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 cameraPoint)
+{
+    vec3 colour = ambientLight;
+    float light0Rays;
+
+    for (int i = 0; i < uNumLights; i++)
+    {
+        mat2x4 light = uLights[i];
+        vec3 lightPos = light[0].xyz;
+
+        vec2 shadow = vec2(1.0, 0.0);
+        if (uFlags.x)
+        {
+            vec3 toLight = normalize(lightPos - worldPoint);
+            shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+
+            if (i == 1)
+            {
+                light0Rays = shadow.y;
+            }
+        }
+
+        vec3 lightContrib = lambertContribForLight(currentDepth, diffuse, worldPoint, cameraPoint, lightPos, light[1].xyz);
         colour += lightContrib * shadow.x;
     }
 
@@ -260,6 +342,7 @@ void main()
         // The closest point on the surface to the eyepoint along the view ray
         vec3 worldPoint = rayOrigin + dist.x * rayDir;
 
+        int lightingModel = 0;
         vec3 diffuse = vec3(0.7, 0.2, 0.2);
         vec3 specular = vec3(1.0, 1.0, 1.0);
         float shininess = 10.0;
@@ -267,10 +350,24 @@ void main()
         {
             mat2x4 material = uMaterials[int(dist.w)];
             diffuse = material[0].xyz;
+            lightingModel = int(round(material[0].w));
+
             specular = material[1].xyz;
+            shininess = material[1].w;
         }
 
-        litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+        if (lightingModel == 0)
+        {
+            litColour = vec4(diffuse, 1.0);
+        }
+        else if (lightingModel == 1)
+        {
+            litColour = lambertIllumination(dist.xyz, diffuse, worldPoint, rayOrigin);
+        }
+        else if (lightingModel == 2)
+        {
+            litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+        }
 
         fragColour = vec4(litColour.xyz, 1.0);
     }

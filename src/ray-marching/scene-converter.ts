@@ -1,7 +1,7 @@
 import equal from "fast-deep-equal";
-import { quatIdentity, rquat, rvec3, rvec4, vec3Zero, vec4ApproxEquals, vec4One } from "../gl-matrix-ts";
+import { quatIdentity, rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SceneTree } from "./scene-tree";
-import { SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./scene-entities";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./scene-entities";
 
 interface ShaderLight
 {
@@ -29,8 +29,10 @@ export const shapeDataSize = 4 + 4 + 4 + 4;
 
 interface ShaderMaterial
 {
-    readonly diffuseColour: rvec4;
-    readonly specularColour: rvec4;
+    readonly diffuseColour: rvec3;
+    readonly lightingModel: LightingModelInt;
+    readonly specularColour: rvec3;
+    readonly shininess: number;
 }
 export const materialDataSize = 4 + 4;
 
@@ -49,6 +51,12 @@ const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
     'sphere': ShapeTypeSphere,
     'hexPrism': ShapeTypeHexPrism,
 }
+const LightingModelMap: { readonly [key: string]: LightingModelInt} =
+{
+    'unlit': LightingModelUnlit,
+    'lambert': LightingModelLambert,
+    'phong': LightingModelPhong
+}
 
 function toShapeTypeInt(type: ShapeType): ShapeTypeInt
 {
@@ -57,6 +65,10 @@ function toShapeTypeInt(type: ShapeType): ShapeTypeInt
 function toOpCodeInt(type: SdfOpCode): SdfOpCodeInt
 {
     return SdfOpCodeMap[type] || SdfOpCodeNone;
+}
+function toLightingModelInt(type: LightingModelType): LightingModelInt
+{
+    return LightingModelMap[type] || LightingModelUnlit;
 }
 
 export type ShapeOperation = number | SdfOpCode;
@@ -338,11 +350,11 @@ export class SceneConverter
         this.materialDataArray[dataIndex    ] = material.diffuseColour.x;
         this.materialDataArray[dataIndex + 1] = material.diffuseColour.y;
         this.materialDataArray[dataIndex + 2] = material.diffuseColour.z;
-        this.materialDataArray[dataIndex + 3] = material.diffuseColour.w;
+        this.materialDataArray[dataIndex + 3] = material.lightingModel;
         this.materialDataArray[dataIndex + 4] = material.specularColour.x;
         this.materialDataArray[dataIndex + 5] = material.specularColour.y;
         this.materialDataArray[dataIndex + 6] = material.specularColour.z;
-        this.materialDataArray[dataIndex + 7] = material.specularColour.w;
+        this.materialDataArray[dataIndex + 7] = material.shininess;
     }
 
     private updateShape(index: number)
@@ -391,15 +403,17 @@ export class SceneConverter
             return null;
         }
 
-        let materialIndex = this.findApproxMaterial(shape, materials);
+        const material: ShaderMaterial = {
+            diffuseColour: shape.diffuseColour,
+            lightingModel: toLightingModelInt(shape.lightingModel),
+            specularColour: shape.specularColour,
+            shininess: shape.shininess
+        }
+        let materialIndex = this.findApproxMaterial(material, materials);
         if (materialIndex < 0)
         {
             materialIndex = materials.length;
-
-            materials.push({
-                diffuseColour: shape.diffuseColour,
-                specularColour: shape.specularColour
-            });
+            materials.push(material);
         }
 
         return {
@@ -430,8 +444,10 @@ export class SceneConverter
     public static createNewMaterial(): ShaderMaterial
     {
         return {
-            diffuseColour: vec4One(),
-            specularColour: vec4One()
+            diffuseColour: vec3One(),
+            lightingModel: LightingModelLambert,
+            specularColour: vec3One(),
+            shininess: 10
         }
     }
 
@@ -463,11 +479,16 @@ export class SceneConverter
         for (let i = 0; i < materials.length; i++)
         {
             const current = materials[i];
-            if (!vec4ApproxEquals(current.diffuseColour, material.diffuseColour))
+            if (current.lightingModel !== material.lightingModel ||
+                Math.abs(current.shininess - material.shininess) < 0.0001)
             {
                 continue;
             }
-            if (!vec4ApproxEquals(current.specularColour, material.specularColour))
+            if (!vec3ApproxEquals(current.diffuseColour, material.diffuseColour))
+            {
+                continue;
+            }
+            if (!vec3ApproxEquals(current.specularColour, material.specularColour))
             {
                 continue;
             }

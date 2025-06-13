@@ -49,8 +49,10 @@ function createNewShape(shape: Partial<Shape>): Shape
         maxSize: 0,
         type: "none",
         shapeParams: vec3Zero(),
-        diffuseColour: { x: 0.7, y: 0.3, z: 0.2, w: 1.0 },
-        specularColour: { x: 1.0, y: 0.8, z: 0.9, w: 1.0 },
+        diffuseColour: { x: 0.7, y: 0.3, z: 0.2 },
+        specularColour: { x: 1.0, y: 0.8, z: 0.9 },
+        lightingModel: 'lambert',
+        shininess: 10,
 
         ...shape
     };
@@ -166,13 +168,15 @@ function loadDefaultSdfScene()
     const box = createNewShapeNode('Box', {
         type: "box",
         shapeParams: { x: 6, y: 1, z: 6 },
-        diffuseColour: { x: 0.2, y: 0.25, z: 0.3, w: 1.0, },
+        diffuseColour: { x: 0.2, y: 0.25, z: 0.3 },
+        lightingModel: 'lambert'
     }, { x: 0, y: -1.5, z: 0 });
     const sphere = createNewShapeNode('Sphere', {
         type: "sphere",
         shapeParams: { x: 1, y: 2, z: 1 },
         maxSize: 2.0,
-        diffuseColour: { x: 0.1, y: 0.9, z: 0.2, w: 1.0, },
+        diffuseColour: { x: 0.1, y: 0.9, z: 0.2 },
+        lightingModel: 'phong'
     })
     addChild(boxAndSphere, box);
     addChild(boxAndSphere, sphere);
