@@ -188,20 +188,20 @@ export class SceneConverter
         this.updateMaterial(index);
     }
 
-    public updateShapesFromTree(sdfTree: SceneTree)
+    public updateShapesFromTree(sceneTree: SceneTree)
     {
-        if (this.previousTree === sdfTree)
+        if (this.previousTree === sceneTree)
         {
             return;
         }
 
-        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
+        const rootNode = sceneTree.nodes[sceneTree.rootNodeId];
         if (!rootNode)
         {
             return;
         }
 
-        const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sdfTree);
+        const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sceneTree);
         if (!equal(this.operations, operations))
         {
             this.operations = operations;
@@ -244,9 +244,9 @@ export class SceneConverter
         }
     }
 
-    public static createShapesFromNode(sdfTree: SceneTree)
+    public static createShapesFromNode(sceneTree: SceneTree)
     {
-        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
+        const rootNode = sceneTree.nodes[sceneTree.rootNodeId];
         if (!rootNode)
         {
             return;
@@ -256,7 +256,7 @@ export class SceneConverter
         const shapeStack: ShaderShape[] = [];
         const lights: ShaderLight[] = [];
         const materials: ShaderMaterial[] = [];
-        this.pushToStack(opsStack, shapeStack, lights, materials, rootNode, sdfTree.nodes);
+        this.pushToStack(opsStack, shapeStack, lights, materials, rootNode, sceneTree.nodes);
 
         opsStack.reverse();
 
@@ -269,12 +269,27 @@ export class SceneConverter
 
     private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], node: SceneNode, nodes: SceneNodes)
     {
-        if (node.childOpCode !== undefined && node.childOpCode !== 'none')
+        if (node.childOpCode !== 'none')
         {
-            opsStack.push(node.childOpCode);
+            let firstChild = true;
+            for (let i = 0; i < node.childrenIds.length; i++)
+            {
+                const child = nodes[node.childrenIds[i]];
+                if (child.hasShape || child.childOpCode !== 'none')
+                {
+                    if (firstChild)
+                    {
+                        firstChild = false;
+                    }
+                    else
+                    {
+                        opsStack.push(node.childOpCode);
+                    }
+                }
+            }
         }
 
-        if (node.shape != undefined)
+        if (node.hasShape)
         {
             let index = shapeStack.findIndex(s => equal(s, node.shape));
             if (index < 0)
@@ -290,7 +305,7 @@ export class SceneConverter
             opsStack.push(index);
         }
 
-        if (node.light != undefined)
+        if (node.hasLight)
         {
             const converted = SceneConverter.convertToLight(node);
             if (converted != null)
@@ -299,12 +314,9 @@ export class SceneConverter
             }
         }
 
-        if (node.childrenIds !== undefined)
+        for (const childId of node.childrenIds)
         {
-            for (const childId of node.childrenIds)
-            {
-                this.pushToStack(opsStack, shapeStack, lights, materials, nodes[childId], nodes);
-            }
+            this.pushToStack(opsStack, shapeStack, lights, materials, nodes[childId], nodes);
         }
     }
 

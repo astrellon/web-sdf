@@ -30,11 +30,12 @@ export interface SceneNode
     readonly position: rvec3;
     readonly rotation: rquat;
 
-    readonly shape?: Shape;
-    readonly childOpCode?: SdfOpCode;
-    readonly parentId?: SceneNodeId;
-    readonly childrenIds?: ReadonlyArray<SceneNodeId>;
-    readonly light?: Light;
+    readonly shape: Shape;
+    readonly hasShape: boolean;
+    readonly childOpCode: SdfOpCode;
+    readonly childrenIds: ReadonlyArray<SceneNodeId>;
+    readonly light: Light;
+    readonly hasLight: boolean;
 }
 
 export interface Light

@@ -13,12 +13,6 @@ export default class ShapeView extends Component<Props>
     public render()
     {
         const shape = this.props.shape;
-
-        if (shape === undefined)
-        {
-            return <div>Empty shape</div>;
-        }
-
         const isPhong = shape.lightingModel === 'phong';
 
         return <div>

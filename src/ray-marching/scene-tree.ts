@@ -64,14 +64,38 @@ function createNewLight(light: Partial<Light>): Light
     }
 }
 
+export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNode
+{
+    return {
+        name,
+        id: makeShapeNodeId(),
+
+        position: vec3Zero(),
+        rotation: quatIdentity(),
+        childrenIds: [],
+        childOpCode: 'none',
+        shape: createNewShape({}),
+        hasShape: false,
+        light: createNewLight({}),
+        hasLight: false,
+
+        ...node
+    }
+}
+
 export function createNewLightNode(name: string, light?: Partial<Light>, position?: rvec3, rotation?: rquat): SceneNode
 {
     return {
         name,
+        id: makeShapeNodeId(),
         position: position ?? vec3Zero(),
         rotation: rotation ?? quatIdentity(),
-        id: makeShapeNodeId(),
-        light: light != undefined ? createNewLight(light) : undefined
+        childrenIds: [],
+        childOpCode: 'none',
+        shape: createNewShape({}),
+        hasShape: false,
+        light: light != undefined ? createNewLight(light) : undefined,
+        hasLight: light != undefined
     }
 }
 
@@ -79,11 +103,15 @@ export function createNewShapeNode(name: string, shape?: Partial<Shape>, positio
 {
     return {
         name,
+        id: makeShapeNodeId(),
         position: position ?? vec3Zero(),
         rotation: rotation ?? quatIdentity(),
-        id: makeShapeNodeId(),
         shape: shape != undefined ? createNewShape(shape) : undefined,
-        childOpCode
+        hasShape: shape != undefined,
+        light: createNewLight({}),
+        hasLight: false,
+        childrenIds: [],
+        childOpCode: childOpCode != undefined ? childOpCode : 'none'
     }
 }
 
@@ -105,36 +133,24 @@ export function createNewShape(shape: Partial<Shape>): Shape
 // Build time functions
 export function sceneTreeAddChildMutable(parent: Editable<SceneNode>, child: SceneNode)
 {
-    if (parent.childrenIds == undefined)
-    {
-        parent.childrenIds = [child.id];
-    }
-    else
-    {
-        (parent.childrenIds as SceneNodeId[]).push(child.id);
-    }
+    (parent.childrenIds as SceneNodeId[]).push(child.id);
 }
 
 export function sceneTreeAddChild(tree: SceneTree, parent: SceneNode, child: SceneNode)
 {
-    if (parent.childrenIds == undefined)
-    {
-        parent = {
-            ...parent,
-            childrenIds: [child.id]
-        }
-    }
-    else
-    {
-        parent = {
-            ...parent,
-            childrenIds: [...parent.childrenIds, child.id]
-        }
+    parent = {
+        ...parent,
+        childrenIds: [...parent.childrenIds, child.id]
     }
 
     const nodes = {
         ...tree.nodes,
         [parent.id]: parent
+    }
+
+    if (!nodes.hasOwnProperty(child.id))
+    {
+        nodes[child.id] = child;
     }
 
     return { ...tree, nodes };

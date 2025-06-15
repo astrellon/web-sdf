@@ -4,7 +4,7 @@ import { Light, makeShapeNodeId, SceneNode, SdfOpCode, Shape } from '../ray-marc
 import VectorView from './vector-view';
 import { quat, quatIdentity, vec3, vec3Zero } from '../gl-matrix-ts';
 import LightView from './light-view';
-import { SceneTree, sceneTreeAddChild } from '../ray-marching/scene-tree';
+import { createSceneNode, SceneTree, sceneTreeAddChild } from '../ray-marching/scene-tree';
 import './scene-node-view.scss';
 import { setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
@@ -62,10 +62,12 @@ export default class SceneNodeView extends Component<Props, State>
                 </select>
             </div>
             <div>
-                <strong>Shape</strong> <ShapeView shape={node.shape} onChange={this.onChangeShape} />
+                <strong>Shape</strong> <button onClick={this.toggleShape}>{node.hasShape ? 'Hide' : 'Show'}</button>
+                { node.hasShape && <ShapeView shape={node.shape} onChange={this.onChangeShape} /> }
             </div>
             <div>
-                <strong>Light</strong> <LightView light={node.light} onChange={this.onChangeLight} />
+                <strong>Light</strong> <button onClick={this.toggleLight}>{node.hasLight ? 'Hide' : 'Show'}</button>
+                { node.hasLight && <LightView light={node.light} onChange={this.onChangeLight} /> }
             </div>
             <div>
                 <button onClick={this.addChild}>Add Child</button>
@@ -80,13 +82,20 @@ export default class SceneNodeView extends Component<Props, State>
 
     private addChild = () =>
     {
-        const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, {
-            name: 'New child',
-            id: makeShapeNodeId(),
-            position: vec3Zero(),
-            rotation: quatIdentity()
-        });
+        const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, createSceneNode('New Child', {}));
         store.execute(setSceneTree(newTree));
+    }
+
+    private toggleShape = () =>
+    {
+        const currentHasShape = this.props.node.hasShape;
+        this.updateField(!currentHasShape, 'hasShape');
+    }
+
+    private toggleLight = () =>
+    {
+        const currentHasLight = this.props.node.hasLight;
+        this.updateField(!currentHasLight, 'hasLight');
     }
 
     private onChangeName = (e: Event) =>
