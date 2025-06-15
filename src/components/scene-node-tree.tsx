@@ -1,13 +1,13 @@
 import { h, Component } from 'preact';
-import { SceneTree, sdfTreeFlatten } from '../ray-marching/scene-tree';
+import { SceneTree, sceneTreeFlatten } from '../ray-marching/scene-tree';
 import ShapeNodeTreeItem from './scene-node-tree-item';
-import { SceneNode, ShapeNodeId } from '../ray-marching/scene-entities';
+import { SceneNode, SceneNodeId } from '../ray-marching/scene-entities';
 import './scene-node-tree.scss';
 
 interface Props
 {
-    readonly sdfTree: SceneTree;
-    readonly selectedNodeId?: ShapeNodeId;
+    readonly sceneTree: SceneTree;
+    readonly selectedNodeId?: SceneNodeId;
     readonly onItemClicked: (node: SceneNode) => void;
 }
 
@@ -22,15 +22,15 @@ export default class SceneNodeTree extends Component<Props>
 
     private renderNodeTree = () =>
     {
-        const { sdfTree, selectedNodeId, onItemClicked } = this.props;
-        const rootNode = sdfTree.nodes[sdfTree.rootNodeId];
+        const { sceneTree , selectedNodeId, onItemClicked } = this.props;
+        const rootNode = sceneTree.nodes[sceneTree.rootNodeId];
         const result: h.JSX.Element[] = [];
         if (rootNode == undefined)
         {
             return result;
         }
 
-        const flattenedTree = sdfTreeFlatten(sdfTree);
+        const flattenedTree = sceneTreeFlatten(sceneTree);
         for (const entry of flattenedTree)
         {
             const isSelected = entry.node.id === selectedNodeId;

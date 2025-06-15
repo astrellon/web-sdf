@@ -1,13 +1,17 @@
 import { h, Component } from 'preact';
 import ShapeView from './shape-view';
-import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
+import { Light, makeShapeNodeId, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
-import { quat, vec3 } from '../gl-matrix-ts';
+import { quat, quatIdentity, vec3, vec3Zero } from '../gl-matrix-ts';
 import LightView from './light-view';
-import "./scene-node-view.scss";
+import { SceneTree, sceneTreeAddChild } from '../ray-marching/scene-tree';
+import './scene-node-view.scss';
+import { setSceneTree } from '../store/store-state';
+import { store } from '../store/store';
 
 interface Props
 {
+    readonly sceneTree: SceneTree;
     readonly node: SceneNode;
     readonly onChange: (newShapeNode: SceneNode, oldShapeNode: SceneNode) => void;
 }
@@ -63,12 +67,26 @@ export default class SceneNodeView extends Component<Props, State>
             <div>
                 <strong>Light</strong> <LightView light={node.light} onChange={this.onChangeLight} />
             </div>
+            <div>
+                <button onClick={this.addChild}>Add Child</button>
+            </div>
             {/* <div>
                 <strong>Children</strong> {
                     children.map((child, i) => <ShapeNodeView key={i} node={child} onChange={(n) => this.onChangeChild(i, n)}/>)
                 }
             </div> */}
         </div>
+    }
+
+    private addChild = () =>
+    {
+        const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, {
+            name: 'New child',
+            id: makeShapeNodeId(),
+            position: vec3Zero(),
+            rotation: quatIdentity()
+        });
+        store.execute(setSceneTree(newTree));
     }
 
     private onChangeName = (e: Event) =>

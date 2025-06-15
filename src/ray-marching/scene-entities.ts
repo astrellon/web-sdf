@@ -21,11 +21,10 @@ export const LightingModelUnlit = 0 as LightingModelInt;
 export const LightingModelLambert = 1 as LightingModelInt;
 export const LightingModelPhong = 2 as LightingModelInt;
 
-export type ShapeNodeId = Opaque<string, 'ShapeNodeId'>;
-
+export type SceneNodeId = Opaque<string, 'SceneNodeId'>;
 export interface SceneNode
 {
-    readonly id: ShapeNodeId;
+    readonly id: SceneNodeId;
     readonly name: string;
 
     readonly position: rvec3;
@@ -33,8 +32,8 @@ export interface SceneNode
 
     readonly shape?: Shape;
     readonly childOpCode?: SdfOpCode;
-    readonly parentId?: ShapeNodeId;
-    childrenIds?: ShapeNodeId[];
+    readonly parentId?: SceneNodeId;
+    readonly childrenIds?: ReadonlyArray<SceneNodeId>;
     readonly light?: Light;
 }
 
@@ -58,10 +57,10 @@ export interface Shape
 
 export interface SceneNodes
 {
-    [shapeNodeId: string /* ShapeNodeId */]: SceneNode
+    readonly [shapeNodeId: string /* ShapeNodeId */]: SceneNode
 }
 
-export function makeShapeNodeId(): ShapeNodeId
+export function makeShapeNodeId(): SceneNodeId
 {
-    return crypto.randomUUID() as ShapeNodeId;
+    return crypto.randomUUID() as SceneNodeId;
 }

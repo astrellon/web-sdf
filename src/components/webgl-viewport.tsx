@@ -9,7 +9,7 @@ interface Props
 {
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
-    readonly sdfScene: SceneConverter;
+    readonly sceneConverter: SceneConverter;
 }
 
 export class WebGLViewport extends Component<Props>
@@ -99,7 +99,7 @@ export class WebGLViewport extends Component<Props>
             this.renderer.canvasScale = options.renderScale;
             this.updateCanvasSize();
         }
-        this.renderer.render(this.props.sdfScene);
+        this.renderer.render(this.props.sceneConverter);
     }
 
     private onPointerDown = (e: PointerEvent) =>

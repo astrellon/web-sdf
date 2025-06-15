@@ -1,7 +1,7 @@
 import { Modifier } from "simple-data-store";
-import { defaultRenderOptions, defaultViewport } from "./store";
-import { SceneTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/scene-tree";
-import { SceneNode, SceneNodes, ShapeNodeId } from "../ray-marching/scene-entities";
+import { defaultViewport } from "./store";
+import { SceneTree, sceneTreeUpdateNode, } from "../ray-marching/scene-tree";
+import { SceneNode, SceneNodeId } from "../ray-marching/scene-entities";
 
 export interface ViewportOptions
 {
@@ -21,8 +21,8 @@ export interface ViewportState
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly sdfTree: SceneTree;
-    readonly selectedNodeId?: ShapeNodeId;
+    readonly sceneTree: SceneTree;
+    readonly selectedNodeId?: SceneNodeId;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -46,30 +46,17 @@ export function updateNode(node: SceneNode): Modifier<AppState>
 {
     return (state: AppState) =>
     {
-        const sdfTree = sdfTreeUpdateNode(state.sdfTree, node);
-        return { sdfTree };
+        const sceneTree = sceneTreeUpdateNode(state.sceneTree, node);
+        return { sceneTree };
     }
 }
 
-export function setNodes(nodes: SceneNodes): Modifier<AppState>
+export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 {
-    return (state: AppState) =>
-    {
-        const sdfTree = sdfTreeSetNodes(state.sdfTree, nodes);
-        return { sdfTree }
-    }
+    return () => { return { sceneTree } }
 }
 
-export function setRootNode(rootNodeId?: ShapeNodeId): Modifier<AppState>
-{
-    return (state: AppState) =>
-    {
-        const sdfTree = sdfTreeSetRootNodeId(state.sdfTree, rootNodeId);
-        return { sdfTree };
-    };
-}
-
-export function setSelectedNode(selectedNodeId?: ShapeNodeId): Modifier<AppState>
+export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>
 {
     return () => { return { selectedNodeId } };
 }
