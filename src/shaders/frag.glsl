@@ -8,6 +8,7 @@ const float MAX_DIST = 100.0;
 const int UNLIT = 0;
 const int LAMBERT = 1;
 const int PHONG = 2;
+const vec3 HIGHLIGHT_COLOUR = vec3(0.9, 0.8, 0.3);
 
 layout(location = 0) out vec4 fragColour;
 
@@ -22,6 +23,7 @@ uniform mat2x4 uMaterials[32];
 
 uniform mat4 uShapes[128];
 uniform int uOperations[128];
+uniform ivec2 uHighlight;
 uniform int uNumOperations;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
@@ -65,12 +67,12 @@ vec2 getDistanceToShape(int index, vec3 samplePoint)
     return vec2(dist, material);
 }
 
-vec2 sceneSDF(vec3 point)
+vec2 sceneSDF(vec3 point, int stackStart, int stackEnd)
 {
     int depthStackIndex = -1;
     vec2 depthStack[32];
 
-    for (int operationsIndex = 0; operationsIndex < uNumOperations; operationsIndex++)
+    for (int operationsIndex = stackStart; operationsIndex < stackEnd; operationsIndex++)
     {
         int operationOrIndex = uOperations[operationsIndex];
 
@@ -89,6 +91,11 @@ vec2 sceneSDF(vec3 point)
     }
 
     return depthStack[0];
+}
+
+vec2 sceneSDF(vec3 point)
+{
+    return sceneSDF(point, 0, uNumOperations);
 }
 
 vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
@@ -314,12 +321,12 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
     return vec4(colour, light0Rays);
 }
 
-vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far, int stackStart, int stackEnd)
 {
     float depth = near;
     for (int i = 0; i < uMaxMarchingSteps; i++)
     {
-        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection);
+        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection, stackStart, stackEnd);
         if (dist.x < uEpsilon)
         {
             return vec4(depth, dist.x, float(i), dist.y);
@@ -335,6 +342,24 @@ vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
     return vec4(far, far, float(uMaxMarchingSteps), -1);
 }
 
+vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+{
+    return rayMarch(rayOrigin, rayDirection, near, far, 0, uNumOperations);
+}
+
+
+float getHighlightDist(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+{
+    if (uHighlight.x < 0)
+    {
+        return 0.0;
+    }
+
+    vec4 dist = rayMarch(rayOrigin, rayDirection, near, far, uHighlight.x, uHighlight.y);
+    float r = dist.z / float(uMaxMarchingSteps);
+    return smoothstep(0.75, 0.85, r);
+}
+
 void main()
 {
     vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
@@ -348,11 +373,12 @@ void main()
         if (uFlags.y)
         {
             float r = dist.z / float(uMaxMarchingSteps);
-            fragColour = vec4(r, 0, 0, 1);
+            fragColour = vec4(r, 0, getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST), 1);
             return;
         }
 
-        fragColour = vec4(0, 0, 0, 0);
+        float highlightDist = getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+        fragColour = vec4(0, 0, highlightDist, highlightDist);
     }
     else
     {
@@ -387,6 +413,12 @@ void main()
                 break;
         }
 
+        float highlightDist = getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+        if (highlightDist > 0.0)
+        {
+            fragColour = vec4(mix(litColour.xyz, HIGHLIGHT_COLOUR, highlightDist), 1.0);
+        }
+
         fragColour = vec4(litColour.xyz, 1.0);
     }
 
@@ -394,6 +426,8 @@ void main()
     {
         float r = dist.z / float(uMaxMarchingSteps);
         float g = litColour.w / float(uMaxMarchingSteps);
-        fragColour = vec4(r, g, 0, 1);
+
+        float highlightDist = getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+        fragColour = vec4(r, g, highlightDist, 1);
     }
 }

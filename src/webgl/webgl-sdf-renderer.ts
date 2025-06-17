@@ -60,6 +60,7 @@ export default class WebGLSdfRenderer
     public readonly uShapes: WebGLUniformLocation;
     public readonly uOperations: WebGLUniformLocation;
     public readonly uNumOperations: WebGLUniformLocation;
+    public readonly uHighlight: WebGLUniformLocation;
 
     public readonly uMaterials: WebGLUniformLocation;
 
@@ -102,6 +103,7 @@ export default class WebGLSdfRenderer
         uShapes: WebGLUniformLocation,
         uOperations: WebGLUniformLocation,
         uNumOperations: WebGLUniformLocation,
+        uHighlight: WebGLUniformLocation,
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
@@ -121,6 +123,7 @@ export default class WebGLSdfRenderer
 
         this.uOperations = uOperations;
         this.uNumOperations = uNumOperations;
+        this.uHighlight = uHighlight;
 
         this.uMaterials = uMaterials;
 
@@ -189,6 +192,7 @@ export default class WebGLSdfRenderer
             const ops = scene.getOperationNumbers();
             this.gl.uniform1i(this.uNumOperations, ops.length);
             this.gl.uniform1iv(this.uOperations, ops);
+            this.gl.uniform2iv(this.uHighlight, [-1, 0]);
             this.prevOperations = scene.getOperations();
         }
 
@@ -256,6 +260,7 @@ export default class WebGLSdfRenderer
         const uShapes = this.getUniform(gl, shader, 'uShapes');
         const uOperations = this.getUniform(gl, shader, 'uOperations');
         const uNumOperations = this.getUniform(gl, shader, 'uNumOperations');
+        const uHighlight = this.getUniform(gl, shader, 'uHighlight');
 
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
 
@@ -267,7 +272,7 @@ export default class WebGLSdfRenderer
         const uFlags = this.getUniform(gl, shader, 'uFlags');
 
         return new WebGLSdfRenderer(gl, shader, positionBuffer,
-            uShapes, uOperations, uNumOperations,
+            uShapes, uOperations, uNumOperations, uHighlight,
             uLights, uNumLights,
             uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,
