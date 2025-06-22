@@ -23,14 +23,18 @@ export interface ReparentModalState
     readonly show: boolean;
     readonly childNodeId?: SceneNodeId;
 }
+export interface RawSceneModalState
+{
+    readonly show: boolean;
+}
 
 export interface AppState
 {
     readonly viewports: ViewportState[];
     readonly sceneTree: SceneTree;
     readonly selectedNodeId?: SceneNodeId;
-    // readonly selectedParentNodeId?: SceneNodeId;
     readonly reparentModal: ReparentModalState;
+    readonly rawSceneModal: RawSceneModalState;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -56,6 +60,15 @@ export function setReparentModal(options: ReparentModalState): Modifier<AppState
     {
         const reparentModal = { ...state.reparentModal, ...options };
         return { reparentModal }
+    }
+}
+
+export function setRawSceneModal(options: RawSceneModalState): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const rawSceneModal = { ...state.rawSceneModal, ...options };
+        return { rawSceneModal }
     }
 }
 

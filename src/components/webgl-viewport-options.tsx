@@ -1,5 +1,5 @@
 import { h, Component, Attributes } from 'preact';
-import { setViewportOptions, ViewportOptions } from '../store/store-state';
+import { setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
 import { store } from '../store/store';
 import "./webgl-viewport-options.scss";
 
@@ -40,9 +40,15 @@ export default class WebGLViewportOptions extends Component<Props>
             </select>
             <button onClick={this.toggleShadows}>{ enableShadows ? 'Hide Shadows' : 'Show Shadows' }</button>
             <button onClick={this.toggleMarching}>{ enableShowMarching ? 'Hide Marching' : 'Show Marching' }</button>
+            <button onClick={this.showRawScene}>JSON Scene</button>
             <LabeledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
             <LabeledRange label={`Marching Steps ${maxMarchingStep}`} inputProps={{value: maxMarchingStep, min: 0, max: 1000, step: 1, onInput: this.changeMarchingSteps}} />
         </div>;
+    }
+
+    private showRawScene = () =>
+    {
+        store.execute(setRawSceneModal({show: true}));
     }
 
     private changeEpsilon = (e: Event) =>

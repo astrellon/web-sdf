@@ -5,6 +5,7 @@ import SceneGraph from "./scene-tree-view";
 import { SceneConverter } from "../ray-marching/scene-converter";
 import ReparentModal from "./reparent-modal";
 import "./webgl-app.scss"
+import RawSceneModal from "./raw-scene-modal";
 
 interface Props
 {
@@ -22,7 +23,7 @@ export class WebGLApp extends Component<Props>
     public render()
     {
         const sceneConverter = this.props.sceneConverter;
-        const { viewports, sceneTree, selectedNodeId, reparentModal } = this.props.state;
+        const { viewports, sceneTree, selectedNodeId, reparentModal, rawSceneModal } = this.props.state;
         console.log('App render', this.props.state);
 
         return <Fragment>
@@ -38,6 +39,7 @@ export class WebGLApp extends Component<Props>
             </div>
 
             <ReparentModal state={reparentModal} sceneTree={sceneTree} />
+            <RawSceneModal state={rawSceneModal} sceneTree={sceneTree} />
 
         </Fragment>
     }

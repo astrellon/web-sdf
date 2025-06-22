@@ -19,5 +19,8 @@ export const store = new DataStore<AppState>({
     },
     reparentModal: {
         show: false
+    },
+    rawSceneModal: {
+        show: false,
     }
 });

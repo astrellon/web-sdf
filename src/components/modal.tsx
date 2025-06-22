@@ -1,4 +1,4 @@
-import { h, Component, ErrorInfo } from 'preact';
+import { h, Component, ErrorInfo, RenderableProps } from 'preact';
 import { createPortal } from 'preact/compat';
 import './modal.scss';
 
@@ -31,11 +31,16 @@ export default class Modal extends Component<Props>
         const portalContainer = this.props.portalContainer ?? 'modals';
         const modalEl = Modal.getModalEl(portalContainer);
 
-        return createPortal(<div class='modal-backdrop' onClick={onRequestClose}>
-                <div class='modal-body outer-panel'>
+        return createPortal(<div class='modal-backdrop' onPointerDown={onRequestClose}>
+                <div class='modal-body outer-panel' onPointerDown={this.preventClose}>
                     { this.props.children }
                 </div>
             </div>, modalEl);
+    }
+
+    private preventClose = (e: PointerEvent) =>
+    {
+        e.stopImmediatePropagation();
     }
 
     public static afterRender()
