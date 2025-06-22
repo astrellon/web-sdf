@@ -1,13 +1,13 @@
-import { h, Component } from 'preact';
+import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
-import { Light, makeShapeNodeId, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
+import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
-import { quat, quatIdentity, vec3, vec3Zero } from '../gl-matrix-ts';
+import { quat, vec3 } from '../gl-matrix-ts';
 import LightView from './light-view';
-import { createSceneNode, SceneTree, sceneTreeAddChild } from '../ray-marching/scene-tree';
-import './scene-node-view.scss';
-import { setSceneTree } from '../store/store-state';
+import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
+import { setReparentModal, setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
+import './scene-node-view.scss';
 
 interface Props
 {
@@ -33,7 +33,7 @@ export default class SceneNodeView extends Component<Props, State>
 
     public render()
     {
-        const { node } = this.props;
+        const { node, sceneTree } = this.props;
         if (node == undefined)
         {
             return <div class="scene-node-view">
@@ -41,6 +41,7 @@ export default class SceneNodeView extends Component<Props, State>
             </div>
         }
 
+        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
         const selectedOpCode = node.childOpCode ?? 'none';
 
         return <div class="scene-node-view">
@@ -71,6 +72,11 @@ export default class SceneNodeView extends Component<Props, State>
             </div>
             <div>
                 <button onClick={this.addChild}>Add Child</button>
+                { parent != null &&
+                <Fragment>
+                    <button onClick={this.reparent}>Re-parent</button>
+                    <button onClick={this.deleteSelf}>Delete Self</button>
+                </Fragment>}
             </div>
             {/* <div>
                 <strong>Children</strong> {
@@ -84,6 +90,30 @@ export default class SceneNodeView extends Component<Props, State>
     {
         const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, createSceneNode('New Child', {}));
         store.execute(setSceneTree(newTree));
+    }
+
+    private deleteSelf = () =>
+    {
+        const newTree = sceneTreeDeleteChild(this.props.sceneTree, this.props.node);
+        store.execute(setSceneTree(newTree));
+    }
+
+    private reparent = () =>
+    {
+        const { node, sceneTree } = this.props;
+        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
+        if (parent == null)
+        {
+            console.warn('Cannot reparent root node');
+            return;
+        }
+
+        store.execute(
+            setReparentModal({
+                show: true,
+                childNodeId: this.props.node.id
+            })
+        );
     }
 
     private toggleShape = () =>

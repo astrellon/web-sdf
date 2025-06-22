@@ -34,6 +34,7 @@ export interface SceneNode
     readonly hasShape: boolean;
     readonly childOpCode: SdfOpCode;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;
+    readonly parentId?: SceneNodeId;
     readonly light: Light;
     readonly hasLight: boolean;
 }

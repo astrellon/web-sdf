@@ -16,5 +16,8 @@ export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
     sceneTree: {
         nodes: {}
+    },
+    reparentModal: {
+        show: false
     }
 });

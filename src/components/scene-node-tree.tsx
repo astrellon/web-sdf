@@ -8,6 +8,7 @@ interface Props
 {
     readonly sceneTree: SceneTree;
     readonly selectedNodeId?: SceneNodeId;
+    readonly disabledNodeId?: ReadonlyArray<SceneNodeId>;
     readonly onItemClicked: (node: SceneNode) => void;
 }
 

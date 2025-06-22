@@ -131,9 +131,10 @@ export function createNewShape(shape: Partial<Shape>): Shape
 }
 
 // Build time functions
-export function sceneTreeAddChildMutable(parent: Editable<SceneNode>, child: SceneNode)
+export function sceneTreeAddChildMutable(parent: Editable<SceneNode>, child: Editable<SceneNode>)
 {
     (parent.childrenIds as SceneNodeId[]).push(child.id);
+    child.parentId = parent.id;
 }
 
 export function sceneTreeAddChild(tree: SceneTree, parent: SceneNode, child: SceneNode)
@@ -143,17 +144,79 @@ export function sceneTreeAddChild(tree: SceneTree, parent: SceneNode, child: Sce
         childrenIds: [...parent.childrenIds, child.id]
     }
 
-    const nodes = {
-        ...tree.nodes,
-        [parent.id]: parent
+    child = {
+        ...child,
+        parentId: parent.id
     }
 
-    if (!nodes.hasOwnProperty(child.id))
-    {
-        nodes[child.id] = child;
+    const nodes = {
+        ...tree.nodes,
+        [parent.id]: parent,
+        [child.id]: child
     }
 
     return { ...tree, nodes };
+}
+
+export function sceneTreeDeleteChild(tree: SceneTree, child: SceneNode)
+{
+    if (child.parentId === undefined)
+    {
+        return tree;
+    }
+
+    let oldParent = tree.nodes[child.parentId];
+    const oldIndex = oldParent.childrenIds.findIndex(id => id === child.id);
+    if (oldIndex >= 0)
+    {
+        const childrenIds = [...oldParent.childrenIds];
+        childrenIds.splice(oldIndex, 1);
+        oldParent = { ...oldParent, childrenIds };
+
+        const nodes = {
+            ...tree.nodes,
+            [oldParent.id]: oldParent
+        }
+
+        delete nodes[child.id];
+
+        return { ...tree, nodes };
+    }
+
+    return tree;
+}
+
+export function sceneTreeMoveChild(tree: SceneTree, newParent: SceneNode, child: SceneNode)
+{
+    if (child.parentId == undefined)
+    {
+        return tree;
+    }
+
+    let oldParent = tree.nodes[child.parentId];
+    const oldIndex = oldParent.childrenIds.findIndex(id => id === child.id);
+    if (oldIndex >= 0)
+    {
+        const childrenIds = [...oldParent.childrenIds];
+        childrenIds.splice(oldIndex, 1);
+        oldParent = { ...oldParent, childrenIds };
+    }
+
+    if (!newParent.childrenIds.includes(child.id))
+    {
+        newParent = {
+            ...newParent,
+            childrenIds: [...newParent.childrenIds, child.id],
+        };
+    }
+
+    const nodes = {
+        ...tree.nodes,
+        [oldParent.id]: oldParent,
+        [newParent.id]: newParent
+    }
+
+    return {...tree, nodes };
 }
 
 function addToTree(node: SceneNode, nodes: SceneNodes, depth: number, index: number, result: SceneNodeAtDepth[])

@@ -192,7 +192,7 @@ export default class WebGLSdfRenderer
             const ops = scene.getOperationNumbers();
             this.gl.uniform1i(this.uNumOperations, ops.length);
             this.gl.uniform1iv(this.uOperations, ops);
-            this.gl.uniform2iv(this.uHighlight, [-1, 0]);
+            this.gl.uniform2iv(this.uHighlight, [0, 1]);
             this.prevOperations = scene.getOperations();
         }
 

@@ -3,6 +3,7 @@ import { AppState } from "../store/store-state";
 import { WebGLViewport } from "./webgl-viewport";
 import SceneGraph from "./scene-tree-view";
 import { SceneConverter } from "../ray-marching/scene-converter";
+import ReparentModal from "./reparent-modal";
 import "./webgl-app.scss"
 
 interface Props
@@ -13,10 +14,15 @@ interface Props
 
 export class WebGLApp extends Component<Props>
 {
+    constructor()
+    {
+        super();
+    }
+
     public render()
     {
         const sceneConverter = this.props.sceneConverter;
-        const { viewports, sceneTree: sdfTree, selectedNodeId } = this.props.state;
+        const { viewports, sceneTree, selectedNodeId, reparentModal } = this.props.state;
         console.log('App render', this.props.state);
 
         return <Fragment>
@@ -28,8 +34,11 @@ export class WebGLApp extends Component<Props>
                 <div class="viewports">
                     <WebGLViewport viewportIndex={0} options={viewports[0].options} sceneConverter={sceneConverter} />
                 </div>
-                <SceneGraph sceneTree={sdfTree} selectedNodeId={selectedNodeId} />
+                <SceneGraph sceneTree={sceneTree} selectedNodeId={selectedNodeId} />
             </div>
+
+            <ReparentModal state={reparentModal} sceneTree={sceneTree} />
+
         </Fragment>
     }
 }

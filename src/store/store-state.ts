@@ -18,11 +18,19 @@ export interface ViewportState
     readonly options: ViewportOptions;
 }
 
+export interface ReparentModalState
+{
+    readonly show: boolean;
+    readonly childNodeId?: SceneNodeId;
+}
+
 export interface AppState
 {
     readonly viewports: ViewportState[];
     readonly sceneTree: SceneTree;
     readonly selectedNodeId?: SceneNodeId;
+    // readonly selectedParentNodeId?: SceneNodeId;
+    readonly reparentModal: ReparentModalState;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -42,6 +50,15 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
+export function setReparentModal(options: ReparentModalState): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const reparentModal = { ...state.reparentModal, ...options };
+        return { reparentModal }
+    }
+}
+
 export function updateNode(node: SceneNode): Modifier<AppState>
 {
     return (state: AppState) =>
@@ -58,5 +75,21 @@ export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 
 export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>
 {
-    return () => { return { selectedNodeId } };
+    return (state: AppState) =>
+    {
+        let selectedParentNodeId: SceneNodeId | undefined = undefined;
+        if (selectedNodeId)
+        {
+            for (const node of Object.values(state.sceneTree.nodes))
+            {
+                if (node.childrenIds.includes(selectedNodeId))
+                {
+                    selectedParentNodeId = node.id;
+                    break;
+                }
+            }
+        }
+
+        return { selectedNodeId, selectedParentNodeId }
+    };
 }

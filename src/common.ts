@@ -9,3 +9,12 @@ export function toRadian(degrees: number): number
 {
     return degrees * Math.PI / 180.0;
 }
+
+export function addClass(target: string, className: string, addIfTrue?: boolean): string
+{
+    if (addIfTrue == undefined || addIfTrue === true)
+    {
+        target += ' ' + className;
+    }
+    return target;
+}

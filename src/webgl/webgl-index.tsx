@@ -1,13 +1,14 @@
 import { h, render } from 'preact';
-import { WebGLApp } from "../components/webgl-app";
-import { store } from "../store/store";
+import { WebGLApp } from '../components/webgl-app';
+import { store } from '../store/store';
 import { SceneConverter } from '../ray-marching/scene-converter';
 import { AppState, setSceneTree } from '../store/store-state';
 import { SceneNode, SceneNodes } from '../ray-marching/scene-entities';
 import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from '../ray-marching/scene-tree';
 import { Editable } from '../common';
-import "../normalize.css";
-import "./styles.scss";
+import Modal from '../components/modal';
+import '../normalize.css';
+import './styles.scss';
 
 const sceneConverter = new SceneConverter();
 store.subscribe(state => state.sceneTree, updateFromStoreChange);
@@ -21,6 +22,7 @@ const appEl = document.getElementById("app");
 function renderApp()
 {
     render(<WebGLApp state={store.state()} sceneConverter={sceneConverter} />, appEl);
+    Modal.afterRender();
 }
 
 renderApp();
