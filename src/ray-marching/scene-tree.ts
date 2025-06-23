@@ -210,10 +210,13 @@ export function sceneTreeMoveChild(tree: SceneTree, newParent: SceneNode, child:
         };
     }
 
+    child = { ...child, parentId: newParent.id }
+
     const nodes = {
         ...tree.nodes,
         [oldParent.id]: oldParent,
-        [newParent.id]: newParent
+        [newParent.id]: newParent,
+        [child.id]: child
     }
 
     return {...tree, nodes };
