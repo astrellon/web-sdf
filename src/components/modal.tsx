@@ -1,10 +1,11 @@
-import { h, Component, ErrorInfo, RenderableProps } from 'preact';
+import { h, Component } from 'preact';
 import { createPortal } from 'preact/compat';
 import './modal.scss';
 
 interface Props
 {
     readonly show: boolean;
+    readonly class?: string;
     readonly portalContainer?: string;
     readonly onRequestClose: () => void;
 }
@@ -30,9 +31,11 @@ export default class Modal extends Component<Props>
 
         const portalContainer = this.props.portalContainer ?? 'modals';
         const modalEl = Modal.getModalEl(portalContainer);
+        const baseClassName = 'modal-body outer-panel ';
+        const className = this.props.class != undefined ? baseClassName + this.props.class : baseClassName;
 
         return createPortal(<div class='modal-backdrop' onPointerDown={onRequestClose}>
-                <div class='modal-body outer-panel' onPointerDown={this.preventClose}>
+                <div class={className} onPointerDown={this.preventClose}>
                     { this.props.children }
                 </div>
             </div>, modalEl);
