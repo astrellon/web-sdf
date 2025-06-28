@@ -46,7 +46,7 @@ export default class SceneNodeView extends Component<Props, State>
 
         return <div class="scene-node-view">
             <div>
-                <strong>Name</strong> <input type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
+                <strong>Name</strong> <input class='input' type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
             </div>
             <div>
                 <strong>Position</strong> <VectorView vector={node.position} onChange={this.onChangePosition} />
@@ -70,12 +70,14 @@ export default class SceneNodeView extends Component<Props, State>
                 <strong>Light</strong> <button onClick={this.toggleLight}>{node.hasLight ? 'Hide' : 'Show'}</button>
                 { node.hasLight && <LightView light={node.light} onChange={this.onChangeLight} /> }
             </div>
-            <div>
-                <button onClick={this.addChild}>Add Child</button>
+
+            <div><strong>Children</strong></div>
+            <div class='control-group'>
+                <button onClick={this.addChild}>Add</button>
                 { parent != null &&
                 <Fragment>
+                    <button onClick={this.deleteSelf}>Delete</button>
                     <button onClick={this.reparent}>Re-parent</button>
-                    <button onClick={this.deleteSelf}>Delete Self</button>
                 </Fragment>}
             </div>
             {/* <div>

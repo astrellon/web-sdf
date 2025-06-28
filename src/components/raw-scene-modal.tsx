@@ -31,12 +31,15 @@ export default class RawSceneModal extends Component<Props>
             <div ref={this.preRef} class='raw-scene-modal__text' contenteditable>
                 <pre>{sceneText}</pre>
             </div>
-            <button onClick={this.loadFromHtml}>Load From Json</button>
-            <label>
-                Load From File
-                <input type='file' onChange={this.loadFromFile} />
-            </label>
-            <button onClick={this.downloadText}>Download Json</button>
+
+            <span class='control-group'>
+                <button onClick={this.loadFromHtml}>Load From Json</button>
+                <label class='button'>
+                    Load From File
+                    <input type='file' onChange={this.loadFromFile} />
+                </label>
+                <button onClick={this.downloadText}>Download Json</button>
+            </span>
         </Modal>;
     }
 

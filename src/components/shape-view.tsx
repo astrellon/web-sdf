@@ -41,7 +41,7 @@ export default class ShapeView extends Component<Props>
                 <strong>Specular Colour</strong> <VectorView disabled={!isPhong} vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
             </div>
             <div>
-                <strong>Shininess</strong> <input disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
+                <strong>Shininess</strong> <input class='input' disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
             </div>
         </div>
     }

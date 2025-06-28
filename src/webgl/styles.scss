@@ -20,23 +20,33 @@ body>main {
     flex-grow: 1;
 }
 
-button, select, a {
+button, select, a, .button, .input {
     padding: 0.3rem 0.5rem;
-    border: 2px solid #62cd78;
+    border: 2px solid #cdab62;
     border-radius: 0.5rem;
+    background-color: white;
+    text-shadow: 2px 2px 5px rgb(190, 184, 172);
 
-    // transition:cubic-bezier(1, 0, 0, 1) box-shadow;
+    transition: background-color 0.2s ease-out,
+        box-shadow 0.2s ease-out;
 
     &:hover {
-        box-shadow: 0 0 6px #c2d9c7;
+        background-color: #e3dbca;
+        box-shadow: 0 0 6px #d9d5c2;
+        border-color: #dec99c;
     }
 }
 
 .control-group {
     &>* {
+        border-radius: 0;
+
         &:first-child {
             border-top-left-radius: 0.75rem;
             border-bottom-left-radius: 0.75rem;
+        }
+        &:not(:last-child) {
+            border-right: none;
         }
         &:not(:first-child) {
             border-left: none;
