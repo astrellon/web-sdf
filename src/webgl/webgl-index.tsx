@@ -6,7 +6,6 @@ import { AppState, setSceneTree } from '../store/store-state';
 import { SceneNode, SceneNodes } from '../ray-marching/scene-entities';
 import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from '../ray-marching/scene-tree';
 import { Editable } from '../common';
-import Modal from '../components/modal';
 import '../normalize.css';
 import './styles.scss';
 
@@ -22,7 +21,6 @@ const appEl = document.getElementById("app");
 function renderApp()
 {
     render(<WebGLApp state={store.state()} sceneConverter={sceneConverter} />, appEl);
-    Modal.afterRender();
 }
 
 renderApp();
