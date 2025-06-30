@@ -7,7 +7,8 @@ import sdfFunctionsText from "../shaders/sdf-functions.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
-import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
+import { mat4Identity, quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
+import WebGLGizmos from "./webgl-gizmos";
 
 const positions = [
     -1, -1,
@@ -75,6 +76,7 @@ export default class WebGLSdfRenderer
     public readonly uMaxMarchingSteps: WebGLUniformLocation;
     public readonly uEpsilon: WebGLUniformLocation;
     public readonly uFlags: WebGLUniformLocation;
+    public readonly gizmos: WebGLGizmos;
 
     public cameraPosition: vec3 = vec3Zero();
     public cameraTarget: vec3 = vec3Zero();
@@ -90,7 +92,7 @@ export default class WebGLSdfRenderer
 
     public canvasScale = 1;
 
-    private readonly cameraMatrixArray = new Float32Array(9);
+    private readonly cameraMatrixForSdfArray = new Float32Array(9);
 
     private prevShapes: any;
     private prevOperations: any;
@@ -113,6 +115,8 @@ export default class WebGLSdfRenderer
         uMaxMarchingSteps: WebGLUniformLocation,
         uEpsilon: WebGLUniformLocation,
         uFlags: WebGLUniformLocation,
+        
+        gizmos: WebGLGizmos
     )
     {
         this.gl = gl;
@@ -137,6 +141,8 @@ export default class WebGLSdfRenderer
         this.uMaxMarchingSteps = uMaxMarchingSteps;
         this.uEpsilon = uEpsilon;
         this.uFlags = uFlags;
+
+        this.gizmos = gizmos;
     }
 
     public setupCanvas()
@@ -160,7 +166,7 @@ export default class WebGLSdfRenderer
         const forward = vec3TransformQuat(vec3Zero(), {x: 0, y: 0, z: 1}, tempAxisQuat);
 
         vec3ScaleAndAddBy(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
-        mat3ArraySetFromQuat(this.cameraMatrixArray, tempAxisQuat);
+        mat3ArraySetFromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
     }
 
     public resizeCanvas = (width: number, height: number) =>
@@ -178,6 +184,8 @@ export default class WebGLSdfRenderer
 
     public render(scene: SceneConverter)
     {
+        this.gl.useProgram(this.shader.program);
+
         if (this.prevLights !== scene.getLights())
         {
             console.info('Rendering new lights');
@@ -220,8 +228,9 @@ export default class WebGLSdfRenderer
             this.cameraPosition.y,
             this.cameraPosition.z
         );
-        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixArray);
+        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
 
+        this.gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
