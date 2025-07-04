@@ -115,7 +115,7 @@ export default class WebGLSdfRenderer
         uMaxMarchingSteps: WebGLUniformLocation,
         uEpsilon: WebGLUniformLocation,
         uFlags: WebGLUniformLocation,
-        
+
         gizmos: WebGLGizmos
     )
     {
@@ -230,7 +230,7 @@ export default class WebGLSdfRenderer
         );
         this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
 
-        this.gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 

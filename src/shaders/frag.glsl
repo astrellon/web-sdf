@@ -176,22 +176,20 @@ const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
  * diffuse: Diffuse color
  * specular: Specular color
  * shininess: Shininess coefficient
- * p: position of point being lit
+ * worldPoint: position of point being lit
  * eye: the position of the camera
  * lightPos: the position of the light
  * lightIntensity: color/intensity of the light
  *
  * See https://en.wikipedia.org/wiki/Phong_reflection_model#Description
  */
-vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float shininess, vec3 worldPoint, vec3 eye, vec3 normal, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormalPhong(p, currentDepth);
+    vec3 L = normalize(lightPos - worldPoint);
+    vec3 V = normalize(eye - worldPoint);
+    vec3 R = normalize(reflect(-L, normal));
 
-    vec3 L = normalize(lightPos - p);
-    vec3 V = normalize(eye - p);
-    vec3 R = normalize(reflect(-L, N));
-
-    float dotLN = dot(L, N);
+    float dotLN = dot(L, normal);
     float dotRV = dot(R, V);
 
     if (dotLN < 0.0) {
@@ -225,6 +223,10 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     vec3 colour = ambientLight;
     float light0Rays;
 
+    if (uNumLights > 0)
+    {
+        vec3 normal = estimateNormalPhong(worldPoint, currentDepth);
+
     for (int i = 0; i < uNumLights; i++)
     {
         mat2x4 light = uLights[i];
@@ -242,8 +244,9 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
             }
         }
 
-        vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, lightPos, light[1].xyz);
+            vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, normal, lightPos, light[1].xyz);
         colour += lightContrib * shadow.x;
+        }
     }
 
     // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
@@ -256,22 +259,21 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
  * The vec3 returned is the RGB color of the light's contribution.
  *
  * diffuse: Diffuse color
- * p: position of point being lit
+ * worldPoint: position of point being lit
  * eye: the position of the camera
  * lightPos: the position of the light
  * lightIntensity: color/intensity of the light
  */
-vec3 lambertContribForLight(vec3 currentDepth, vec3 diffuse, vec3 p, vec3 eye, vec3 lightPos, vec3 lightIntensity)
+vec3 lambertContribForLight(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 eye, vec3 normal, vec3 lightPos, vec3 lightIntensity)
 {
-    vec3 N = estimateNormalTetrahedron(p, currentDepth);
+    vec3 L = normalize(lightPos - worldPoint);
+    vec3 V = normalize(eye - worldPoint);
+    vec3 R = normalize(reflect(-L, normal));
 
-    vec3 L = normalize(lightPos - p);
-    vec3 V = normalize(eye - p);
-    vec3 R = normalize(reflect(-L, N));
+    float dotLN = dot(L, normal);
 
-    float dotLN = dot(L, N);
-
-    if (dotLN < 0.0) {
+    if (dotLN < 0.0)
+    {
         // Light not visible from this point on the surface
         return vec3(0.0, 0.0, 0.0);
     }
@@ -296,6 +298,10 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
     vec3 colour = ambientLight;
     float light0Rays;
 
+    if (uNumLights > 0)
+    {
+        vec3 N = estimateNormalTetrahedron(worldPoint, currentDepth);
+
     for (int i = 0; i < uNumLights; i++)
     {
         mat2x4 light = uLights[i];
@@ -313,8 +319,9 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
             }
         }
 
-        vec3 lightContrib = lambertContribForLight(currentDepth, diffuse, worldPoint, cameraPoint, lightPos, light[1].xyz);
+            vec3 lightContrib = lambertContribForLight(currentDepth, diffuse, worldPoint, cameraPoint, N, lightPos, light[1].xyz);
         colour += lightContrib * shadow.x;
+        }
     }
 
     // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
