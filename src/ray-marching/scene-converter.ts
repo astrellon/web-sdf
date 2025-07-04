@@ -1,7 +1,7 @@
 import equal from "fast-deep-equal";
 import { quatIdentity, rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeOctahedron, ShapeTypeSphere, ShapeTypeTorus } from "./scene-entities";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeOctahedron, ShapeTypeSphere, ShapeTypeTorus } from "./scene-entities";
 
 interface ShaderLight
 {
@@ -86,8 +86,11 @@ export class SceneConverter
     private shapes: ShaderShape[] = [];
     private shapeDataArray: number[] = [];
 
+    private highlight: number[] = [];
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
+
+    private highlightedId: SceneNodeId | undefined = undefined;
 
     private previousTree?: SceneTree;
 
@@ -152,6 +155,16 @@ export class SceneConverter
         return this.numberOperations;
     }
 
+    public setHighlight(nodeId: SceneNodeId | undefined)
+    {
+        this.highlightedId = nodeId;
+    }
+
+    public getHighlights()
+    {
+        return this.highlight;
+    }
+
     public setLight(index: number, light: Partial<ShaderLight>)
     {
         if (index < 0)
@@ -203,7 +216,13 @@ export class SceneConverter
             return;
         }
 
-        const { operations, shapes, lights, materials } = SceneConverter.createShapesFromNode(sceneTree);
+        const { operations, shapes, lights, materials, highlight } = SceneConverter.createShapesFromNode(sceneTree, this.highlightedId);
+        if (!equal(this.highlight, highlight))
+        {
+            this.highlight = highlight;
+            console.log('Highlight', this.highlight);
+            this.updateHighlighted();
+        }
         if (!equal(this.operations, operations))
         {
             this.operations = operations;
@@ -246,7 +265,7 @@ export class SceneConverter
         }
     }
 
-    public static createShapesFromNode(sceneTree: SceneTree)
+    public static createShapesFromNode(sceneTree: SceneTree, highlightedId: SceneNodeId | undefined)
     {
         const rootNode = sceneTree.nodes[sceneTree.rootNodeId];
         if (!rootNode)
@@ -258,18 +277,25 @@ export class SceneConverter
         const shapeStack: ShaderShape[] = [];
         const lights: ShaderLight[] = [];
         const materials: ShaderMaterial[] = [];
-        this.pushToStack(opsStack, shapeStack, lights, materials, rootNode, sceneTree.nodes);
+        const highlight: number[] = [];
+        this.pushToStack(opsStack, shapeStack, lights, materials, highlight, highlightedId, rootNode, sceneTree.nodes);
 
         opsStack.reverse();
+        if (highlight.length > 0)
+        {
+            const diff = highlight[1] - highlight[0];
+            highlight[0] = opsStack.length - highlight[0] - 1;
+            highlight[1] = highlight[0] + diff;
+        }
 
         return {
             operations: opsStack,
             shapes: shapeStack,
-            lights, materials
+            lights, materials, highlight
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], node: SceneNode, nodes: SceneNodes)
+    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], highlight: number[], highlightedId: SceneNodeId | undefined, node: SceneNode, nodes: SceneNodes)
     {
         if (node.childOpCode !== 'none')
         {
@@ -304,6 +330,11 @@ export class SceneConverter
                 }
             }
 
+            if (node.id === highlightedId)
+            {
+                highlight.push(opsStack.length, opsStack.length + 1);
+            }
+
             opsStack.push(index);
         }
 
@@ -318,7 +349,7 @@ export class SceneConverter
 
         for (const childId of node.childrenIds)
         {
-            this.pushToStack(opsStack, shapeStack, lights, materials, nodes[childId], nodes);
+            this.pushToStack(opsStack, shapeStack, lights, materials, highlight, highlightedId, nodes[childId], nodes);
         }
     }
 
@@ -395,6 +426,14 @@ export class SceneConverter
         this.shapeDataArray[dataIndex + 13] = 0; // Unused, but needed for padding
         this.shapeDataArray[dataIndex + 14] = 0;
         this.shapeDataArray[dataIndex + 15] = 0;
+    }
+
+    private updateHighlighted()
+    {
+        if (this.highlight.length < 2)
+        {
+            this.highlight = [-1, 0];
+        }
     }
 
     private updateOperationNumbers()

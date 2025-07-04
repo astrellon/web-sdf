@@ -365,7 +365,7 @@ float getHighlightDist(vec3 rayOrigin, vec3 rayDirection, float near, float far)
     }
 
     vec4 dist = rayMarch(rayOrigin, rayDirection, near, far, uHighlight.x, uHighlight.y);
-    float r = dist.z / float(uMaxMarchingSteps);
+    float r = dist.z / (float(uMaxMarchingSteps) * 0.15);
     return smoothstep(0.75, 0.85, r);
 }
 
@@ -469,7 +469,7 @@ void main()
         }
 
         float highlightDist = getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
-        fragColour = vec4(0, 0, highlightDist, highlightDist);
+        fragColour = vec4(mix(vec3(0.0), HIGHLIGHT_COLOUR, highlightDist), 0.0);
     }
     else
     {
@@ -509,8 +509,10 @@ void main()
         {
             fragColour = vec4(mix(litColour.xyz, HIGHLIGHT_COLOUR, highlightDist), 1.0);
         }
-
-        fragColour = vec4(litColour.xyz, 1.0);
+        else
+        {
+            fragColour = vec4(litColour.xyz, 1.0);
+        }
     }
 
     if (uFlags.y)

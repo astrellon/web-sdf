@@ -11,9 +11,16 @@ import './styles.scss';
 
 const sceneConverter = new SceneConverter();
 store.subscribe(state => state.sceneTree, updateFromStoreChange);
+store.subscribe(state => state.selectedNodeId, updateHighlighted);
 
 function updateFromStoreChange(state: AppState)
 {
+    sceneConverter.updateShapesFromTree(state.sceneTree);
+}
+
+function updateHighlighted(state: AppState)
+{
+    sceneConverter.setHighlight(state.selectedNodeId);
     sceneConverter.updateShapesFromTree(state.sceneTree);
 }
 

@@ -98,6 +98,7 @@ export default class WebGLSdfRenderer
 
     private prevShapes: any;
     private prevOperations: any;
+    private prevHighlights: any;
     private prevMaterials: any;
     private prevLights: any;
 
@@ -206,8 +207,16 @@ export default class WebGLSdfRenderer
             const ops = scene.getOperationNumbers();
             this.gl.uniform1i(this.uNumOperations, ops.length);
             this.gl.uniform1iv(this.uOperations, ops);
-            this.gl.uniform2iv(this.uHighlight, [0, 1]);
             this.prevOperations = scene.getOperations();
+        }
+
+        if (this.prevHighlights !== scene.getHighlights())
+        {
+            const ops = scene.getHighlights();
+            console.info('Rendering new highlight', ops, 'ops', this.prevOperations);
+
+            this.gl.uniform2iv(this.uHighlight, ops);
+            this.prevHighlights = ops;
         }
 
         if (this.prevShapes !== scene.getShapes())
@@ -290,7 +299,7 @@ export default class WebGLSdfRenderer
         const uNoise = this.getUniform(gl, shader, 'uNoise');
 
         const noiseTexture = gl.createTexture();
-        const noiseCanvas = WebGLSdfRenderer.createNoiseCanvas();
+        const noiseCanvas = this.createNoiseCanvas();
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseCanvas.canvas);
@@ -317,7 +326,7 @@ export default class WebGLSdfRenderer
             return;
         }
 
-        console.error(`GL Error: ${WebGLSdfRenderer.getErrorMessage(error, gl)}`);
+        console.error(`GL Error: ${this.getErrorMessage(error, gl)}`);
     }
 
     private static getErrorMessage(error: number, gl: WebGL2RenderingContext)
