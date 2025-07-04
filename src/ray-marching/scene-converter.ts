@@ -1,7 +1,7 @@
 import equal from "fast-deep-equal";
 import { quatIdentity, rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeSphere } from "./scene-entities";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeOctahedron, ShapeTypeSphere, ShapeTypeTorus } from "./scene-entities";
 
 interface ShaderLight
 {
@@ -50,6 +50,8 @@ const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
     'box': ShapeTypeBox,
     'sphere': ShapeTypeSphere,
     'hexPrism': ShapeTypeHexPrism,
+    'torus': ShapeTypeTorus,
+    'octahedron': ShapeTypeOctahedron,
 }
 const LightingModelMap: { readonly [key: string]: LightingModelInt} =
 {

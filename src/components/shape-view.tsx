@@ -22,6 +22,8 @@ export default class ShapeView extends Component<Props>
                     <option value='box'>Box</option>
                     <option value='sphere'>Sphere</option>
                     <option value='hexPrism'>Hex Prism</option>
+                    <option value='torus'>Torus</option>
+                    <option value='octahedron'>Octahedron</option>
                 </select>
             </div>
             <div>

@@ -1,5 +1,5 @@
 import { Opaque } from "../common";
-import { rquat, rvec3, vec3, rvec4, vec4 } from "../gl-matrix-ts";
+import { rquat, rvec3, vec3, rvec4 } from "../gl-matrix-ts";
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
@@ -11,10 +11,12 @@ export const SdfOpCodeXor = -9e2 as SdfOpCodeInt;
 
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
 export type ShapeTypeInt = Opaque<number, 'shapeType'>;
-export const ShapeTypeNone = -5e3 as ShapeTypeInt;
-export const ShapeTypeBox = -6e3 as ShapeTypeInt;
-export const ShapeTypeSphere = -7e3 as ShapeTypeInt;
-export const ShapeTypeHexPrism = -8e3 as ShapeTypeInt;
+export const ShapeTypeNone = -5000 as ShapeTypeInt;
+export const ShapeTypeBox = -5010 as ShapeTypeInt;
+export const ShapeTypeSphere = -5020 as ShapeTypeInt;
+export const ShapeTypeHexPrism = -5030 as ShapeTypeInt;
+export const ShapeTypeTorus = -5040 as ShapeTypeInt;
+export const ShapeTypeOctahedron = -5050 as ShapeTypeInt;
 
 export type LightingModelInt = Opaque<number, 'lightingModel'>;
 export const LightingModelUnlit = 0 as LightingModelInt;

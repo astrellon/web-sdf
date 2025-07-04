@@ -28,6 +28,8 @@ uniform int uNumOperations;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
 
+uniform sampler2D uNoise;
+
 uniform bvec4 uFlags;
 
 #include <sdf-functions>
@@ -227,25 +229,25 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     {
         vec3 normal = estimateNormalPhong(worldPoint, currentDepth);
 
-    for (int i = 0; i < uNumLights; i++)
-    {
-        mat2x4 light = uLights[i];
-        vec3 lightPos = light[0].xyz;
-
-        vec2 shadow = vec2(1.0, 0.0);
-        if (uFlags.x)
+        for (int i = 0; i < uNumLights; i++)
         {
-            vec3 toLight = normalize(lightPos - worldPoint);
-            shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+            mat2x4 light = uLights[i];
+            vec3 lightPos = light[0].xyz;
 
-            if (i == 1)
+            vec2 shadow = vec2(1.0, 0.0);
+            if (uFlags.x)
             {
-                light0Rays = shadow.y;
+                vec3 toLight = normalize(lightPos - worldPoint);
+                shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+
+                if (i == 1)
+                {
+                    light0Rays = shadow.y;
+                }
             }
-        }
 
             vec3 lightContrib = phongContribForLight(currentDepth, diffuse, specular, shininess, worldPoint, cameraPoint, normal, lightPos, light[1].xyz);
-        colour += lightContrib * shadow.x;
+            colour += lightContrib * shadow.x;
         }
     }
 
@@ -302,25 +304,25 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
     {
         vec3 N = estimateNormalTetrahedron(worldPoint, currentDepth);
 
-    for (int i = 0; i < uNumLights; i++)
-    {
-        mat2x4 light = uLights[i];
-        vec3 lightPos = light[0].xyz;
-
-        vec2 shadow = vec2(1.0, 0.0);
-        if (uFlags.x)
+        for (int i = 0; i < uNumLights; i++)
         {
-            vec3 toLight = normalize(lightPos - worldPoint);
-            shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+            mat2x4 light = uLights[i];
+            vec3 lightPos = light[0].xyz;
 
-            if (i == 1)
+            vec2 shadow = vec2(1.0, 0.0);
+            if (uFlags.x)
             {
-                light0Rays = shadow.y;
+                vec3 toLight = normalize(lightPos - worldPoint);
+                shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+
+                if (i == 1)
+                {
+                    light0Rays = shadow.y;
+                }
             }
-        }
 
             vec3 lightContrib = lambertContribForLight(currentDepth, diffuse, worldPoint, cameraPoint, N, lightPos, light[1].xyz);
-        colour += lightContrib * shadow.x;
+            colour += lightContrib * shadow.x;
         }
     }
 
@@ -365,6 +367,88 @@ float getHighlightDist(vec3 rayOrigin, vec3 rayDirection, float near, float far)
     vec4 dist = rayMarch(rayOrigin, rayDirection, near, far, uHighlight.x, uHighlight.y);
     float r = dist.z / float(uMaxMarchingSteps);
     return smoothstep(0.75, 0.85, r);
+}
+
+float noise3D(vec3 p)
+{
+    p.z = fract(p.z)*256.0;
+    float iz = floor(p.z);
+    float fz = fract(p.z);
+    vec2 a_off = vec2(23.0, 29.0)*(iz)/256.0;
+    vec2 b_off = vec2(23.0, 29.0)*(iz+1.0)/256.0;
+    float a = texture(uNoise, p.xy + a_off, -999.0).r;
+    float b = texture(uNoise, p.xy + b_off, -999.0).r;
+    return mix(a, b, fz);
+}
+float perlinNoise3D(vec3 p)
+{
+    float x = 0.0;
+    for (float i = 0.0; i < 6.0; i += 1.0)
+        x += noise3D(p * pow(2.0, i)) * pow(0.5, i);
+    return x;
+}
+
+const float MARCH_SIZE = 0.08;
+vec2 cloudScene(vec3 p)
+{
+    float distance = sdfTorus(p, vec2(1.0, 0.25));
+    if (distance > 2.0)
+    {
+        return vec2(distance, 0.0);
+    }
+
+    float f = perlinNoise3D(p * 0.01) * 0.5;
+
+    return vec2(distance, -distance + f);
+}
+
+vec4 cloudRaymarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+{
+    float depth = 0.0;
+    vec3 p = rayOrigin + depth * rayDirection;
+
+    vec4 res = vec4(0.0);
+
+    for (int i = 0; i < uMaxMarchingSteps; i++)
+    {
+        if (depth > far)
+        {
+            break;
+        }
+
+        vec2 density = cloudScene(p);
+
+        // We only draw the density if it's greater than 0
+        if (density.x < 2.0)
+        {
+            depth += MARCH_SIZE;
+
+            if (density.y > 0.0)
+            {
+                vec4 color = vec4(mix(vec3(1.0,1.0,1.0), vec3(0.0, 0.0, 0.0), density.y), density.y );
+                color.rgb *= color.a;
+                res += color*(1.0-res.a);
+            }
+        }
+        else
+        {
+            depth += density.x;
+        }
+
+        p = rayOrigin + depth * rayDirection;
+    }
+
+    return res;
+}
+
+void mainCloud()
+{
+    vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
+    vec3 rayOrigin = uCameraPosition;
+
+    vec4 res = cloudRaymarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+
+    fragColour = vec4(res.rgb, 1.0);
 }
 
 void main()

@@ -1,7 +1,9 @@
 const int ShapeTypeNone = -5000;
-const int ShapeTypeBox = -6000;
-const int ShapeTypeSphere = -7000;
-const int ShapeTypeHexPrism = -8000;
+const int ShapeTypeBox = -5010;
+const int ShapeTypeSphere = -5020;
+const int ShapeTypeHexPrism = -5030;
+const int ShapeTypeTorus = -5040;
+const int ShapeTypeOctahedron = -5050;
 
 const int SdfOpCodeNone = -500;
 const int SdfOpCodeUnion = -600;
@@ -26,6 +28,18 @@ float sdfBox(vec3 point, vec3 size)
     vec3 d = abs(point) - size;
     return min(max(d.x, max(d.y, d.z)), 0.0)   // inside distance
         + length(max(d, 0.0));              // outside distance
+}
+
+float sdfTorus(vec3 point, vec2 params)
+{
+    vec2 q = vec2(length(point.xz) - params.x, point.y);
+    return length(q) - params.y;
+}
+
+float sdfOctahedron(vec3 point, float s)
+{
+    point = abs(point);
+    return (point.x + point.y + point.z - s) * 0.57735027;
 }
 
 vec2 opUnion(vec2 d1, vec2 d2)
@@ -65,6 +79,8 @@ float getDistToType(int type, vec3 point, vec3 params)
         case ShapeTypeBox: return sdfBox(point, params);
         case ShapeTypeSphere: return sdfSphere(point, params.x);
         case ShapeTypeHexPrism: return sdfHexPrism(point, params.xy);
+        case ShapeTypeTorus: return sdfTorus(point, params.xy);
+        case ShapeTypeOctahedron: return sdfOctahedron(point, params.x);
     }
 
     return 100.0;

@@ -7,7 +7,7 @@ import sdfFunctionsText from "../shaders/sdf-functions.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
-import { mat4Identity, quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
+import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
 import WebGLGizmos from "./webgl-gizmos";
 
 const positions = [
@@ -76,6 +76,8 @@ export default class WebGLSdfRenderer
     public readonly uMaxMarchingSteps: WebGLUniformLocation;
     public readonly uEpsilon: WebGLUniformLocation;
     public readonly uFlags: WebGLUniformLocation;
+    public readonly uNoise: WebGLUniformLocation;
+    public readonly noiseTexture: WebGLTexture;
     public readonly gizmos: WebGLGizmos;
 
     public cameraPosition: vec3 = vec3Zero();
@@ -115,6 +117,8 @@ export default class WebGLSdfRenderer
         uMaxMarchingSteps: WebGLUniformLocation,
         uEpsilon: WebGLUniformLocation,
         uFlags: WebGLUniformLocation,
+        uNoise: WebGLUniformLocation,
+        noiseTexture: WebGLTexture,
 
         gizmos: WebGLGizmos
     )
@@ -141,6 +145,8 @@ export default class WebGLSdfRenderer
         this.uMaxMarchingSteps = uMaxMarchingSteps;
         this.uEpsilon = uEpsilon;
         this.uFlags = uFlags;
+        this.uNoise = uNoise;
+        this.noiseTexture = noiseTexture;
 
         this.gizmos = gizmos;
     }
@@ -230,6 +236,8 @@ export default class WebGLSdfRenderer
         );
         this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
 
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.noiseTexture);
+
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
@@ -279,13 +287,74 @@ export default class WebGLSdfRenderer
         const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
         const uEpsilon = this.getUniform(gl, shader, 'uEpsilon');
         const uFlags = this.getUniform(gl, shader, 'uFlags');
+        const uNoise = this.getUniform(gl, shader, 'uNoise');
+
+        const noiseTexture = gl.createTexture();
+        const noiseCanvas = WebGLSdfRenderer.createNoiseCanvas();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseCanvas.canvas);
+        this.checkError(gl);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.uniform1i(uNoise, 0);
+        this.checkError(gl);
 
         return new WebGLSdfRenderer(gl, shader, positionBuffer,
             uShapes, uOperations, uNumOperations, uHighlight,
             uLights, uNumLights,
             uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,
-            uMaxMarchingSteps, uEpsilon, uFlags);
+            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture, null);
+    }
+
+    private static checkError(gl: WebGL2RenderingContext)
+    {
+        const error = gl.getError();
+        if (error == gl.NO_ERROR)
+        {
+            return;
+        }
+
+        console.error(`GL Error: ${WebGLSdfRenderer.getErrorMessage(error, gl)}`);
+    }
+
+    private static getErrorMessage(error: number, gl: WebGL2RenderingContext)
+    {
+        if (error === gl.INVALID_ENUM) return 'Invalid enum';
+        if (error === gl.INVALID_VALUE) return 'Invalid value';
+        if (error === gl.INVALID_OPERATION) return 'Invalid operation';
+        if (error === gl.INVALID_FRAMEBUFFER_OPERATION) return 'Invalid framebuffer operation';
+        if (error === gl.OUT_OF_MEMORY) return 'Out of memory';
+        if (error === gl.CONTEXT_LOST_WEBGL) return 'Context lost WebGL';
+        if (error === gl.NO_ERROR) return 'No error';
+        return `Unknown error ${error}`;
+    }
+
+    private static createNoiseCanvas()
+    {
+        const canvasEl = document.createElement('canvas');
+        canvasEl.width = 256;
+        canvasEl.height = 256;
+
+        const context = canvasEl.getContext('2d');
+        context.fillRect(0, 0, 255, 255);
+
+        const buff = new Uint8ClampedArray(256 * 4);
+
+        for (let y = 0; y < 256; y++)
+        {
+            for (let x = 0; x < 256 * 4; x++)
+            {
+                buff[x] = Math.floor(Math.random() * 256);
+            }
+
+            const imageData = new ImageData(buff, 256, 1);
+            context.putImageData(imageData, 0, y);
+        }
+
+        return context;
     }
 
     private static getAttribute(gl: WebGL2RenderingContext, shader: Shader, name: string)
@@ -303,7 +372,7 @@ export default class WebGLSdfRenderer
         const location = gl.getUniformLocation(shader.program, name);
         if (location == null)
         {
-            throw new Error(`Unable to find uniform ${name}`);
+            // throw new Error(`Unable to find uniform ${name}`);
         }
         return location;
     }
