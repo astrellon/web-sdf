@@ -1,5 +1,5 @@
 import { Opaque } from "../common";
-import { rquat, rvec3, vec3, rvec4, vec4 } from "../gl-matrix-ts";
+import { rquat, rvec3, vec3, rvec4 } from "../gl-matrix-ts";
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
@@ -11,31 +11,34 @@ export const SdfOpCodeXor = -9e2 as SdfOpCodeInt;
 
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
 export type ShapeTypeInt = Opaque<number, 'shapeType'>;
-export const ShapeTypeNone = -5e3 as ShapeTypeInt;
-export const ShapeTypeBox = -6e3 as ShapeTypeInt;
-export const ShapeTypeSphere = -7e3 as ShapeTypeInt;
-export const ShapeTypeHexPrism = -8e3 as ShapeTypeInt;
+export const ShapeTypeNone = -5000 as ShapeTypeInt;
+export const ShapeTypeBox = -5010 as ShapeTypeInt;
+export const ShapeTypeSphere = -5020 as ShapeTypeInt;
+export const ShapeTypeHexPrism = -5030 as ShapeTypeInt;
+export const ShapeTypeTorus = -5040 as ShapeTypeInt;
+export const ShapeTypeOctahedron = -5050 as ShapeTypeInt;
 
 export type LightingModelInt = Opaque<number, 'lightingModel'>;
 export const LightingModelUnlit = 0 as LightingModelInt;
 export const LightingModelLambert = 1 as LightingModelInt;
 export const LightingModelPhong = 2 as LightingModelInt;
 
-export type ShapeNodeId = Opaque<string, 'ShapeNodeId'>;
-
+export type SceneNodeId = Opaque<string, 'SceneNodeId'>;
 export interface SceneNode
 {
-    readonly id: ShapeNodeId;
+    readonly id: SceneNodeId;
     readonly name: string;
 
     readonly position: rvec3;
     readonly rotation: rquat;
 
-    readonly shape?: Shape;
-    readonly childOpCode?: SdfOpCode;
-    readonly parentId?: ShapeNodeId;
-    childrenIds?: ShapeNodeId[];
-    readonly light?: Light;
+    readonly shape: Shape;
+    readonly hasShape: boolean;
+    readonly childOpCode: SdfOpCode;
+    readonly childrenIds: ReadonlyArray<SceneNodeId>;
+    readonly parentId?: SceneNodeId;
+    readonly light: Light;
+    readonly hasLight: boolean;
 }
 
 export interface Light
@@ -58,10 +61,10 @@ export interface Shape
 
 export interface SceneNodes
 {
-    [shapeNodeId: string /* ShapeNodeId */]: SceneNode
+    readonly [shapeNodeId: string /* ShapeNodeId */]: SceneNode
 }
 
-export function makeShapeNodeId(): ShapeNodeId
+export function makeShapeNodeId(): SceneNodeId
 {
-    return crypto.randomUUID() as ShapeNodeId;
+    return crypto.randomUUID() as SceneNodeId;
 }

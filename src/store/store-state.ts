@@ -1,7 +1,7 @@
 import { Modifier } from "simple-data-store";
-import { defaultRenderOptions, defaultViewport } from "./store";
-import { SceneTree, sdfTreeUpdateNode, sdfTreeSetRootNodeId, sdfTreeSetNodes } from "../ray-marching/scene-tree";
-import { SceneNode, SceneNodes, ShapeNodeId } from "../ray-marching/scene-entities";
+import { defaultViewport } from "./store";
+import { SceneTree, sceneTreeUpdateNode, } from "../ray-marching/scene-tree";
+import { SceneNode, SceneNodeId } from "../ray-marching/scene-entities";
 
 export interface ViewportOptions
 {
@@ -18,11 +18,23 @@ export interface ViewportState
     readonly options: ViewportOptions;
 }
 
+export interface ReparentModalState
+{
+    readonly show: boolean;
+    readonly childNodeId?: SceneNodeId;
+}
+export interface RawSceneModalState
+{
+    readonly show: boolean;
+}
+
 export interface AppState
 {
     readonly viewports: ViewportState[];
-    readonly sdfTree: SceneTree;
-    readonly selectedNodeId?: ShapeNodeId;
+    readonly sceneTree: SceneTree;
+    readonly selectedNodeId?: SceneNodeId;
+    readonly reparentModal: ReparentModalState;
+    readonly rawSceneModal: RawSceneModalState;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -42,34 +54,55 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
+export function setReparentModal(options: ReparentModalState): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const reparentModal = { ...state.reparentModal, ...options };
+        return { reparentModal }
+    }
+}
+
+export function setRawSceneModal(options: RawSceneModalState): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const rawSceneModal = { ...state.rawSceneModal, ...options };
+        return { rawSceneModal }
+    }
+}
+
 export function updateNode(node: SceneNode): Modifier<AppState>
 {
     return (state: AppState) =>
     {
-        const sdfTree = sdfTreeUpdateNode(state.sdfTree, node);
-        return { sdfTree };
+        const sceneTree = sceneTreeUpdateNode(state.sceneTree, node);
+        return { sceneTree };
     }
 }
 
-export function setNodes(nodes: SceneNodes): Modifier<AppState>
+export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 {
-    return (state: AppState) =>
-    {
-        const sdfTree = sdfTreeSetNodes(state.sdfTree, nodes);
-        return { sdfTree }
-    }
+    return () => { return { sceneTree } }
 }
 
-export function setRootNode(rootNodeId?: ShapeNodeId): Modifier<AppState>
+export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>
 {
     return (state: AppState) =>
     {
-        const sdfTree = sdfTreeSetRootNodeId(state.sdfTree, rootNodeId);
-        return { sdfTree };
+        let selectedParentNodeId: SceneNodeId | undefined = undefined;
+        if (selectedNodeId)
+        {
+            for (const node of Object.values(state.sceneTree.nodes))
+            {
+                if (node.childrenIds.includes(selectedNodeId))
+                {
+                    selectedParentNodeId = node.id;
+                    break;
+                }
+            }
+        }
+
+        return { selectedNodeId, selectedParentNodeId }
     };
-}
-
-export function setSelectedNode(selectedNodeId?: ShapeNodeId): Modifier<AppState>
-{
-    return () => { return { selectedNodeId } };
 }

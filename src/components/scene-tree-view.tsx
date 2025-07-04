@@ -1,34 +1,33 @@
 import { h, Component } from 'preact';
-import { SceneConverter } from '../ray-marching/scene-converter';
 import SceneNodeView from './scene-node-view';
 import { store } from '../store/store';
 import { setSelectedNode, updateNode } from '../store/store-state';
 import SceneNodeTree from './scene-node-tree';
 import { SceneTree } from '../ray-marching/scene-tree';
-import { SceneNode, ShapeNodeId } from '../ray-marching/scene-entities';
-import "./scene-tree-view.scss";
+import { SceneNode, SceneNodeId } from '../ray-marching/scene-entities';
+import './scene-tree-view.scss';
 
 interface Props
 {
-    readonly sdfTree: SceneTree;
-    readonly selectedNodeId?: ShapeNodeId;
-    readonly sdfScene: SceneConverter;
+    readonly sceneTree: SceneTree;
+    readonly selectedNodeId?: SceneNodeId;
 }
 
-export default class SceneGraphView extends Component<Props>
+export default class SceneTreeView extends Component<Props>
 {
     public render()
     {
-        const { sdfTree, selectedNodeId } = this.props;
+        const { sceneTree, selectedNodeId } = this.props;
 
-        return <div class="scene-tree">
-            <div class="scene-tree__contents outer-panel">
-                <div class="inner-panel">
-                    <SceneNodeTree sdfTree={sdfTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
+        const selectedNode = sceneTree.nodes[selectedNodeId];
+
+        return <div class='scene-tree'>
+            <div class='scene-tree__contents outer-panel'>
+                <div class='inner-panel'>
+                    <SceneNodeTree sceneTree={sceneTree} selectedNodeId={selectedNodeId} onItemClicked={this.onNodeClicked} />
                 </div>
-                <div class="inner-panel">
-                    <SceneNodeView node={sdfTree.nodes[selectedNodeId]} onChange={this.onChangeSelectedNode} />
-                </div>
+                <div class='inner-panel scene-tree__nodes'>
+                    <SceneNodeView sceneTree={sceneTree} node={selectedNode} onChange={this.onChangeSelectedNode} /> </div>
             </div>
         </div>
     }

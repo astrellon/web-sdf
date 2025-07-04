@@ -13,12 +13,6 @@ export default class ShapeView extends Component<Props>
     public render()
     {
         const shape = this.props.shape;
-
-        if (shape === undefined)
-        {
-            return <div>Empty shape</div>;
-        }
-
         const isPhong = shape.lightingModel === 'phong';
 
         return <div>
@@ -28,6 +22,8 @@ export default class ShapeView extends Component<Props>
                     <option value='box'>Box</option>
                     <option value='sphere'>Sphere</option>
                     <option value='hexPrism'>Hex Prism</option>
+                    <option value='torus'>Torus</option>
+                    <option value='octahedron'>Octahedron</option>
                 </select>
             </div>
             <div>
@@ -47,7 +43,7 @@ export default class ShapeView extends Component<Props>
                 <strong>Specular Colour</strong> <VectorView disabled={!isPhong} vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
             </div>
             <div>
-                <strong>Shininess</strong> <input disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
+                <strong>Shininess</strong> <input class='input' disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
             </div>
         </div>
     }

@@ -29,15 +29,15 @@ export default class VectorView extends Component<Props>
         const isV3 = isVec3(v);
         const isV4 = isVec4(v);
 
-        return <div class="vector">
-            <input disabled={disabled} type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
-            <input disabled={disabled} type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
+        return <div class='vector control-group'>
+            <input class='input' disabled={disabled} type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
 
             { isV3 &&
-            <input disabled={disabled} type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
             }
             { isV4 &&
-            <input disabled={disabled} type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
             }
         </div>;
     }

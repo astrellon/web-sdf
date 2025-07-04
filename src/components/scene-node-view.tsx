@@ -1,13 +1,17 @@
-import { h, Component } from 'preact';
+import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
 import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import { quat, vec3 } from '../gl-matrix-ts';
 import LightView from './light-view';
-import "./scene-node-view.scss";
+import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
+import { setReparentModal, setSceneTree } from '../store/store-state';
+import { store } from '../store/store';
+import './scene-node-view.scss';
 
 interface Props
 {
+    readonly sceneTree: SceneTree;
     readonly node: SceneNode;
     readonly onChange: (newShapeNode: SceneNode, oldShapeNode: SceneNode) => void;
 }
@@ -29,7 +33,7 @@ export default class SceneNodeView extends Component<Props, State>
 
     public render()
     {
-        const { node } = this.props;
+        const { node, sceneTree } = this.props;
         if (node == undefined)
         {
             return <div class="scene-node-view">
@@ -37,11 +41,12 @@ export default class SceneNodeView extends Component<Props, State>
             </div>
         }
 
+        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
         const selectedOpCode = node.childOpCode ?? 'none';
 
         return <div class="scene-node-view">
             <div>
-                <strong>Name</strong> <input type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
+                <strong>Name</strong> <input class='input' type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
             </div>
             <div>
                 <strong>Position</strong> <VectorView vector={node.position} onChange={this.onChangePosition} />
@@ -58,10 +63,22 @@ export default class SceneNodeView extends Component<Props, State>
                 </select>
             </div>
             <div>
-                <strong>Shape</strong> <ShapeView shape={node.shape} onChange={this.onChangeShape} />
+                <strong>Shape</strong> <button onClick={this.toggleShape}>{node.hasShape ? 'Hide' : 'Show'}</button>
+                { node.hasShape && <ShapeView shape={node.shape} onChange={this.onChangeShape} /> }
             </div>
             <div>
-                <strong>Light</strong> <LightView light={node.light} onChange={this.onChangeLight} />
+                <strong>Light</strong> <button onClick={this.toggleLight}>{node.hasLight ? 'Hide' : 'Show'}</button>
+                { node.hasLight && <LightView light={node.light} onChange={this.onChangeLight} /> }
+            </div>
+
+            <div><strong>Children</strong></div>
+            <div class='control-group'>
+                <button onClick={this.addChild}>Add</button>
+                { parent != null &&
+                <Fragment>
+                    <button onClick={this.deleteSelf}>Delete</button>
+                    <button onClick={this.reparent}>Re-parent</button>
+                </Fragment>}
             </div>
             {/* <div>
                 <strong>Children</strong> {
@@ -69,6 +86,48 @@ export default class SceneNodeView extends Component<Props, State>
                 }
             </div> */}
         </div>
+    }
+
+    private addChild = () =>
+    {
+        const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, createSceneNode('New Child', {}));
+        store.execute(setSceneTree(newTree));
+    }
+
+    private deleteSelf = () =>
+    {
+        const newTree = sceneTreeDeleteChild(this.props.sceneTree, this.props.node);
+        store.execute(setSceneTree(newTree));
+    }
+
+    private reparent = () =>
+    {
+        const { node, sceneTree } = this.props;
+        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
+        if (parent == null)
+        {
+            console.warn('Cannot reparent root node');
+            return;
+        }
+
+        store.execute(
+            setReparentModal({
+                show: true,
+                childNodeId: this.props.node.id
+            })
+        );
+    }
+
+    private toggleShape = () =>
+    {
+        const currentHasShape = this.props.node.hasShape;
+        this.updateField(!currentHasShape, 'hasShape');
+    }
+
+    private toggleLight = () =>
+    {
+        const currentHasLight = this.props.node.hasLight;
+        this.updateField(!currentHasLight, 'hasLight');
     }
 
     private onChangeName = (e: Event) =>

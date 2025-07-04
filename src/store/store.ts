@@ -3,10 +3,10 @@ import { AppState, ViewportOptions, ViewportState } from "./store-state";
 
 export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
-    maxMarchingStep: 255,
+    maxMarchingStep: 512,
     enableShadows: true,
     enableShowMarching: false,
-    epsilon: 0.001,
+    epsilon: 0.0001,
     pixelated: false
 }
 export const defaultViewport: ViewportState = {
@@ -14,7 +14,13 @@ export const defaultViewport: ViewportState = {
 }
 export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
-    sdfTree: {
+    sceneTree: {
         nodes: {}
+    },
+    reparentModal: {
+        show: false
+    },
+    rawSceneModal: {
+        show: false,
     }
 });

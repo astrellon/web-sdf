@@ -1,5 +1,6 @@
 .scene-node-tree-item {
     padding: 0.5rem;
+    cursor: pointer;
 
     &:first-child {
         border-radius: 0.75rem 0.75rem 0 0;
@@ -15,6 +16,10 @@
         &:hover {
             background: rgba(0.8, 0.9, 1.0, 0.3);
         }
+    }
+    &.is-disabled {
+        cursor: unset;
+        color: darkred;
     }
     &:hover {
         background: rgba(0.8, 0.9, 1.0, 0.1);
