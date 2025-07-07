@@ -45,7 +45,10 @@ function makeNodeMap(...nodes: SceneNode[]): SceneNodes
 
 function loadDefaultSdfScene()
 {
-    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'subtraction');
+    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'union');
+    const mainScene = createNewShapeNode('Main', null, undefined, undefined, 'subtraction');
+    sceneTreeAddChildMutable(rootNode, mainScene);
+
     const hexPrism = createNewShapeNode('Hex Prism', {
         type: 'hexPrism',
         shapeParams: {x: 0.75, y: 2, z: 0},
@@ -54,8 +57,8 @@ function loadDefaultSdfScene()
     });
     const boxAndSphere = createNewShapeNode('Box & Sphere', undefined, undefined, undefined, 'union');
 
-    sceneTreeAddChildMutable(rootNode, hexPrism);
-    sceneTreeAddChildMutable(rootNode, boxAndSphere);
+    sceneTreeAddChildMutable(mainScene, hexPrism);
+    sceneTreeAddChildMutable(mainScene, boxAndSphere);
 
     const box = createNewShapeNode('Box', {
         type: "box",
@@ -82,7 +85,7 @@ function loadDefaultSdfScene()
     sceneTreeAddChildMutable(rootNode, redLight);
     sceneTreeAddChildMutable(rootNode, greenLight);
 
-    const nodes = makeNodeMap(rootNode, hexPrism, boxAndSphere, box, sphere, redLight, greenLight);
+    const nodes = makeNodeMap(rootNode, mainScene, hexPrism, boxAndSphere, box, sphere, redLight, greenLight);
 
     const tree: SceneTree = {
         nodes, rootNodeId: rootNode.id

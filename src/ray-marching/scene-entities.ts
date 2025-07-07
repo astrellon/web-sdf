@@ -56,6 +56,7 @@ export interface Shape
     readonly diffuseColour: vec3;
     readonly specularColour: vec3;
     readonly shininess: number;
+    readonly cloud: boolean;
     readonly lightingModel: LightingModelType;
 }
 

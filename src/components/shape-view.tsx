@@ -37,6 +37,9 @@ export default class ShapeView extends Component<Props>
                 </select>
             </div>
             <div>
+                <strong>Cloud</strong> <input type='checkbox' checked={shape.cloud} onChange={this.onChangeCloud} />
+            </div>
+            <div>
                 <strong>Diffuse Colour</strong> <VectorView vector={shape.diffuseColour} onChange={this.onChangeDiffuseColour} />
             </div>
             <div>
@@ -46,6 +49,12 @@ export default class ShapeView extends Component<Props>
                 <strong>Shininess</strong> <input class='input' disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
             </div>
         </div>
+    }
+
+    private onChangeCloud = (e: Event) =>
+    {
+        const value = (e.target as HTMLInputElement).checked;
+        this.updateField(value, 'cloud');
     }
 
     private onChangeType = (e: Event) =>

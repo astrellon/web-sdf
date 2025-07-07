@@ -125,6 +125,7 @@ export function createNewShape(shape: Partial<Shape>): Shape
         specularColour: { x: 1.0, y: 0.8, z: 0.9 },
         lightingModel: 'lambert',
         shininess: 10,
+        cloud: false,
 
         ...shape
     };

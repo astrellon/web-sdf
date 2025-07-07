@@ -89,6 +89,8 @@ export class SceneConverter
     private highlight: number[] = [];
     private operations: ShapeOperation[] = [];
     private numberOperations: number[] = [];
+    private cloudOperations: ShapeOperation[] = [];
+    private numberCloudOperations: number[] = [];
 
     private highlightedId: SceneNodeId | undefined = undefined;
 
@@ -155,6 +157,22 @@ export class SceneConverter
         return this.numberOperations;
     }
 
+    public setCloudOperations(operations: ShapeOperation[])
+    {
+        this.cloudOperations = operations;
+        this.updateCloudOperationNumbers();
+    }
+
+    public getCloudOperations()
+    {
+        return this.cloudOperations;
+    }
+
+    public getCloudOperationNumbers()
+    {
+        return this.numberCloudOperations;
+    }
+
     public setHighlight(nodeId: SceneNodeId | undefined)
     {
         this.highlightedId = nodeId;
@@ -216,7 +234,7 @@ export class SceneConverter
             return;
         }
 
-        const { operations, shapes, lights, materials, highlight } = SceneConverter.createShapesFromNode(sceneTree, this.highlightedId);
+        const { operations, cloudOperations, shapes, lights, materials, highlight } = SceneConverter.createShapesFromNode(sceneTree, this.highlightedId);
         if (!equal(this.highlight, highlight))
         {
             this.highlight = highlight;
@@ -229,6 +247,13 @@ export class SceneConverter
             console.log('Operations', this.operations);
 
             this.updateOperationNumbers();
+        }
+        if (!equal(this.cloudOperations, cloudOperations))
+        {
+            this.cloudOperations = cloudOperations;
+            console.log('Cloud Operations', this.cloudOperations);
+
+            this.updateCloudOperationNumbers();
         }
 
         if (!equal(this.shapes, shapes))
@@ -274,11 +299,12 @@ export class SceneConverter
         }
 
         const opsStack: ShapeOperation[] = [];
+        const cloudOpsStack: ShapeOperation[] = [];
         const shapeStack: ShaderShape[] = [];
         const lights: ShaderLight[] = [];
         const materials: ShaderMaterial[] = [];
         const highlight: number[] = [];
-        this.pushToStack(opsStack, shapeStack, lights, materials, highlight, highlightedId, rootNode, sceneTree.nodes);
+        this.pushToStack(opsStack, cloudOpsStack, false, shapeStack, lights, materials, highlight, highlightedId, rootNode, sceneTree.nodes);
 
         opsStack.reverse();
         if (highlight.length > 0)
@@ -291,11 +317,12 @@ export class SceneConverter
         return {
             operations: opsStack,
             shapes: shapeStack,
+            cloudOperations: cloudOpsStack,
             lights, materials, highlight
         };
     }
 
-    private static pushToStack(opsStack: ShapeOperation[], shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], highlight: number[], highlightedId: SceneNodeId | undefined, node: SceneNode, nodes: SceneNodes)
+    private static pushToStack(opsStack: ShapeOperation[], cloudOpsStack: ShapeOperation[], isCurrentlyCloud: boolean, shapeStack: ShaderShape[], lights: ShaderLight[], materials: ShaderMaterial[], highlight: number[], highlightedId: SceneNodeId | undefined, node: SceneNode, nodes: SceneNodes)
     {
         if (node.childOpCode !== 'none')
         {
@@ -311,7 +338,14 @@ export class SceneConverter
                     }
                     else
                     {
-                        opsStack.push(node.childOpCode);
+                        if (isCurrentlyCloud)
+                        {
+                            cloudOpsStack.push(node.childOpCode);
+                        }
+                        else
+                        {
+                            opsStack.push(node.childOpCode);
+                        }
                     }
                 }
             }
@@ -335,7 +369,16 @@ export class SceneConverter
                 highlight.push(opsStack.length, opsStack.length + 1);
             }
 
-            opsStack.push(index);
+            isCurrentlyCloud = node.shape.cloud;
+
+            if (isCurrentlyCloud)
+            {
+                cloudOpsStack.push(index);
+            }
+            else
+            {
+                opsStack.push(index);
+            }
         }
 
         if (node.hasLight)
@@ -349,7 +392,7 @@ export class SceneConverter
 
         for (const childId of node.childrenIds)
         {
-            this.pushToStack(opsStack, shapeStack, lights, materials, highlight, highlightedId, nodes[childId], nodes);
+            this.pushToStack(opsStack, cloudOpsStack, isCurrentlyCloud, shapeStack, lights, materials, highlight, highlightedId, nodes[childId], nodes);
         }
     }
 
@@ -439,6 +482,17 @@ export class SceneConverter
     private updateOperationNumbers()
     {
         this.numberOperations = this.operations.map(i =>
+        {
+            if (typeof(i) === 'string')
+            {
+                return toOpCodeInt(i);
+            }
+            return i;
+        });
+    }
+    private updateCloudOperationNumbers()
+    {
+        this.numberCloudOperations = this.cloudOperations.map(i =>
         {
             if (typeof(i) === 'string')
             {

@@ -23,8 +23,10 @@ uniform mat2x4 uMaterials[32];
 
 uniform mat4 uShapes[128];
 uniform int uOperations[128];
+uniform int uCloudOperations[128];
 uniform ivec2 uHighlight;
 uniform int uNumOperations;
+uniform int uNumCloudOperations;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
 
@@ -32,7 +34,94 @@ uniform sampler2D uNoise;
 
 uniform bvec4 uFlags;
 
-#include <sdf-functions>
+// #include <sdf-functions>
+const int ShapeTypeNone = -5000;
+const int ShapeTypeBox = -5010;
+const int ShapeTypeSphere = -5020;
+const int ShapeTypeHexPrism = -5030;
+const int ShapeTypeTorus = -5040;
+const int ShapeTypeOctahedron = -5050;
+
+const int SdfOpCodeNone = -500;
+const int SdfOpCodeUnion = -600;
+const int SdfOpCodeIntersection = -700;
+const int SdfOpCodeSubtraction = -800;
+
+float sdfSphere(vec3 point, float radius)
+{
+    return length(point) - radius;
+}
+
+float sdfHexPrism(vec3 point, vec2 params)
+{
+    vec3 absPoint = abs(point);
+    float d1 = absPoint.z - params.y;
+    float d2 = max((absPoint.x * 0.866025 + absPoint.y * 0.5), absPoint.y) - params.x;
+    return length(max(vec2(d1, d2), 0.0)) + min(max(d1, d2), 0.0);
+}
+
+float sdfBox(vec3 point, vec3 size)
+{
+    vec3 d = abs(point) - size;
+    return min(max(d.x, max(d.y, d.z)), 0.0)   // inside distance
+        + length(max(d, 0.0));              // outside distance
+}
+
+float sdfTorus(vec3 point, vec2 params)
+{
+    vec2 q = vec2(length(point.xz) - params.x, point.y);
+    return length(q) - params.y;
+}
+
+float sdfOctahedron(vec3 point, float s)
+{
+    point = abs(point);
+    return (point.x + point.y + point.z - s) * 0.57735027;
+}
+
+vec2 opUnion(vec2 d1, vec2 d2)
+{
+    return d1.x < d2.x ? d1 : d2;
+    // return min(d1, d2);
+}
+
+vec2 opSubtraction(vec2 d1, vec2 d2)
+{
+    return -d1.x > d2.x ? vec2(-d1.x, d1.y) : d2;
+    // return max(-d1, d2);
+}
+
+vec2 opIntersection(vec2 d1, vec2 d2)
+{
+    return d1.x > d2.x ? d1 : d2;
+    // return max(d1, d2);
+}
+
+vec2 applyOpCode(int opCode, vec2 dist1, vec2 dist2)
+{
+    switch (opCode)
+    {
+        case SdfOpCodeUnion: return opUnion(dist1, dist2);
+        case SdfOpCodeIntersection: return opIntersection(dist1, dist2);
+        case SdfOpCodeSubtraction: return opSubtraction(dist1, dist2);
+    }
+
+    return vec2(100.0, -1);
+}
+
+float getDistToType(int type, vec3 point, vec3 params)
+{
+    switch (type)
+    {
+        case ShapeTypeBox: return sdfBox(point, params);
+        case ShapeTypeSphere: return sdfSphere(point, params.x);
+        case ShapeTypeHexPrism: return sdfHexPrism(point, params.xy);
+        case ShapeTypeTorus: return sdfTorus(point, params.xy);
+        case ShapeTypeOctahedron: return sdfOctahedron(point, params.x);
+    }
+
+    return 100.0;
+}
 
 vec3 quatMul( vec4 q, vec3 v )
 {
@@ -69,14 +158,19 @@ vec2 getDistanceToShape(int index, vec3 samplePoint)
     return vec2(dist, material);
 }
 
-vec2 sceneSDF(vec3 point, int stackStart, int stackEnd)
+vec2 sceneSDF(vec3 point, int stackStart, int stackEnd, int operations[128])
 {
+    if (stackEnd == 0)
+    {
+        return vec2(100, 0);
+    }
+
     int depthStackIndex = -1;
     vec2 depthStack[32];
 
     for (int operationsIndex = stackStart; operationsIndex < stackEnd; operationsIndex++)
     {
-        int operationOrIndex = uOperations[operationsIndex];
+        int operationOrIndex = operations[operationsIndex];
 
         if (operationOrIndex <= SdfOpCodeNone)
         {
@@ -97,7 +191,12 @@ vec2 sceneSDF(vec3 point, int stackStart, int stackEnd)
 
 vec2 sceneSDF(vec3 point)
 {
-    return sceneSDF(point, 0, uNumOperations);
+    return sceneSDF(point, 0, uNumOperations, uOperations);
+}
+
+vec2 cloudSDF(vec3 point)
+{
+    return sceneSDF(point, 0, uNumCloudOperations, uCloudOperations);
 }
 
 vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
@@ -335,7 +434,7 @@ vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far, int stac
     float depth = near;
     for (int i = 0; i < uMaxMarchingSteps; i++)
     {
-        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection, stackStart, stackEnd);
+        vec2 dist = sceneSDF(rayOrigin + depth * rayDirection, stackStart, stackEnd, uOperations);
         if (dist.x < uEpsilon)
         {
             return vec4(depth, dist.x, float(i), dist.y);
@@ -359,14 +458,14 @@ vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 
 float getHighlightDist(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
-    if (uHighlight.x < 0)
-    {
+    // if (uHighlight < 0)
+    // {
         return 0.0;
-    }
+    // }
 
-    vec4 dist = rayMarch(rayOrigin, rayDirection, near, far, uHighlight.x, uHighlight.y);
-    float r = dist.z / (float(uMaxMarchingSteps) * 0.15);
-    return smoothstep(0.75, 0.85, r);
+    // vec4 dist = rayMarch(rayOrigin, rayDirection, near, far, uHighlight, uHighlight + 1);
+    // float r = dist.z / (float(uMaxMarchingSteps) * 0.15);
+    // return smoothstep(0.75, 0.85, r);
 }
 
 float noise3D(vec3 p)
@@ -388,10 +487,11 @@ float perlinNoise3D(vec3 p)
     return x;
 }
 
-const float MARCH_SIZE = 0.08;
+const float MARCH_SIZE = 0.05;
 vec2 cloudScene(vec3 p)
 {
-    float distance = sdfTorus(p, vec2(1.0, 0.25));
+    // float distance = sdfTorus(p, vec2(1.0, 0.25));
+    float distance = cloudSDF(p).x;
     if (distance > 2.0)
     {
         return vec2(distance, 0.0);
@@ -405,6 +505,7 @@ vec2 cloudScene(vec3 p)
 vec4 cloudRaymarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 {
     float depth = 0.0;
+    float noise = texture(uNoise, oPosition).r * 0.05;
     vec3 p = rayOrigin + depth * rayDirection;
 
     vec4 res = vec4(0.0);
@@ -421,11 +522,24 @@ vec4 cloudRaymarch(vec3 rayOrigin, vec3 rayDirection, float near, float far)
         // We only draw the density if it's greater than 0
         if (density.x < 2.0)
         {
-            depth += MARCH_SIZE;
+            depth += MARCH_SIZE + noise;
 
             if (density.y > 0.0)
             {
                 vec4 color = vec4(mix(vec3(1.0,1.0,1.0), vec3(0.0, 0.0, 0.0), density.y), density.y );
+                vec3 totalLightColour = ambientLight;
+
+                for (int i = 0; i < uNumLights; i++)
+                {
+                    mat2x4 light = uLights[i];
+                    vec3 lightPos = light[0].xyz;
+                    vec3 lightColour = light[1].xyz;
+
+                    vec3 toLight = normalize(p - lightPos);
+                    float diffuse = clamp((density.y - cloudScene(p + 0.3 * toLight).y) / 0.3, 0.0, 1.0 );
+                    totalLightColour += lightColour * diffuse;
+                }
+                color.rgb *= totalLightColour;
                 color.rgb *= color.a;
                 res += color*(1.0-res.a);
             }
@@ -457,6 +571,7 @@ void main()
     vec3 rayOrigin = uCameraPosition;
 
     vec4 dist = rayMarch(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
+    vec4 cloudColour = cloudRaymarch(rayOrigin, rayDir, MIN_DIST, dist.x);
     vec4 litColour;
 
     if (dist.x > MAX_DIST - uEpsilon)
@@ -470,6 +585,7 @@ void main()
 
         float highlightDist = getHighlightDist(rayOrigin, rayDir, MIN_DIST, MAX_DIST);
         fragColour = vec4(mix(vec3(0.0), HIGHLIGHT_COLOUR, highlightDist), 0.0);
+        fragColour.xyz += cloudColour.xyz * cloudColour.a;
     }
     else
     {
@@ -513,6 +629,8 @@ void main()
         {
             fragColour = vec4(litColour.xyz, 1.0);
         }
+
+        fragColour += cloudColour;
     }
 
     if (uFlags.y)

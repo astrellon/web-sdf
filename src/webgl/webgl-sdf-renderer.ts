@@ -63,6 +63,9 @@ export default class WebGLSdfRenderer
     public readonly uNumOperations: WebGLUniformLocation;
     public readonly uHighlight: WebGLUniformLocation;
 
+    public readonly uCloudOperations: WebGLUniformLocation;
+    public readonly uNumCloudOperations: WebGLUniformLocation;
+
     public readonly uMaterials: WebGLUniformLocation;
 
     public readonly uLights: WebGLUniformLocation;
@@ -98,6 +101,7 @@ export default class WebGLSdfRenderer
 
     private prevShapes: any;
     private prevOperations: any;
+    private prevCloudOperations: any;
     private prevHighlights: any;
     private prevMaterials: any;
     private prevLights: any;
@@ -109,6 +113,8 @@ export default class WebGLSdfRenderer
         uOperations: WebGLUniformLocation,
         uNumOperations: WebGLUniformLocation,
         uHighlight: WebGLUniformLocation,
+        uCloudOperations: WebGLUniformLocation,
+        uNumCloudOperations: WebGLUniformLocation,
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
@@ -133,6 +139,9 @@ export default class WebGLSdfRenderer
         this.uOperations = uOperations;
         this.uNumOperations = uNumOperations;
         this.uHighlight = uHighlight;
+
+        this.uCloudOperations = uCloudOperations;
+        this.uNumCloudOperations = uNumCloudOperations;
 
         this.uMaterials = uMaterials;
 
@@ -203,11 +212,19 @@ export default class WebGLSdfRenderer
 
         if (this.prevOperations !== scene.getOperations())
         {
-            console.info('Rendering new operations');
             const ops = scene.getOperationNumbers();
             this.gl.uniform1i(this.uNumOperations, ops.length);
             this.gl.uniform1iv(this.uOperations, ops);
             this.prevOperations = scene.getOperations();
+            console.info('Rendering new operations', this.prevOperations);
+        }
+        if (this.prevCloudOperations !== scene.getCloudOperations())
+        {
+            const ops = scene.getCloudOperationNumbers();
+            this.gl.uniform1i(this.uNumCloudOperations, ops.length);
+            this.gl.uniform1iv(this.uCloudOperations, ops);
+            this.prevCloudOperations = scene.getCloudOperations();
+            console.info('Rendering new cloud operations', this.prevCloudOperations);
         }
 
         if (this.prevHighlights !== scene.getHighlights())
@@ -221,9 +238,9 @@ export default class WebGLSdfRenderer
 
         if (this.prevShapes !== scene.getShapes())
         {
-            console.info('Rendering new shapes');
             this.gl.uniformMatrix4fv(this.uShapes, false, scene.getShapeDataArray());
             this.prevShapes = scene.getShapes();
+            console.info('Rendering new shapes', this.prevShapes);
         }
 
         if (this.prevMaterials !== scene.getMaterials())
@@ -286,6 +303,8 @@ export default class WebGLSdfRenderer
         const uShapes = this.getUniform(gl, shader, 'uShapes');
         const uOperations = this.getUniform(gl, shader, 'uOperations');
         const uNumOperations = this.getUniform(gl, shader, 'uNumOperations');
+        const uCloudOperations = this.getUniform(gl, shader, 'uCloudOperations');
+        const uNumCloudOperations = this.getUniform(gl, shader, 'uNumCloudOperations');
         const uHighlight = this.getUniform(gl, shader, 'uHighlight');
 
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
@@ -312,6 +331,7 @@ export default class WebGLSdfRenderer
 
         return new WebGLSdfRenderer(gl, shader, positionBuffer,
             uShapes, uOperations, uNumOperations, uHighlight,
+            uCloudOperations, uNumCloudOperations,
             uLights, uNumLights,
             uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,
