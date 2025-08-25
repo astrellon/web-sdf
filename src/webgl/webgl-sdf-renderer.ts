@@ -148,8 +148,7 @@ export default class WebGLSdfRenderer
 
         vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
         mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
-        // mat4.getTranslation()
-        // mat4.lookAt()
+        mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
     }
 
     public resizeCanvas = (width: number, height: number) =>
