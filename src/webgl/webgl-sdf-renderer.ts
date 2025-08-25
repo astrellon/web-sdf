@@ -7,8 +7,7 @@ import sdfFunctionsText from "../shaders/sdf-functions.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
-import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
-import WebGLGizmos from "./webgl-gizmos";
+import { mat3, mat4, quat, vec3 } from "gl-matrix";
 
 const positions = [
     -1, -1,
@@ -20,37 +19,7 @@ const positions = [
     -1, 1
 ];
 
-const tempAxisQuat = quatIdentity();
-function mat3ArraySetFromQuat(m: Float32Array, q: rquat)
-{
-    const x2 = q.x + q.x;
-    const y2 = q.y + q.y;
-    const z2 = q.z + q.z;
-
-    const xx = q.x * x2;
-    const yx = q.y * x2;
-    const yy = q.y * y2;
-    const zx = q.z * x2;
-    const zy = q.z * y2;
-    const zz = q.z * z2;
-    const wx = q.w * x2;
-    const wy = q.w * y2;
-    const wz = q.w * z2;
-
-    m[0] = 1 - yy - zz;
-    m[1] = yx - wz;
-    m[2] = zx + wy;
-
-    m[3] = yx + wz;
-    m[4] = 1 - xx - zz;
-    m[5] = zy - wx;
-
-    m[6] = zx - wy;
-    m[7] = zy + wx;
-    m[8] = 1 - xx - yy;
-
-    return m;
-}
+const tempAxisQuat = quat.create();
 
 export default class WebGLSdfRenderer
 {
@@ -81,10 +50,9 @@ export default class WebGLSdfRenderer
     public readonly uFlags: WebGLUniformLocation;
     public readonly uNoise: WebGLUniformLocation;
     public readonly noiseTexture: WebGLTexture;
-    public readonly gizmos: WebGLGizmos;
 
-    public cameraPosition: vec3 = vec3Zero();
-    public cameraTarget: vec3 = vec3Zero();
+    public cameraPosition: vec3 = vec3.create();
+    public cameraTarget: vec3 = vec3.create();
     public cameraRotationX = 0;
     public cameraRotationY = 0;
     public cameraDistance = 10;
@@ -97,7 +65,7 @@ export default class WebGLSdfRenderer
 
     public canvasScale = 1;
 
-    private readonly cameraMatrixForSdfArray = new Float32Array(9);
+    private readonly cameraMatrixForSdfArray = mat3.create();
 
     private prevShapes: any;
     private prevOperations: any;
@@ -126,8 +94,6 @@ export default class WebGLSdfRenderer
         uFlags: WebGLUniformLocation,
         uNoise: WebGLUniformLocation,
         noiseTexture: WebGLTexture,
-
-        gizmos: WebGLGizmos
     )
     {
         this.gl = gl;
@@ -157,8 +123,6 @@ export default class WebGLSdfRenderer
         this.uFlags = uFlags;
         this.uNoise = uNoise;
         this.noiseTexture = noiseTexture;
-
-        this.gizmos = gizmos;
     }
 
     public setupCanvas()
@@ -178,11 +142,14 @@ export default class WebGLSdfRenderer
 
     public updateCamera()
     {
-        quatFromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
-        const forward = vec3TransformQuat(vec3Zero(), {x: 0, y: 0, z: 1}, tempAxisQuat);
+        quat.fromEuler(tempAxisQuat, this.cameraRotationX,-this.cameraRotationY, 0);
+        const forward = vec3.create();
+        vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
 
-        vec3ScaleAndAddBy(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
-        mat3ArraySetFromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
+        vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
+        mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
+        // mat4.getTranslation()
+        // mat4.lookAt()
     }
 
     public resizeCanvas = (width: number, height: number) =>
@@ -256,9 +223,9 @@ export default class WebGLSdfRenderer
 
         this.gl.uniform3f(
             this.uCameraPosition,
-            this.cameraPosition.x,
-            this.cameraPosition.y,
-            this.cameraPosition.z
+            this.cameraPosition[0],
+            this.cameraPosition[1],
+            this.cameraPosition[2]
         );
         this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
 
@@ -335,7 +302,7 @@ export default class WebGLSdfRenderer
             uLights, uNumLights,
             uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,
-            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture, null);
+            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture);
     }
 
     private static checkError(gl: WebGL2RenderingContext)

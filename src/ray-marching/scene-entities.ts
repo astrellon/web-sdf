@@ -1,5 +1,6 @@
+import { vec3 } from "gl-matrix";
 import { Opaque } from "../common";
-import { rquat, rvec3, vec3, rvec4 } from "../gl-matrix-ts";
+import { rquat, rvec3, rvec4 } from "../math";
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
 export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
@@ -17,6 +18,8 @@ export const ShapeTypeSphere = -5020 as ShapeTypeInt;
 export const ShapeTypeHexPrism = -5030 as ShapeTypeInt;
 export const ShapeTypeTorus = -5040 as ShapeTypeInt;
 export const ShapeTypeOctahedron = -5050 as ShapeTypeInt;
+export const ShapeTypeCylinder = -5060 as ShapeTypeInt;
+export const ShapeTypeIcosahedron = -5070 as ShapeTypeInt;
 
 export type LightingModelInt = Opaque<number, 'lightingModel'>;
 export const LightingModelUnlit = 0 as LightingModelInt;

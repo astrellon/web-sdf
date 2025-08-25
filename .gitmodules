@@ -1,3 +1,0 @@
-[submodule "src/gl-matrix-ts"]
-	path = src/gl-matrix-ts
-	url = git@github.com:astrellon/gl-matrix-ts.git

@@ -2,12 +2,12 @@ import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
 import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
-import { quat, vec3 } from '../gl-matrix-ts';
 import LightView from './light-view';
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
 import { setReparentModal, setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
 import './scene-node-view.scss';
+import { quat, vec3 } from 'gl-matrix';
 
 interface Props
 {

@@ -41,6 +41,8 @@ const int ShapeTypeSphere = -5020;
 const int ShapeTypeHexPrism = -5030;
 const int ShapeTypeTorus = -5040;
 const int ShapeTypeOctahedron = -5050;
+const int ShapeTypeCylinder = -5060;
+const int ShapeTypeIcosahedron = -5070;
 
 const int SdfOpCodeNone = -500;
 const int SdfOpCodeUnion = -600;
@@ -78,6 +80,44 @@ float sdfOctahedron(vec3 point, float s)
     point = abs(point);
     return (point.x + point.y + point.z - s) * 0.57735027;
 }
+
+float sdfCappedCylinder(vec3 point, float height, float radius)
+{
+    vec2 d = abs(vec2(length(point.xz), point.y)) - vec2(radius, height);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
+// Taken from https://github.com/fogleman/sdf/blob/d58a6fc63b75fc1cf1ebb71e0b42bf552319c8f1/sdf/d3.py#L314
+float sdfIsosahedron(vec3 point, float radius)
+{
+    const vec3 xyz = normalize(vec3((sqrt(5.0) + 3.0) / 2.0, 1.0, 0.0));
+    const vec3 w = vec3(sqrt(3.0) / 3.0);
+
+    radius *= 0.8506507174597755;
+
+    point = abs(point / radius);
+    float a = dot(point, xyz.xyz);
+    float b = dot(point, xyz.zxy);
+    float c = dot(point, xyz.yzx);
+    float d = dot(point, w) - xyz.x;
+
+    return max(max(max(a, b), c) - xyz.x, d) * radius;
+}
+
+// float repeatWrong( vec3 p )
+// {
+//     // naive domain repetition
+//     const int   n = 8;
+//     const float b = 6.283185/float(n);
+//     float a = atan(p.y,p.x);
+//     float i = round(a/b);
+
+//     float c = b*i;
+//     p = mat2(cos(c),-sin(c),sin(c),cos(c))*p;
+
+//     // evaluate a single SDF
+//     return sdf(p);
+// }
 
 vec2 opUnion(vec2 d1, vec2 d2)
 {
@@ -118,6 +158,8 @@ float getDistToType(int type, vec3 point, vec3 params)
         case ShapeTypeHexPrism: return sdfHexPrism(point, params.xy);
         case ShapeTypeTorus: return sdfTorus(point, params.xy);
         case ShapeTypeOctahedron: return sdfOctahedron(point, params.x);
+        case ShapeTypeCylinder: return sdfCappedCylinder(point, params.y, params.x);
+        case ShapeTypeIcosahedron: return sdfIsosahedron(point, params.x);
     }
 
     return 100.0;

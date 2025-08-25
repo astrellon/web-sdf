@@ -1,7 +1,7 @@
 import { h, Component } from 'preact';
 import VectorView from './vector-view';
-import { vec3, vec4 } from '../gl-matrix-ts';
 import { Shape } from '../ray-marching/scene-entities';
+import { vec3, vec4 } from 'gl-matrix';
 
 interface Props
 {
@@ -24,6 +24,8 @@ export default class ShapeView extends Component<Props>
                     <option value='hexPrism'>Hex Prism</option>
                     <option value='torus'>Torus</option>
                     <option value='octahedron'>Octahedron</option>
+                    <option value='cylinder'>Cylinder</option>
+                    <option value='icosahedron'>Icosahedron</option>
                 </select>
             </div>
             <div>

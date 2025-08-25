@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import { rvec2, rvec3, rvec4 } from '../gl-matrix-ts';
+import { rvec2, rvec3, rvec4 } from '../math';
 import "./vector-view.scss";
 
 type basicVector = rvec2 | rvec3 | rvec4;
@@ -12,12 +12,12 @@ interface Props
 
 function isVec3(x: basicVector): x is rvec3
 {
-    return Object.hasOwn(x, 'z');
+    return x.length === 3;
 }
 
 function isVec4(x: basicVector): x is rvec4
 {
-    return Object.hasOwn(x, 'w');
+    return x.length === 4;
 }
 
 export default class VectorView extends Component<Props>
@@ -30,51 +30,53 @@ export default class VectorView extends Component<Props>
         const isV4 = isVec4(v);
 
         return <div class='vector control-group'>
-            <input class='input' disabled={disabled} type='number' value={v.x} onChange={this.onChangeX} placeholder='x' step={0.1} />
-            <input class='input' disabled={disabled} type='number' value={v.y} onChange={this.onChangeY} placeholder='y' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v[0]} onChange={this.onChangeX} placeholder='x' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v[1]} onChange={this.onChangeY} placeholder='y' step={0.1} />
 
             { isV3 &&
-            <input class='input' disabled={disabled} type='number' value={v.z} onChange={this.onChangeZ} placeholder='z' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v[2]} onChange={this.onChangeZ} placeholder='z' step={0.1} />
             }
             { isV4 &&
-            <input class='input' disabled={disabled} type='number' value={v.w} onChange={this.onChangeW} placeholder='w' step={0.1} />
+            <input class='input' disabled={disabled} type='number' value={v[3]} onChange={this.onChangeW} placeholder='w' step={0.1} />
             }
         </div>;
     }
 
     private onChangeX = (e: Event) =>
     {
-        this.updateVector(e, 'x');
+        this.updateVector(e, 0);
     }
 
     private onChangeY = (e: Event) =>
     {
-        this.updateVector(e, 'y');
+        this.updateVector(e, 1);
     }
 
     private onChangeZ = (e: Event) =>
     {
-        this.updateVector(e, 'z');
+        this.updateVector(e, 2);
     }
 
     private onChangeW = (e: Event) =>
     {
-        this.updateVector(e, 'w');
+        this.updateVector(e, 3);
     }
 
-    private updateVector = (e: Event, field: string) =>
+    private updateVector = (e: Event, index: number) =>
     {
         const v = this.props.vector;
         const strValue = (e.target as HTMLInputElement).value;
         const value = parseFloat(strValue);
         if (!isFinite(value))
         {
-            console.error('Unable to process vector field', field, strValue);
+            console.error('Unable to process vector index', index, strValue);
             return;
         }
 
-        console.log('Update vector field', field, value);
+        console.log('Update vector index', index, value);
 
-        this.props.onChange(v, {...v, [field]: value});
+        const newVector = [...v];
+        newVector[index] = value;
+        this.props.onChange(v, newVector);
     }
 }

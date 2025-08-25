@@ -1,7 +1,8 @@
 import equal from "fast-deep-equal";
-import { quatIdentity, rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec3Zero, vec4One } from "../gl-matrix-ts";
 import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeHexPrism, ShapeTypeInt, ShapeTypeNone, ShapeTypeOctahedron, ShapeTypeSphere, ShapeTypeTorus } from "./scene-entities";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, SdfOpCodeInt, SdfOpCodeIntersection, SdfOpCodeNone, SdfOpCodeSubtraction, SdfOpCodeUnion, SdfOpCodeXor, ShapeType, ShapeTypeBox, ShapeTypeCylinder, ShapeTypeHexPrism, ShapeTypeIcosahedron, ShapeTypeInt, ShapeTypeNone, ShapeTypeOctahedron, ShapeTypeSphere, ShapeTypeTorus } from "./scene-entities";
+import { rquat, rvec3, rvec4, vec3ApproxEquals, vec3One, vec4One } from "../math";
+import { quat, vec3 } from "gl-matrix";
 
 interface ShaderLight
 {
@@ -52,6 +53,8 @@ const ShapeTypeMap: { readonly [key: string]: ShapeTypeInt } =
     'hexPrism': ShapeTypeHexPrism,
     'torus': ShapeTypeTorus,
     'octahedron': ShapeTypeOctahedron,
+    'cylinder': ShapeTypeCylinder,
+    'icosahedron': ShapeTypeIcosahedron,
 }
 const LightingModelMap: { readonly [key: string]: LightingModelInt} =
 {
@@ -420,14 +423,14 @@ export class SceneConverter
         const dataIndex = index * lightDataSize;
         const light = this.lights[index];
 
-        this.lightDataArray[dataIndex    ] = light.position.x;
-        this.lightDataArray[dataIndex + 1] = light.position.y;
-        this.lightDataArray[dataIndex + 2] = light.position.z;
+        this.lightDataArray[dataIndex    ] = light.position[0];
+        this.lightDataArray[dataIndex + 1] = light.position[1];
+        this.lightDataArray[dataIndex + 2] = light.position[2];
         this.lightDataArray[dataIndex + 3] = light.radius;
-        this.lightDataArray[dataIndex + 4] = light.colour.x;
-        this.lightDataArray[dataIndex + 5] = light.colour.y;
-        this.lightDataArray[dataIndex + 6] = light.colour.z;
-        this.lightDataArray[dataIndex + 7] = light.colour.w;
+        this.lightDataArray[dataIndex + 4] = light.colour[0];
+        this.lightDataArray[dataIndex + 5] = light.colour[1];
+        this.lightDataArray[dataIndex + 6] = light.colour[2];
+        this.lightDataArray[dataIndex + 7] = light.colour[3];
     }
 
     private updateMaterial(index: number)
@@ -435,13 +438,13 @@ export class SceneConverter
         const dataIndex = index * materialDataSize;
         const material = this.materials[index];
 
-        this.materialDataArray[dataIndex    ] = material.diffuseColour.x;
-        this.materialDataArray[dataIndex + 1] = material.diffuseColour.y;
-        this.materialDataArray[dataIndex + 2] = material.diffuseColour.z;
+        this.materialDataArray[dataIndex    ] = material.diffuseColour[0];
+        this.materialDataArray[dataIndex + 1] = material.diffuseColour[1];
+        this.materialDataArray[dataIndex + 2] = material.diffuseColour[2];
         this.materialDataArray[dataIndex + 3] = material.lightingModel;
-        this.materialDataArray[dataIndex + 4] = material.specularColour.x;
-        this.materialDataArray[dataIndex + 5] = material.specularColour.y;
-        this.materialDataArray[dataIndex + 6] = material.specularColour.z;
+        this.materialDataArray[dataIndex + 4] = material.specularColour[0];
+        this.materialDataArray[dataIndex + 5] = material.specularColour[1];
+        this.materialDataArray[dataIndex + 6] = material.specularColour[2];
         this.materialDataArray[dataIndex + 7] = material.shininess;
     }
 
@@ -450,20 +453,20 @@ export class SceneConverter
         const dataIndex = index * shapeDataSize;
         const shape = this.shapes[index];
 
-        this.shapeDataArray[dataIndex     ] = shape.position.x;
-        this.shapeDataArray[dataIndex +  1] = shape.position.y;
-        this.shapeDataArray[dataIndex +  2] = shape.position.z;
+        this.shapeDataArray[dataIndex     ] = shape.position[0];
+        this.shapeDataArray[dataIndex +  1] = shape.position[1];
+        this.shapeDataArray[dataIndex +  2] = shape.position[2];
         this.shapeDataArray[dataIndex +  3] = shape.maxSize;
 
-        this.shapeDataArray[dataIndex +  4] = shape.rotation.x;
-        this.shapeDataArray[dataIndex +  5] = shape.rotation.y;
-        this.shapeDataArray[dataIndex +  6] = shape.rotation.z;
-        this.shapeDataArray[dataIndex +  7] = shape.rotation.w;
+        this.shapeDataArray[dataIndex +  4] = shape.rotation[0];
+        this.shapeDataArray[dataIndex +  5] = shape.rotation[1];
+        this.shapeDataArray[dataIndex +  6] = shape.rotation[2];
+        this.shapeDataArray[dataIndex +  7] = shape.rotation[3];
 
         this.shapeDataArray[dataIndex +  8] = shape.shapeType;
-        this.shapeDataArray[dataIndex +  9] = shape.shapeParams.x;
-        this.shapeDataArray[dataIndex + 10] = shape.shapeParams.y;
-        this.shapeDataArray[dataIndex + 11] = shape.shapeParams.z;
+        this.shapeDataArray[dataIndex +  9] = shape.shapeParams[0];
+        this.shapeDataArray[dataIndex + 10] = shape.shapeParams[1];
+        this.shapeDataArray[dataIndex + 11] = shape.shapeParams[2];
 
         this.shapeDataArray[dataIndex + 12] = Math.round(shape.material);
         this.shapeDataArray[dataIndex + 13] = 0; // Unused, but needed for padding
@@ -561,7 +564,7 @@ export class SceneConverter
     public static createNewLight(): ShaderLight
     {
         return {
-            position: vec3Zero(),
+            position: vec3.create(),
             radius: 10,
             colour: vec4One()
         }
@@ -570,11 +573,11 @@ export class SceneConverter
     public static createNewShape(partial: Partial<ShaderShape>): ShaderShape
     {
         return {
-            position: vec3Zero(),
-            rotation: quatIdentity(),
+            position: vec3.create(),
+            rotation: quat.create(),
             maxSize: 0,
             shapeType: ShapeTypeNone,
-            shapeParams: vec3Zero(),
+            shapeParams: vec3.create(),
             material: 0,
 
             ...partial
