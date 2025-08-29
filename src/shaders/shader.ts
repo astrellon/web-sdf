@@ -67,7 +67,10 @@ export default class Shader
         }
 
         const frag = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(frag, this.assembleShader(includes, fragText));
+        const assembledShader = this.assembleShader(includes, fragText);
+        console.log('Assembled shader', assembledShader);
+
+        gl.shaderSource(frag, assembledShader);
         gl.compileShader(frag);
         if (!gl.getShaderParameter(frag, gl.COMPILE_STATUS))
         {

@@ -99,6 +99,11 @@ export class SceneConverter
 
     private previousTree?: SceneTree;
 
+    public getTree()
+    {
+        return this.previousTree;
+    }
+
     public getLightDataArray()
     {
         return this.lightDataArray;
@@ -224,17 +229,19 @@ export class SceneConverter
         this.updateMaterial(index);
     }
 
-    public updateShapesFromTree(sceneTree: SceneTree)
+    public updateShapesFromTree(sceneTree: SceneTree): boolean
     {
         if (this.previousTree === sceneTree)
         {
-            return;
+            return false;
         }
+
+        this.previousTree = sceneTree;
 
         const rootNode = sceneTree.nodes[sceneTree.rootNodeId];
         if (!rootNode)
         {
-            return;
+            return false;
         }
 
         const { operations, cloudOperations, shapes, lights, materials, highlight } = SceneConverter.createShapesFromNode(sceneTree, this.highlightedId);
@@ -291,6 +298,8 @@ export class SceneConverter
                 this.updateMaterial(i);
             }
         }
+
+        return true;
     }
 
     public static createShapesFromNode(sceneTree: SceneTree, highlightedId: SceneNodeId | undefined)

@@ -1,9 +1,9 @@
 // @ts-ignore These are handled by esbuild
 import vertText from "../shaders/vert.glsl";
 // @ts-ignore
-import fragText from "../shaders/frag.glsl";
-// @ts-ignore
 import sdfFunctionsText from "../shaders/sdf-functions.glsl";
+// @ts-ignore
+import raymarchMainText from "../shaders/raymarch.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
@@ -20,6 +20,19 @@ const positions = [
 ];
 
 const tempAxisQuat = quat.create();
+
+function getErrorMessage(error: number, gl: WebGL2RenderingContext)
+{
+    if (error === gl.INVALID_ENUM) return 'Invalid enum';
+    if (error === gl.INVALID_VALUE) return 'Invalid value';
+    if (error === gl.INVALID_OPERATION) return 'Invalid operation';
+    if (error === gl.INVALID_FRAMEBUFFER_OPERATION) return 'Invalid framebuffer operation';
+    if (error === gl.OUT_OF_MEMORY) return 'Out of memory';
+    if (error === gl.CONTEXT_LOST_WEBGL) return 'Context lost WebGL';
+    if (error === gl.NO_ERROR) return 'No error';
+    return `Unknown error ${error}`;
+}
+
 
 export default class WebGLSdfRenderer
 {
@@ -74,8 +87,11 @@ export default class WebGLSdfRenderer
     private prevMaterials: any;
     private prevLights: any;
 
+    public prevShaderText: string;
+
     constructor(gl: WebGL2RenderingContext,
         shader: Shader,
+        shaderText: string,
         positionBuffer: WebGLBuffer,
         uShapes: WebGLUniformLocation,
         uOperations: WebGLUniformLocation,
@@ -98,6 +114,7 @@ export default class WebGLSdfRenderer
     {
         this.gl = gl;
         this.shader = shader;
+        this.prevShaderText = shaderText;
         this.positionBuffer = positionBuffer;
 
         this.uShapes = uShapes;
@@ -125,6 +142,11 @@ export default class WebGLSdfRenderer
         this.noiseTexture = noiseTexture;
     }
 
+    public destroy()
+    {
+        this.gl.deleteProgram(this.shader.program);
+    }
+
     public setupCanvas()
     {
         // Firefox doesn't like having the canvas rendered to until something has happened, like a fillRect
@@ -142,7 +164,7 @@ export default class WebGLSdfRenderer
 
     public updateCamera()
     {
-        quat.fromEuler(tempAxisQuat, this.cameraRotationX,-this.cameraRotationY, 0);
+        quat.fromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
         const forward = vec3.create();
         vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
 
@@ -164,8 +186,41 @@ export default class WebGLSdfRenderer
         this.gl.uniform1f(this.uAspectRatio, aspectRatio);
     }
 
+    // public checkNewShader(assembledShaderText: string)
+    // {
+    //     if (assembledShaderText !== this.prevShaderText)
+    //     {
+    //         const includeLookup = {
+    //             'assembled-shader': assembledShaderText,
+    //             'sdf-functions': sdfFunctionsText
+    //         }
+
+    //         const shader = Shader.create(this.gl, includeLookup, vertText, raymarchMainText);
+    //         // const error = this.gl.getError();
+    //         // if (error == this.gl.NO_ERROR)
+    //         {
+    //             this.prevShaderText = assembledShaderText;
+    //             console.log('Recompiled shader!');
+    //             this.gl.deleteProgram(this.shader.program);
+    //             this.shader = shader;
+    //             // this.gl.useProgram(shader.program);
+    //         }
+    //         // else
+    //         // {
+    //         //     console.error(`Shader GL Error: ${getErrorMessage(error, this.gl)}`);
+    //         // }
+    //     }
+    // }
+
     public render(scene: SceneConverter)
     {
+        // const tree = scene.getTree();
+        // if (tree != undefined)
+        // {
+        //     const assembledShaderText = createShader(tree);
+        //     this.checkNewShader(assembledShaderText);
+        // }
+
         this.gl.useProgram(this.shader.program);
 
         if (this.prevLights !== scene.getLights())
@@ -234,7 +289,7 @@ export default class WebGLSdfRenderer
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
-    public static create(canvas: HTMLCanvasElement): WebGLSdfRenderer
+    public static create(canvas: HTMLCanvasElement, assembledShaderText: string): WebGLSdfRenderer
     {
         const gl = canvas.getContext('webgl2');
         if (gl == null)
@@ -252,10 +307,11 @@ export default class WebGLSdfRenderer
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
         const includeLookup = {
+            'assembled-shader': assembledShaderText,
             'sdf-functions': sdfFunctionsText
         }
 
-        const shader = Shader.create(gl, includeLookup, vertText, fragText);
+        const shader = Shader.create(gl, includeLookup, vertText, raymarchMainText);
         gl.useProgram(shader.program);
 
         const positionAttributeLoc = this.getAttribute(gl, shader, 'aPosition');
@@ -295,7 +351,7 @@ export default class WebGLSdfRenderer
         gl.uniform1i(uNoise, 0);
         this.checkError(gl);
 
-        return new WebGLSdfRenderer(gl, shader, positionBuffer,
+        return new WebGLSdfRenderer(gl, shader, assembledShaderText, positionBuffer,
             uShapes, uOperations, uNumOperations, uHighlight,
             uCloudOperations, uNumCloudOperations,
             uLights, uNumLights,
@@ -312,19 +368,7 @@ export default class WebGLSdfRenderer
             return;
         }
 
-        console.error(`GL Error: ${this.getErrorMessage(error, gl)}`);
-    }
-
-    private static getErrorMessage(error: number, gl: WebGL2RenderingContext)
-    {
-        if (error === gl.INVALID_ENUM) return 'Invalid enum';
-        if (error === gl.INVALID_VALUE) return 'Invalid value';
-        if (error === gl.INVALID_OPERATION) return 'Invalid operation';
-        if (error === gl.INVALID_FRAMEBUFFER_OPERATION) return 'Invalid framebuffer operation';
-        if (error === gl.OUT_OF_MEMORY) return 'Out of memory';
-        if (error === gl.CONTEXT_LOST_WEBGL) return 'Context lost WebGL';
-        if (error === gl.NO_ERROR) return 'No error';
-        return `Unknown error ${error}`;
+        console.error(`GL Error: ${getErrorMessage(error, gl)}`);
     }
 
     private static createNoiseCanvas()

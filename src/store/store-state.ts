@@ -35,6 +35,8 @@ export interface AppState
     readonly selectedNodeId?: SceneNodeId;
     readonly reparentModal: ReparentModalState;
     readonly rawSceneModal: RawSceneModalState;
+
+    readonly currentShader: string;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -84,6 +86,11 @@ export function updateNode(node: SceneNode): Modifier<AppState>
 export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 {
     return () => { return { sceneTree } }
+}
+
+export function setCurrentShader(currentShader: string): Modifier<AppState>
+{
+    return () => { return { currentShader } }
 }
 
 export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>

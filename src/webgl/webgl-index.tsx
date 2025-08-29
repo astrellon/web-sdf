@@ -2,13 +2,14 @@ import { h, render } from 'preact';
 import { WebGLApp } from '../components/webgl-app';
 import { store } from '../store/store';
 import { SceneConverter } from '../ray-marching/scene-converter';
-import { AppState, setSceneTree } from '../store/store-state';
+import { AppState, setCurrentShader, setSceneTree } from '../store/store-state';
 import { SceneNode, SceneNodes } from '../ray-marching/scene-entities';
 import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from '../ray-marching/scene-tree';
 import { Editable } from '../common';
 import { vec3New, vec4New } from '../math';
 import '../normalize.css';
 import './styles.scss';
+import { createShader } from '../ray-marching/shader-assembler';
 
 const sceneConverter = new SceneConverter();
 store.subscribe(state => state.sceneTree, updateFromStoreChange);
@@ -16,7 +17,11 @@ store.subscribe(state => state.selectedNodeId, updateHighlighted);
 
 function updateFromStoreChange(state: AppState)
 {
-    sceneConverter.updateShapesFromTree(state.sceneTree);
+    if (sceneConverter.updateShapesFromTree(state.sceneTree))
+    {
+        const shader = createShader(state.sceneTree);
+        store.execute(setCurrentShader(shader));
+    }
 }
 
 function updateHighlighted(state: AppState)
@@ -30,9 +35,6 @@ function renderApp()
 {
     render(<WebGLApp state={store.state()} sceneConverter={sceneConverter} />, appEl);
 }
-
-renderApp();
-store.subscribeAny(renderApp);
 
 function makeNodeMap(...nodes: SceneNode[]): SceneNodes
 {
@@ -69,7 +71,7 @@ function loadDefaultSdfScene()
     }, vec3New(0, -1.5, 0));
     const sphere = createNewShapeNode('Sphere', {
         type: "sphere",
-        shapeParams: vec3New(1, 2, 1),
+        shapeParams: vec3New(2, 2, 1),
         maxSize: 2.0,
         diffuseColour: vec3New(0.1, 0.2, 0.9),
         lightingModel: 'phong'
@@ -93,6 +95,12 @@ function loadDefaultSdfScene()
     }
 
     store.execute(setSceneTree(tree));
+
+    const shader = createShader(tree);
+    store.execute(setCurrentShader(shader));
 }
 
 loadDefaultSdfScene();
+
+renderApp();
+store.subscribeAny(renderApp);

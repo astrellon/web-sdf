@@ -10,6 +10,7 @@ interface Props
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
     readonly sceneConverter: SceneConverter;
+    readonly currentShader: string;
 }
 
 export class WebGLViewport extends Component<Props>
@@ -29,13 +30,7 @@ export class WebGLViewport extends Component<Props>
     public componentDidMount(): void
     {
         const canvasEl = this.canvasRef.current;
-        this.renderer = WebGLSdfRenderer.create(canvasEl);
-        this.renderer.canvasScale = this.props.options.renderScale;
-        this.renderer.cameraDistance = 10.0;
-        this.renderer.updateCamera();
-        this.updateCanvasSize();
-
-        this.renderer.setupCanvas();
+        this.createNewRenderer(canvasEl);
 
         window.addEventListener('resize', this.onViewportResize);
 
@@ -88,6 +83,12 @@ export class WebGLViewport extends Component<Props>
 
     private renderScene = () =>
     {
+        if (this.renderer.prevShaderText !== this.props.currentShader)
+        {
+            this.renderer.destroy();
+            this.createNewRenderer(this.canvasRef.current);
+        }
+
         this.renderFrameCallback = -1;
         const options = this.props.options;
         this.renderer.epsilon = options.epsilon;
@@ -100,6 +101,17 @@ export class WebGLViewport extends Component<Props>
             this.updateCanvasSize();
         }
         this.renderer.render(this.props.sceneConverter);
+    }
+
+    private createNewRenderer = (canvasEl: HTMLCanvasElement) =>
+    {
+        this.renderer = WebGLSdfRenderer.create(canvasEl, this.props.currentShader);
+        this.renderer.canvasScale = this.props.options.renderScale;
+        this.renderer.cameraDistance = 10.0;
+        this.renderer.updateCamera();
+        this.updateCanvasSize();
+
+        this.renderer.setupCanvas();
     }
 
     private onPointerDown = (e: PointerEvent) =>

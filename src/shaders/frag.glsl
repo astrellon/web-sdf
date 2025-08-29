@@ -34,7 +34,6 @@ uniform sampler2D uNoise;
 
 uniform bvec4 uFlags;
 
-// #include <sdf-functions>
 const int ShapeTypeNone = -5000;
 const int ShapeTypeBox = -5010;
 const int ShapeTypeSphere = -5020;
@@ -310,7 +309,6 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 }
 
 const vec3 ambientLight = 0.5 * 0.2 * vec3(1.0, 1.0, 1.0);
-
 /**
  * Lighting contribution of a single point light source via Phong illumination.
  *

@@ -23,7 +23,7 @@ export class WebGLApp extends Component<Props>
     public render()
     {
         const sceneConverter = this.props.sceneConverter;
-        const { viewports, sceneTree, selectedNodeId, reparentModal, rawSceneModal } = this.props.state;
+        const { viewports, sceneTree, selectedNodeId, reparentModal, rawSceneModal, currentShader } = this.props.state;
         console.log('App render', this.props.state);
 
         return <Fragment>
@@ -33,7 +33,7 @@ export class WebGLApp extends Component<Props>
 
             <div class="main-view">
                 <div class="viewports">
-                    <WebGLViewport viewportIndex={0} options={viewports[0].options} sceneConverter={sceneConverter} />
+                    <WebGLViewport viewportIndex={0} options={viewports[0].options} sceneConverter={sceneConverter} currentShader={currentShader} />
                 </div>
                 <SceneGraph sceneTree={sceneTree} selectedNodeId={selectedNodeId} />
             </div>

@@ -22,5 +22,6 @@ export const store = new DataStore<AppState>({
     },
     rawSceneModal: {
         show: false,
-    }
+    },
+    currentShader: 'return 100.0;'
 });
