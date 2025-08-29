@@ -3,7 +3,7 @@ interface ShaderLookup
     readonly [name: string]: string
 }
 
-const includePragma = /^#include\s+\<([^\>]+)\>/gmi;
+const includePragma = /#include\s+\<([^\>]+)\>/gmi;
 
 export default class Shader
 {

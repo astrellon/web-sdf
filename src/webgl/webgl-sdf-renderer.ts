@@ -7,7 +7,7 @@ import raymarchMainText from "../shaders/raymarch.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
-import { mat3, mat4, quat, vec3 } from "gl-matrix";
+import { mat3, quat, vec3 } from "gl-matrix";
 
 const positions = [
     -1, -1,
@@ -33,20 +33,11 @@ function getErrorMessage(error: number, gl: WebGL2RenderingContext)
     return `Unknown error ${error}`;
 }
 
-
 export default class WebGLSdfRenderer
 {
     public readonly gl: WebGL2RenderingContext;
     public readonly shader:Shader;
     public readonly positionBuffer: WebGLBuffer;
-
-    public readonly uShapes: WebGLUniformLocation;
-    public readonly uOperations: WebGLUniformLocation;
-    public readonly uNumOperations: WebGLUniformLocation;
-    public readonly uHighlight: WebGLUniformLocation;
-
-    public readonly uCloudOperations: WebGLUniformLocation;
-    public readonly uNumCloudOperations: WebGLUniformLocation;
 
     public readonly uMaterials: WebGLUniformLocation;
 
@@ -80,10 +71,6 @@ export default class WebGLSdfRenderer
 
     private readonly cameraMatrixForSdfArray = mat3.create();
 
-    private prevShapes: any;
-    private prevOperations: any;
-    private prevCloudOperations: any;
-    private prevHighlights: any;
     private prevMaterials: any;
     private prevLights: any;
 
@@ -93,12 +80,6 @@ export default class WebGLSdfRenderer
         shader: Shader,
         shaderText: string,
         positionBuffer: WebGLBuffer,
-        uShapes: WebGLUniformLocation,
-        uOperations: WebGLUniformLocation,
-        uNumOperations: WebGLUniformLocation,
-        uHighlight: WebGLUniformLocation,
-        uCloudOperations: WebGLUniformLocation,
-        uNumCloudOperations: WebGLUniformLocation,
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
@@ -116,15 +97,6 @@ export default class WebGLSdfRenderer
         this.shader = shader;
         this.prevShaderText = shaderText;
         this.positionBuffer = positionBuffer;
-
-        this.uShapes = uShapes;
-
-        this.uOperations = uOperations;
-        this.uNumOperations = uNumOperations;
-        this.uHighlight = uHighlight;
-
-        this.uCloudOperations = uCloudOperations;
-        this.uNumCloudOperations = uNumCloudOperations;
 
         this.uMaterials = uMaterials;
 
@@ -145,6 +117,7 @@ export default class WebGLSdfRenderer
     public destroy()
     {
         this.gl.deleteProgram(this.shader.program);
+        this.gl.deleteBuffer(this.positionBuffer);
     }
 
     public setupCanvas()
@@ -186,41 +159,8 @@ export default class WebGLSdfRenderer
         this.gl.uniform1f(this.uAspectRatio, aspectRatio);
     }
 
-    // public checkNewShader(assembledShaderText: string)
-    // {
-    //     if (assembledShaderText !== this.prevShaderText)
-    //     {
-    //         const includeLookup = {
-    //             'assembled-shader': assembledShaderText,
-    //             'sdf-functions': sdfFunctionsText
-    //         }
-
-    //         const shader = Shader.create(this.gl, includeLookup, vertText, raymarchMainText);
-    //         // const error = this.gl.getError();
-    //         // if (error == this.gl.NO_ERROR)
-    //         {
-    //             this.prevShaderText = assembledShaderText;
-    //             console.log('Recompiled shader!');
-    //             this.gl.deleteProgram(this.shader.program);
-    //             this.shader = shader;
-    //             // this.gl.useProgram(shader.program);
-    //         }
-    //         // else
-    //         // {
-    //         //     console.error(`Shader GL Error: ${getErrorMessage(error, this.gl)}`);
-    //         // }
-    //     }
-    // }
-
     public render(scene: SceneConverter)
     {
-        // const tree = scene.getTree();
-        // if (tree != undefined)
-        // {
-        //     const assembledShaderText = createShader(tree);
-        //     this.checkNewShader(assembledShaderText);
-        // }
-
         this.gl.useProgram(this.shader.program);
 
         if (this.prevLights !== scene.getLights())
@@ -229,39 +169,6 @@ export default class WebGLSdfRenderer
             this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
             this.gl.uniform1i(this.uNumLights, scene.getNumLights());
             this.prevLights = scene.getLights();
-        }
-
-        if (this.prevOperations !== scene.getOperations())
-        {
-            const ops = scene.getOperationNumbers();
-            this.gl.uniform1i(this.uNumOperations, ops.length);
-            this.gl.uniform1iv(this.uOperations, ops);
-            this.prevOperations = scene.getOperations();
-            console.info('Rendering new operations', this.prevOperations);
-        }
-        if (this.prevCloudOperations !== scene.getCloudOperations())
-        {
-            const ops = scene.getCloudOperationNumbers();
-            this.gl.uniform1i(this.uNumCloudOperations, ops.length);
-            this.gl.uniform1iv(this.uCloudOperations, ops);
-            this.prevCloudOperations = scene.getCloudOperations();
-            console.info('Rendering new cloud operations', this.prevCloudOperations);
-        }
-
-        if (this.prevHighlights !== scene.getHighlights())
-        {
-            const ops = scene.getHighlights();
-            console.info('Rendering new highlight', ops, 'ops', this.prevOperations);
-
-            this.gl.uniform2iv(this.uHighlight, ops);
-            this.prevHighlights = ops;
-        }
-
-        if (this.prevShapes !== scene.getShapes())
-        {
-            this.gl.uniformMatrix4fv(this.uShapes, false, scene.getShapeDataArray());
-            this.prevShapes = scene.getShapes();
-            console.info('Rendering new shapes', this.prevShapes);
         }
 
         if (this.prevMaterials !== scene.getMaterials())
@@ -322,13 +229,6 @@ export default class WebGLSdfRenderer
         const uCameraPosition = this.getUniform(gl, shader, 'uCameraPosition');
         const uAspectRatio = this.getUniform(gl, shader, 'uAspectRatio');
 
-        const uShapes = this.getUniform(gl, shader, 'uShapes');
-        const uOperations = this.getUniform(gl, shader, 'uOperations');
-        const uNumOperations = this.getUniform(gl, shader, 'uNumOperations');
-        const uCloudOperations = this.getUniform(gl, shader, 'uCloudOperations');
-        const uNumCloudOperations = this.getUniform(gl, shader, 'uNumCloudOperations');
-        const uHighlight = this.getUniform(gl, shader, 'uHighlight');
-
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
 
         const uLights = this.getUniform(gl, shader, 'uLights');
@@ -352,8 +252,6 @@ export default class WebGLSdfRenderer
         this.checkError(gl);
 
         return new WebGLSdfRenderer(gl, shader, assembledShaderText, positionBuffer,
-            uShapes, uOperations, uNumOperations, uHighlight,
-            uCloudOperations, uNumCloudOperations,
             uLights, uNumLights,
             uMaterials,
             uCameraPosition, uCameraMatrix, uAspectRatio,

@@ -7,13 +7,12 @@ import { SceneNode, SceneNodes } from '../ray-marching/scene-entities';
 import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from '../ray-marching/scene-tree';
 import { Editable } from '../common';
 import { vec3New, vec4New } from '../math';
+import { createShader } from '../ray-marching/shader-assembler';
 import '../normalize.css';
 import './styles.scss';
-import { createShader } from '../ray-marching/shader-assembler';
 
 const sceneConverter = new SceneConverter();
 store.subscribe(state => state.sceneTree, updateFromStoreChange);
-store.subscribe(state => state.selectedNodeId, updateHighlighted);
 
 function updateFromStoreChange(state: AppState)
 {
@@ -22,12 +21,6 @@ function updateFromStoreChange(state: AppState)
         const shader = createShader(state.sceneTree);
         store.execute(setCurrentShader(shader));
     }
-}
-
-function updateHighlighted(state: AppState)
-{
-    sceneConverter.setHighlight(state.selectedNodeId);
-    sceneConverter.updateShapesFromTree(state.sceneTree);
 }
 
 const appEl = document.getElementById("app");
@@ -95,9 +88,6 @@ function loadDefaultSdfScene()
     }
 
     store.execute(setSceneTree(tree));
-
-    const shader = createShader(tree);
-    store.execute(setCurrentShader(shader));
 }
 
 loadDefaultSdfScene();
