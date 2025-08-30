@@ -8,6 +8,7 @@ import raymarchMainText from "../shaders/raymarch.glsl";
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
 import { mat3, quat, vec3 } from "gl-matrix";
+import { noiseTexture } from "./noise-texture";
 
 const positions = [
     -1, -1,
@@ -251,10 +252,10 @@ export default class WebGLSdfRenderer
         const uFlags = this.getUniform(gl, shader, 'uFlags');
         const uNoise = this.getUniform(gl, shader, 'uNoise');
 
-        const noiseTexture = gl.createTexture();
-        const noiseCanvas = this.createNoiseCanvas();
+        const glNoiseTexture = gl.createTexture();
+        const noiseCanvas = noiseTexture;
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+        gl.bindTexture(gl.TEXTURE_2D, glNoiseTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseCanvas.canvas);
         this.checkError(gl);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -268,7 +269,7 @@ export default class WebGLSdfRenderer
             uMaterials,
             uParameters,
             uCameraPosition, uCameraMatrix, uAspectRatio,
-            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture);
+            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, glNoiseTexture);
     }
 
     private static checkError(gl: WebGL2RenderingContext)
@@ -280,31 +281,6 @@ export default class WebGLSdfRenderer
         }
 
         console.error(`GL Error: ${getErrorMessage(error, gl)}`);
-    }
-
-    private static createNoiseCanvas()
-    {
-        const canvasEl = document.createElement('canvas');
-        canvasEl.width = 256;
-        canvasEl.height = 256;
-
-        const context = canvasEl.getContext('2d');
-        context.fillRect(0, 0, 255, 255);
-
-        const buff = new Uint8ClampedArray(256 * 4);
-
-        for (let y = 0; y < 256; y++)
-        {
-            for (let x = 0; x < 256 * 4; x++)
-            {
-                buff[x] = Math.floor(Math.random() * 256);
-            }
-
-            const imageData = new ImageData(buff, 256, 1);
-            context.putImageData(imageData, 0, y);
-        }
-
-        return context;
     }
 
     private static getAttribute(gl: WebGL2RenderingContext, shader: Shader, name: string)

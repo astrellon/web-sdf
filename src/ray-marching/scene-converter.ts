@@ -26,6 +26,20 @@ export type ShapeOperation = number | SdfOpCode;
 
 const vec3Zero = vec3.create();
 
+interface ShapeInfo
+{
+    readonly funcName: string;
+    readonly numParams: number;
+}
+const shapeInfoMap: { readonly [type: string]: ShapeInfo } = {
+    'box': {funcName: 'sdfBox', numParams: 3},
+    'sphere': {funcName: 'sdfSphere', numParams: 1},
+    'hexPrism': {funcName: 'sdfHexPrism', numParams: 2},
+    'torus': {funcName: 'sdfTorus', numParams: 2},
+    'octahedron': {funcName: 'sdfOctahedron', numParams: 1},
+    'icosahedron': {funcName: 'sdfIcosahedron', numParams: 1},
+}
+
 export class SceneConverter
 {
     private lights: ShaderLight[] = [];
@@ -194,10 +208,11 @@ export class SceneConverter
 
     private static processNode(lights: ShaderLight[], materials: ShaderMaterial[], parameters: number[], node: SceneNode, nodes: SceneNodes, assembler: ShaderAssembler)
     {
-        let startedOperation = false;
+        let addedFunc = false;
+        let startedOperations = 0;
+        let numChildren = 0;
         if (node.childOpCode !== 'none')
         {
-            let numChildren = 0;
             for (const childId of node.childrenIds)
             {
                 const child = nodes[childId];
@@ -209,13 +224,15 @@ export class SceneConverter
 
             if (numChildren > 1)
             {
+                addedFunc = true;
                 this.processOperation(node.childOpCode, assembler);
-                startedOperation = true;
+                startedOperations++;
             }
         }
 
-        if (node.shape != undefined && node.shape.type !== 'none')
+        if (node.hasShape && node.shape != undefined && node.shape.type !== 'none')
         {
+            addedFunc = true;
             assembler.startFunction('vec2');
             this.processShape(node, node.shape, parameters, assembler);
             assembler.writeValue(0);
@@ -231,15 +248,27 @@ export class SceneConverter
             }
         }
 
+        let shapeIndex = 0;
         for (const childId of node.childrenIds)
         {
-            this.processNode(lights, materials, parameters, nodes[childId], nodes, assembler);
+            if (this.processNode(lights, materials, parameters, nodes[childId], nodes, assembler))
+            {
+                shapeIndex++;
+            }
+
+            if (shapeIndex > 1 && numChildren > 2)
+            {
+                startedOperations++;
+                this.processOperation(node.childOpCode, assembler);
+            }
         }
 
-        if (startedOperation)
+        for (let i = 0; i < startedOperations; i++)
         {
             assembler.endFunction();
         }
+
+        return addedFunc;
     }
 
     private static processOperation(opCode: SdfOpCode, assembler: ShaderAssembler)
@@ -288,42 +317,34 @@ export class SceneConverter
 
     private static processShape(node: SceneNode, shape: Shape, parameters: number[], assembler: ShaderAssembler)
     {
-        if (shape.type === 'box')
+        const shapeInfo = shapeInfoMap[shape.type];
+        if (shapeInfo == undefined)
         {
-            assembler.startFunction('sdfBox');
-            this.writeSamplePoint(node, parameters, assembler);
+            console.error('Unsupported shape type');
+            return;
+        }
 
-            assembler.startFunction('vec3');
-            this.pushParameter(parameters, shape.shapeParams[0], assembler);
-            this.pushParameter(parameters, shape.shapeParams[1], assembler);
-            this.pushParameter(parameters, shape.shapeParams[2], assembler);
-            assembler.endFunction();
+        assembler.startFunction(shapeInfo.funcName);
+        this.writeSamplePoint(node, parameters, assembler);
 
+        let startedFunction = false;
+        if (shapeInfo.numParams >= 2 && shapeInfo.numParams <= 4)
+        {
+            startedFunction = true;
+            assembler.startFunction('vec' + shapeInfo.numParams);
+        }
+
+        for (let i = 0; i < shapeInfo.numParams; i++)
+        {
+            this.pushParameter(parameters, shape.shapeParams[i], assembler);
+        }
+
+        if (startedFunction)
+        {
             assembler.endFunction();
         }
-        else if (shape.type === 'sphere')
-        {
-            assembler.startFunction('sdfSphere');
-            this.writeSamplePoint(node, parameters, assembler);
-            this.pushParameter(parameters, shape.shapeParams[0], assembler);
-            assembler.endFunction();
-        }
-        else if (shape.type === 'hexPrism')
-        {
-            assembler.startFunction('sdfHexPrism');
-            this.writeSamplePoint(node, parameters, assembler);
 
-            assembler.startFunction('vec2');
-            this.pushParameter(parameters, shape.shapeParams[0], assembler);
-            this.pushParameter(parameters, shape.shapeParams[1], assembler);
-            assembler.endFunction();
-
-            assembler.endFunction();
-        }
-        else
-        {
-            console.error('Unknown shape', shape);
-        }
+        assembler.endFunction();
     }
 
     private updateLight(index: number)

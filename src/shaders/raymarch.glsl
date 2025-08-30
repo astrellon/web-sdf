@@ -131,7 +131,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
             if (uFlags.x)
             {
                 vec3 toLight = normalize(lightPos - worldPoint);
-                shadow = softShadow(worldPoint, toLight, 0.005 * currentDepth.x, 100.0);
+                shadow = softShadow(worldPoint + toLight * 0.05, toLight, MIN_DIST, MAX_DIST);
 
                 if (i == 1)
                 {

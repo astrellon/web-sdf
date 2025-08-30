@@ -36,6 +36,23 @@ float sdfCappedCylinder(vec3 point, float height, float radius)
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
 
+// Taken from https://github.com/fogleman/sdf/blob/d58a6fc63b75fc1cf1ebb71e0b42bf552319c8f1/sdf/d3.py#L314
+float sdfIcosahedron(vec3 point, float radius)
+{
+    vec3 xyz = normalize(vec3((sqrt(5.0) + 3.0) / 2.0, 1.0, 0.0));
+    const vec3 w = vec3(sqrt(3.0) / 3.0);
+
+    radius *= 0.8506507174597755;
+
+    point = abs(point / radius);
+    float a = dot(point, xyz.xyz);
+    float b = dot(point, xyz.zxy);
+    float c = dot(point, xyz.yzx);
+    float d = dot(point, w) - xyz.x;
+
+    return max(max(max(a, b), c) - xyz.x, d) * radius;
+}
+
 vec2 opUnion(vec2 d1, vec2 d2)
 {
     return d1.x < d2.x ? d1 : d2;

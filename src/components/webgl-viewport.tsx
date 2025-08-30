@@ -83,6 +83,7 @@ export class WebGLViewport extends Component<Props>
 
     private renderScene = () =>
     {
+        this.renderFrameCallback = -1;
         if (this.renderer.prevShaderText !== this.props.currentShader)
         {
             console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
@@ -90,7 +91,6 @@ export class WebGLViewport extends Component<Props>
             this.createNewRenderer(this.canvasRef.current);
         }
 
-        this.renderFrameCallback = -1;
         const options = this.props.options;
         this.renderer.epsilon = options.epsilon;
         this.renderer.maxMarchingSteps = options.maxMarchingStep;
