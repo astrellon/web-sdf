@@ -4,7 +4,6 @@ precision lowp float;
 
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
-// const int NUM_LIGHTS = #include <num-lights>;
 
 layout(location = 0) out vec4 fragColour;
 
@@ -18,8 +17,7 @@ uniform bvec4 uFlags;
 uniform sampler2D uNoise;
 uniform mat2x4 uLights[8];
 uniform int uNumLights;
-
-// uniform float uData[<include num-data>];
+uniform float uParams[128];
 
 #include <sdf-functions>
 

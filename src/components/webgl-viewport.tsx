@@ -85,6 +85,7 @@ export class WebGLViewport extends Component<Props>
     {
         if (this.renderer.prevShaderText !== this.props.currentShader)
         {
+            console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
             this.renderer.destroy();
             this.createNewRenderer(this.canvasRef.current);
         }

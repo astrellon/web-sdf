@@ -1,8 +1,9 @@
 import equal from "fast-deep-equal";
 import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, SceneNode, SceneNodes, SdfOpCode } from "./scene-entities";
-import { rvec3, rvec4, vec3One, vec4One } from "../math";
+import { LightingModelInt, LightingModelLambert, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, Shape } from "./scene-entities";
+import { rvec3, rvec4, vec3ApproxEquals, vec3One, vec4One } from "../math";
 import { vec3 } from "gl-matrix";
+import ShaderAssembler from "./shader-assembler";
 
 interface ShaderLight
 {
@@ -23,6 +24,8 @@ export const materialDataSize = 4 + 4;
 
 export type ShapeOperation = number | SdfOpCode;
 
+const vec3Zero = vec3.create();
+
 export class SceneConverter
 {
     private lights: ShaderLight[] = [];
@@ -30,6 +33,9 @@ export class SceneConverter
 
     private materials: ShaderMaterial[] = [];
     private materialDataArray: number[] = [];
+
+    private parameters: number[] = [];
+    private shader: string = '';
 
     private previousTree?: SceneTree;
 
@@ -66,6 +72,16 @@ export class SceneConverter
     public getNumMaterials()
     {
         return this.materials.length;
+    }
+
+    public getParameters()
+    {
+        return this.parameters;
+    }
+
+    public getShader()
+    {
+        return this.shader;
     }
 
     public setLight(index: number, light: Partial<ShaderLight>)
@@ -121,7 +137,7 @@ export class SceneConverter
             return false;
         }
 
-        const { lights, materials } = SceneConverter.createShapesFromNode(sceneTree);
+        const { lights, materials, parameters, assembler } = SceneConverter.createShapesFromNode(sceneTree);
 
         if (!equal(this.lights, lights))
         {
@@ -145,6 +161,14 @@ export class SceneConverter
             }
         }
 
+        if (!equal(this.parameters, parameters))
+        {
+            this.parameters = parameters;
+            console.log('Parameters', this.parameters);
+        }
+
+        this.shader = assembler.getFinal();
+
         return true;
     }
 
@@ -158,29 +182,44 @@ export class SceneConverter
 
         const lights: ShaderLight[] = [];
         const materials: ShaderMaterial[] = [];
-        this.pushToStack(lights, materials, rootNode, sceneTree.nodes);
+        const parameters: number[] = [];
+        const assembler = new ShaderAssembler();
+
+        this.processNode(lights, materials, parameters, rootNode, sceneTree.nodes, assembler);
 
         return {
-            lights, materials
+            lights, materials, parameters, assembler
         };
     }
 
-    private static pushToStack(lights: ShaderLight[], materials: ShaderMaterial[], node: SceneNode, nodes: SceneNodes)
+    private static processNode(lights: ShaderLight[], materials: ShaderMaterial[], parameters: number[], node: SceneNode, nodes: SceneNodes, assembler: ShaderAssembler)
     {
+        let startedOperation = false;
         if (node.childOpCode !== 'none')
         {
-            let firstChild = true;
-            for (let i = 0; i < node.childrenIds.length; i++)
+            let numChildren = 0;
+            for (const childId of node.childrenIds)
             {
-                const child = nodes[node.childrenIds[i]];
+                const child = nodes[childId];
                 if (child.hasShape || child.childOpCode !== 'none')
                 {
-                    if (firstChild)
-                    {
-                        firstChild = false;
-                    }
+                    numChildren++;
                 }
             }
+
+            if (numChildren > 1)
+            {
+                this.processOperation(node.childOpCode, assembler);
+                startedOperation = true;
+            }
+        }
+
+        if (node.shape != undefined && node.shape.type !== 'none')
+        {
+            assembler.startFunction('vec2');
+            this.processShape(node, node.shape, parameters, assembler);
+            assembler.writeValue(0);
+            assembler.endFunction();
         }
 
         if (node.hasLight)
@@ -194,7 +233,96 @@ export class SceneConverter
 
         for (const childId of node.childrenIds)
         {
-            this.pushToStack(lights, materials, nodes[childId], nodes);
+            this.processNode(lights, materials, parameters, nodes[childId], nodes, assembler);
+        }
+
+        if (startedOperation)
+        {
+            assembler.endFunction();
+        }
+    }
+
+    private static processOperation(opCode: SdfOpCode, assembler: ShaderAssembler)
+    {
+        if (opCode === 'union')
+        {
+            assembler.startFunction('opUnion');
+        }
+        else if (opCode === 'intersection')
+        {
+            assembler.startFunction('opIntersection');
+        }
+        else if (opCode === 'subtraction')
+        {
+            assembler.startFunction('opSubtraction');
+        }
+        else
+        {
+            console.error('Unknown operation', opCode);
+        }
+    }
+
+    private static pushParameter(parameters: number[], value: number, assembler: ShaderAssembler)
+    {
+        assembler.writeParameter(parameters.length);
+        parameters.push(value);
+    }
+
+    private static writeSamplePoint(node: SceneNode, parameters: number[], assembler: ShaderAssembler)
+    {
+        if (vec3ApproxEquals(node.position, vec3Zero))
+        {
+            assembler.writeValue('point');
+        }
+        else
+        {
+            const p = node.position;
+            assembler.startFunction('vec3');
+            this.pushParameter(parameters, p[0], assembler);
+            this.pushParameter(parameters, p[1], assembler);
+            this.pushParameter(parameters, p[2], assembler);
+            assembler.endFunction();
+            assembler.writeRaw(' - point');
+        }
+    }
+
+    private static processShape(node: SceneNode, shape: Shape, parameters: number[], assembler: ShaderAssembler)
+    {
+        if (shape.type === 'box')
+        {
+            assembler.startFunction('sdfBox');
+            this.writeSamplePoint(node, parameters, assembler);
+
+            assembler.startFunction('vec3');
+            this.pushParameter(parameters, shape.shapeParams[0], assembler);
+            this.pushParameter(parameters, shape.shapeParams[1], assembler);
+            this.pushParameter(parameters, shape.shapeParams[2], assembler);
+            assembler.endFunction();
+
+            assembler.endFunction();
+        }
+        else if (shape.type === 'sphere')
+        {
+            assembler.startFunction('sdfSphere');
+            this.writeSamplePoint(node, parameters, assembler);
+            this.pushParameter(parameters, shape.shapeParams[0], assembler);
+            assembler.endFunction();
+        }
+        else if (shape.type === 'hexPrism')
+        {
+            assembler.startFunction('sdfHexPrism');
+            this.writeSamplePoint(node, parameters, assembler);
+
+            assembler.startFunction('vec2');
+            this.pushParameter(parameters, shape.shapeParams[0], assembler);
+            this.pushParameter(parameters, shape.shapeParams[1], assembler);
+            assembler.endFunction();
+
+            assembler.endFunction();
+        }
+        else
+        {
+            console.error('Unknown shape', shape);
         }
     }
 

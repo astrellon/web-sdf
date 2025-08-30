@@ -7,7 +7,6 @@ import { SceneNode, SceneNodes } from '../ray-marching/scene-entities';
 import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from '../ray-marching/scene-tree';
 import { Editable } from '../common';
 import { vec3New, vec4New } from '../math';
-import { createShader } from '../ray-marching/shader-assembler';
 import '../normalize.css';
 import './styles.scss';
 
@@ -18,8 +17,7 @@ function updateFromStoreChange(state: AppState)
 {
     if (sceneConverter.updateShapesFromTree(state.sceneTree))
     {
-        const shader = createShader(state.sceneTree);
-        store.execute(setCurrentShader(shader));
+        store.execute(setCurrentShader(sceneConverter.getShader()));
     }
 }
 

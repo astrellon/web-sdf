@@ -40,6 +40,7 @@ export default class WebGLSdfRenderer
     public readonly positionBuffer: WebGLBuffer;
 
     public readonly uMaterials: WebGLUniformLocation;
+    public readonly uParameters: WebGLUniformLocation;
 
     public readonly uLights: WebGLUniformLocation;
     public readonly uNumLights: WebGLUniformLocation;
@@ -73,6 +74,7 @@ export default class WebGLSdfRenderer
 
     private prevMaterials: any;
     private prevLights: any;
+    private prevParameters: any;
 
     public prevShaderText: string;
 
@@ -83,6 +85,7 @@ export default class WebGLSdfRenderer
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
+        uParameters: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
         uCameraMatrix: WebGLUniformLocation,
         uAspectRatio: WebGLUniformLocation,
@@ -99,6 +102,7 @@ export default class WebGLSdfRenderer
         this.positionBuffer = positionBuffer;
 
         this.uMaterials = uMaterials;
+        this.uParameters = uParameters;
 
         this.uLights = uLights;
         this.uNumLights = uNumLights;
@@ -171,11 +175,18 @@ export default class WebGLSdfRenderer
             this.prevLights = scene.getLights();
         }
 
-        if (this.prevMaterials !== scene.getMaterials())
+        //if (this.prevMaterials !== scene.getMaterials())
+        //{
+            //this.prevMaterials = scene.getMaterials();
+            //console.info('Rendering new materials', this.prevMaterials);
+            //this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+        //}
+
+        if (this.prevParameters !== scene.getParameters())
         {
-            this.prevMaterials = scene.getMaterials();
-            console.info('Rendering new materials', this.prevMaterials);
-            this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+            this.prevParameters = scene.getParameters();
+            console.info('Rendering new parameters', this.prevParameters);
+            this.gl.uniform1fv(this.uParameters, this.prevParameters);
         }
 
         this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
@@ -233,6 +244,7 @@ export default class WebGLSdfRenderer
 
         const uLights = this.getUniform(gl, shader, 'uLights');
         const uNumLights = this.getUniform(gl, shader, 'uNumLights');
+        const uParameters = this.getUniform(gl, shader, 'uParams');
 
         const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
         const uEpsilon = this.getUniform(gl, shader, 'uEpsilon');
@@ -254,6 +266,7 @@ export default class WebGLSdfRenderer
         return new WebGLSdfRenderer(gl, shader, assembledShaderText, positionBuffer,
             uLights, uNumLights,
             uMaterials,
+            uParameters,
             uCameraPosition, uCameraMatrix, uAspectRatio,
             uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture);
     }
