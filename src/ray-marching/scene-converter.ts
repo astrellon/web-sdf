@@ -206,6 +206,21 @@ export class SceneConverter
         };
     }
 
+    private static nodeHasValidShape(node: SceneNode)
+    {
+        if (!node.hasShape || node.shape == undefined)
+        {
+            return false;
+        }
+
+        if (node.shape.type === 'none')
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static processNode(lights: ShaderLight[], materials: ShaderMaterial[], parameters: number[], node: SceneNode, nodes: SceneNodes, assembler: ShaderAssembler)
     {
         let addedFunc = false;
@@ -216,7 +231,7 @@ export class SceneConverter
             for (const childId of node.childrenIds)
             {
                 const child = nodes[childId];
-                if (child.hasShape || child.childOpCode !== 'none')
+                if (this.nodeHasValidShape(child) || child.childOpCode !== 'none')
                 {
                     numChildren++;
                 }
@@ -230,7 +245,7 @@ export class SceneConverter
             }
         }
 
-        if (node.hasShape && node.shape != undefined && node.shape.type !== 'none')
+        if (this.nodeHasValidShape(node))
         {
             addedFunc = true;
             assembler.startFunction('vec2');

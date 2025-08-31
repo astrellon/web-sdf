@@ -96,6 +96,9 @@ export class WebGLViewport extends Component<Props>
         this.renderer.maxMarchingSteps = options.maxMarchingStep;
         this.renderer.enableShadows = options.enableShadows;
         this.renderer.enableShowMarches = options.enableShowMarching;
+        this.renderer.enableDepth = options.enableDepth;
+        this.renderer.enableNormals = options.enableNormals;
+        this.renderer.enableToLightNormals = options.enableToLightNormals;
         if (this.renderer.canvasScale !== options.renderScale)
         {
             this.renderer.canvasScale = options.renderScale;

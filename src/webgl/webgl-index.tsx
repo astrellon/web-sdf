@@ -62,7 +62,7 @@ function loadDefaultSdfScene()
     }, vec3New(0, -1.5, 0));
     const sphere = createNewShapeNode('Sphere', {
         type: "sphere",
-        shapeParams: vec3New(2, 2, 1),
+        shapeParams: vec3New(1.25, 2, 1),
         maxSize: 2.0,
         diffuseColour: vec3New(0.1, 0.2, 0.9),
         lightingModel: 'phong'
@@ -75,7 +75,7 @@ function loadDefaultSdfScene()
     }, vec3New(4, 2, 3));
     const greenLight = createNewLightNode('Green Light', {
         colour: vec4New(0.2, 1.0, 0.6, 1)
-    }, vec3New(-4, 2, 3));
+    }, vec3New(0, 0, 0));
     sceneTreeAddChildMutable(rootNode, redLight);
     sceneTreeAddChildMutable(rootNode, greenLight);
 

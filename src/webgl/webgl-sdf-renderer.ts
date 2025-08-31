@@ -34,6 +34,21 @@ function getErrorMessage(error: number, gl: WebGL2RenderingContext)
     return `Unknown error ${error}`;
 }
 
+const ENABLE_SHADOWS = 0x01;
+const ENABLE_NUM_MARCHING = 0x02;
+const ENABLE_DEPTH = 0x04;
+const ENABLE_NORMALS = 0x08;
+const ENABLE_TO_LIGHT_NORMALS = 0x10;
+
+function addFlag(check: boolean, flag: number)
+{
+    if (check)
+    {
+        return flag;
+    }
+    return 0;
+}
+
 export default class WebGLSdfRenderer
 {
     public readonly gl: WebGL2RenderingContext;
@@ -68,6 +83,9 @@ export default class WebGLSdfRenderer
 
     public enableShadows = true;
     public enableShowMarches = false;
+    public enableDepth = false;
+    public enableNormals = false;
+    public enableToLightNormals = false;
 
     public canvasScale = 1;
 
@@ -122,7 +140,7 @@ export default class WebGLSdfRenderer
     public destroy()
     {
         this.gl.deleteProgram(this.shader.program);
-        this.gl.deleteBuffer(this.positionBuffer);
+        // this.gl.deleteBuffer(this.positionBuffer);
     }
 
     public setupCanvas()
@@ -190,7 +208,14 @@ export default class WebGLSdfRenderer
             this.gl.uniform1fv(this.uParameters, this.prevParameters);
         }
 
-        this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
+        let flags = 0;
+        flags |= addFlag(this.enableShadows, ENABLE_SHADOWS);
+        flags |= addFlag(this.enableDepth, ENABLE_DEPTH);
+        flags |= addFlag(this.enableNormals, ENABLE_NORMALS);
+        flags |= addFlag(this.enableShowMarches, ENABLE_NUM_MARCHING);
+        flags |= addFlag(this.enableToLightNormals, ENABLE_TO_LIGHT_NORMALS);
+
+        this.gl.uniform1i(this.uFlags, flags);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
 

@@ -5,6 +5,12 @@ precision lowp float;
 const float MIN_DIST = 0.0;
 const float MAX_DIST = 100.0;
 
+const int ENABLE_SHADOWS = 0x01;
+const int ENABLE_NUM_MARCHING = 0x02;
+const int ENABLE_DEPTH = 0x04;
+const int ENABLE_NORMALS = 0x08;
+const int ENABLE_TO_LIGHT_NORMALS = 0x10;
+
 layout(location = 0) out vec4 fragColour;
 
 in vec2 oPosition;
@@ -13,26 +19,29 @@ uniform mat3 uCameraMatrix;
 uniform vec3 uCameraPosition;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
-uniform bvec4 uFlags;
+uniform int uFlags;
 uniform sampler2D uNoise;
 uniform mat2x4 uLights[8];
 uniform int uNumLights;
 uniform float uParams[128];
 
+#define checkFlag(flag) ((uFlags & flag) > 0)
+
 #include <sdf-functions>
 
-vec2 sceneSDF(vec3 point) {
+vec2 sceneSDF(vec3 point)
+{
     #include <assembled-shader>
 }
 
 const float shadowSharpness = 128.0;
-vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
+vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float minDepth)
 {
-    float depth = near;
+    float depth = minDepth;
     float result = 1.0;
     int i = 0;
 
-    for (; i < uMaxMarchingSteps; i++)
+    for (; i < uMaxMarchingSteps && depth < MAX_DIST; i++)
     {
         float dist = sceneSDF(rayOrigin + depth * rayDirection).x;
         if (dist < uEpsilon)
@@ -42,13 +51,35 @@ vec2 softShadow(vec3 rayOrigin, vec3 rayDirection, float near, float far)
 
         result = min(result, shadowSharpness * dist / depth);
         depth += dist;
-        if (depth >= far)
-        {
-            return vec2(result, float(i));
-        }
     }
 
-    return vec2(result, float(i));
+    return vec2(clamp(result, 0.0, 1.0), float(i));
+}
+
+float calculateObstruction(vec3 pos, vec3 lpos, float lrad)
+{
+    // A homemade algorithm to compute obstruction
+    // Raymarch to the light source, and
+    // record the largest obstruction.
+    // We assume that if the ray passes through an object at depth
+    // d (negative distance), then the object obstructs light
+    // proportional to the relative size of d projected on the light
+    // as given by Thales's theorem.
+    vec3 toLight = normalize(lpos-pos);
+    float distToLight = length(lpos-pos);
+    float d, t=lrad*0.1;
+    float obstruction=0.;
+    for(int j=0; j<128; j++)
+    {
+        d = sceneSDF(pos + t*toLight).x;
+        obstruction = max(0.5+(-d)*distToLight/(2.*lrad*t), obstruction);
+        if(obstruction >= 1.){break;}
+        // If we're stuck, advance by the characteristic
+        // size of an obstructing object
+        t += max(d, lrad*t/distToLight);
+        if(t >= distToLight) break;
+    }
+    return clamp(obstruction, 0.,1.);
 }
 
 vec3 estimateNormalPhong(vec3 point, vec3 currentDepth)
@@ -87,19 +118,21 @@ vec3 phongContribForLight(vec3 currentDepth, vec3 diffuse, vec3 specular, float 
     float dotLN = dot(L, normal);
     float dotRV = dot(R, V);
 
-    if (dotLN < 0.0) {
+    if (dotLN < 0.0)
+    {
         // Light not visible from this point on the surface
         return vec3(0.0, 0.0, 0.0);
     }
 
-    if (dotRV < 0.0) {
+    if (dotRV < 0.0)
+    {
         // Light reflection in opposite direction as viewer, apply only diffuse
         // component
         return lightIntensity * (diffuse * dotLN);
     }
+
     return lightIntensity * (diffuse * dotLN + specular * pow(dotRV, shininess));
 }
-
 
 /**
  * Lighting via Phong illumination.
@@ -117,6 +150,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
 {
     vec3 colour = ambientLight;
     float light0Rays;
+    bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
 
     if (uNumLights > 0)
     {
@@ -128,10 +162,10 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
             vec3 lightPos = light[0].xyz;
 
             vec2 shadow = vec2(1.0, 0.0);
-            if (uFlags.x)
+            if (shadowsEnabled)
             {
                 vec3 toLight = normalize(lightPos - worldPoint);
-                shadow = softShadow(worldPoint + toLight * 0.05, toLight, MIN_DIST, MAX_DIST);
+                shadow = softShadow(worldPoint, toLight, 0.01);
 
                 if (i == 1)
                 {
@@ -146,6 +180,20 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
 
     // colour = pow(colour, vec3(1.0 / 2.2)); // Gamma correction
     return vec4(colour, light0Rays);
+}
+
+vec4 toLightNormal(int lightIndex, vec3 worldPoint)
+{
+    if (lightIndex < uNumLights)
+    {
+        mat2x4 light = uLights[lightIndex];
+        vec3 lightPos = light[0].xyz;
+
+        vec3 toLight = normalize(lightPos - worldPoint);
+        return vec4(toLight, 1.0);
+    }
+
+    return vec4(0.0);
 }
 
 vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection)
@@ -188,15 +236,38 @@ void main()
         discard;
     }
 
-    vec3 worldPoint = rayOrigin + dist.x * rayDir;
+    if (checkFlag(ENABLE_DEPTH)) // Depth view
+    {
+        fragColour = vec4(vec3(dist.x / MAX_DIST), 1.0);
+    }
+    else if (checkFlag(ENABLE_NUM_MARCHING)) // Num marching
+    {
+        float r = dist.z / float(uMaxMarchingSteps);
 
-    // vec4 litColour = vec4(1.0, 0.0, 0.0, 1.0);
+        fragColour = vec4(r, 0.0, 0.0, 1);
+    }
+    else if (checkFlag(ENABLE_NORMALS)) // Show normals
+    {
+        vec3 worldPoint = rayOrigin + dist.x * rayDir;
+        vec3 normal = estimateNormalPhong(worldPoint, dist.xyz);
 
-    vec3 diffuse = vec3(0.7, 0.2, 0.2);
-    vec3 specular = vec3(1.0, 1.0, 1.0);
-    float shininess = 10.0;
+        fragColour = vec4(normal, 1.0);
+    }
+    else if (checkFlag(ENABLE_TO_LIGHT_NORMALS))
+    {
+        vec3 worldPoint = rayOrigin + dist.x * rayDir;
+        fragColour = toLightNormal(1, worldPoint);
+    }
+    else
+    {
+        vec3 worldPoint = rayOrigin + dist.x * rayDir;
 
-    vec4 litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+        vec3 diffuse = vec3(0.7, 0.2, 0.2);
+        vec3 specular = vec3(1.0, 1.0, 1.0);
+        float shininess = 10.0;
 
-    fragColour = vec4(litColour.xyz, 1.0);
+        vec4 litColour = phongIllumination(dist.xyz, diffuse, specular, shininess, worldPoint, rayOrigin);
+
+        fragColour = vec4(litColour.xyz, 1.0);
+    }
 }

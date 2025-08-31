@@ -6,6 +6,9 @@ export const defaultRenderOptions: ViewportOptions = {
     maxMarchingStep: 512,
     enableShadows: true,
     enableShowMarching: false,
+    enableDepth: false,
+    enableNormals: false,
+    enableToLightNormals: false,
     epsilon: 0.0001,
     pixelated: false
 }

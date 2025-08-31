@@ -34,6 +34,10 @@ export default class Shader
 
     public static create(gl: WebGL2RenderingContext, includes: ShaderLookup, vertText: string, fragText: string): Shader
     {
+        let program: WebGLShader | null = null;
+        let vert: WebGLSampler | null = null;
+        let frag: WebGLSampler | null = null;
+
         function cleanup()
         {
             if (program != null)
@@ -53,7 +57,7 @@ export default class Shader
             }
         }
 
-        const vert = gl.createShader(gl.VERTEX_SHADER);
+        vert = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vert, this.assembleShader(includes, vertText));
         gl.compileShader(vert);
 
@@ -66,7 +70,7 @@ export default class Shader
             throw new Error(`Vertex shader compile error ${error}`);
         }
 
-        const frag = gl.createShader(gl.FRAGMENT_SHADER);
+        frag = gl.createShader(gl.FRAGMENT_SHADER);
         const assembledShader = this.assembleShader(includes, fragText);
         console.log('Assembled shader', assembledShader);
 
@@ -81,7 +85,7 @@ export default class Shader
             throw new Error(`Fragment shader compile error ${error}`);
         }
 
-        const program = gl.createProgram();
+        program = gl.createProgram();
         gl.attachShader(program, vert);
         gl.attachShader(program, frag);
         gl.linkProgram(program);
