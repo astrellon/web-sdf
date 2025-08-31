@@ -1,6 +1,6 @@
 import equal from "fast-deep-equal";
 import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, Shape } from "./scene-entities";
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, Shape } from "./scene-entities";
 import { rvec3, rvec4, vec3ApproxEquals, vec3One, vec4One } from "../math";
 import { vec3 } from "gl-matrix";
 import ShaderAssembler from "./shader-assembler";
@@ -24,7 +24,16 @@ export const materialDataSize = 4 + 4;
 
 export type ShapeOperation = number | SdfOpCode;
 
-const vec3Zero = vec3.create();
+const LightingModelMap: { readonly [key: string]: LightingModelInt} =
+{
+    'unlit': LightingModelUnlit,
+    'lambert': LightingModelLambert,
+    'phong': LightingModelPhong
+}
+function toLightingModelInt(type: LightingModelType): LightingModelInt
+{
+    return LightingModelMap[type] || LightingModelUnlit;
+}
 
 interface ShapeInfo
 {
@@ -248,10 +257,7 @@ export class SceneConverter
         if (this.nodeHasValidShape(node))
         {
             addedFunc = true;
-            assembler.startFunction('vec2');
-            this.processShape(node, node.shape, parameters, assembler);
-            assembler.writeValue(0);
-            assembler.endFunction();
+            this.processShape(node, node.shape, materials, parameters, assembler);
         }
 
         if (node.hasLight)
@@ -314,23 +320,16 @@ export class SceneConverter
 
     private static writeSamplePoint(node: SceneNode, parameters: number[], assembler: ShaderAssembler)
     {
-        if (vec3ApproxEquals(node.position, vec3Zero))
-        {
-            assembler.writeValue('point');
-        }
-        else
-        {
-            const p = node.position;
-            assembler.startFunction('vec3');
-            this.pushParameter(parameters, p[0], assembler);
-            this.pushParameter(parameters, p[1], assembler);
-            this.pushParameter(parameters, p[2], assembler);
-            assembler.endFunction();
-            assembler.writeRaw(' - point');
-        }
+        const p = node.position;
+        assembler.startFunction('vec3');
+        this.pushParameter(parameters, p[0], assembler);
+        this.pushParameter(parameters, p[1], assembler);
+        this.pushParameter(parameters, p[2], assembler);
+        assembler.endFunction();
+        assembler.writeRaw(' - point');
     }
 
-    private static processShape(node: SceneNode, shape: Shape, parameters: number[], assembler: ShaderAssembler)
+    private static processShape(node: SceneNode, shape: Shape, materials: ShaderMaterial[], parameters: number[], assembler: ShaderAssembler)
     {
         const shapeInfo = shapeInfoMap[shape.type];
         if (shapeInfo == undefined)
@@ -338,6 +337,16 @@ export class SceneConverter
             console.error('Unsupported shape type');
             return;
         }
+
+        assembler.startFunction('vec2');
+        const material: ShaderMaterial = {
+            diffuseColour: shape.diffuseColour,
+            lightingModel: toLightingModelInt(shape.lightingModel),
+            specularColour: shape.specularColour,
+            shininess: shape.shininess
+        }
+        const materialIndex = materials.length;
+        materials.push(material);
 
         assembler.startFunction(shapeInfo.funcName);
         this.writeSamplePoint(node, parameters, assembler);
@@ -359,6 +368,9 @@ export class SceneConverter
             assembler.endFunction();
         }
 
+        assembler.endFunction();
+
+        assembler.writeValue(materialIndex);
         assembler.endFunction();
     }
 

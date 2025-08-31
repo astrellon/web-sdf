@@ -72,7 +72,17 @@ export default class Shader
 
         frag = gl.createShader(gl.FRAGMENT_SHADER);
         const assembledShader = this.assembleShader(includes, fragText);
-        console.log('Assembled shader', assembledShader);
+        if (true)
+        {
+            const split = assembledShader.split('\n');
+            const combined = new Array(split.length);
+            for (let i = 0; i < split.length; i++)
+            {
+                combined[i] = (i + 1) + ': ' + split[i];
+            }
+            console.info('Assembled shader', combined.join('\n'));
+        }
+        // console.log('Assembled shader', assembledShader);
 
         gl.shaderSource(frag, assembledShader);
         gl.compileShader(frag);

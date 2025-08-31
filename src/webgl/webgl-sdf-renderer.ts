@@ -194,12 +194,12 @@ export default class WebGLSdfRenderer
             this.prevLights = scene.getLights();
         }
 
-        //if (this.prevMaterials !== scene.getMaterials())
-        //{
-            //this.prevMaterials = scene.getMaterials();
-            //console.info('Rendering new materials', this.prevMaterials);
-            //this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
-        //}
+        if (this.prevMaterials !== scene.getMaterials())
+        {
+            this.prevMaterials = scene.getMaterials();
+            console.info('Rendering new materials', this.prevMaterials);
+            this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
+        }
 
         if (this.prevParameters !== scene.getParameters())
         {
