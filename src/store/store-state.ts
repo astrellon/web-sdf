@@ -14,6 +14,7 @@ export interface ViewportOptions
     readonly renderScale: number;
     readonly maxMarchingStep: number;
     readonly epsilon: number;
+    readonly shadowSharpness: number;
     readonly pixelated: boolean;
 }
 

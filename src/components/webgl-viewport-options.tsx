@@ -31,7 +31,7 @@ export default class WebGLViewportOptions extends Component<Props>
         const { pixelated, renderScale,
             enableShadows, enableShowMarching, enableDepth,
             enableNormals, enableToLightNormals, enableSoftShadows,
-            epsilon, maxMarchingStep } = this.props.options;
+            epsilon, shadowSharpness, maxMarchingStep } = this.props.options;
 
         return <div class='viewport-options'>
                 <Popover text='Menu'>
@@ -50,11 +50,11 @@ export default class WebGLViewportOptions extends Component<Props>
                         <button onClick={this.toggleDepth}>{ enableDepth ? 'Hide Depth' : 'Show Depth' }</button>
                         <button onClick={this.toggleNormals}>{ enableNormals ? 'Hide Normals' : 'Show Normals' }</button>
                         <button onClick={this.toggleToLightNormals}>{ enableToLightNormals ? 'Hide To Light' : 'Show To Light' }</button>
-                        <button onClick={this.toggleSoftShadows}>{ enableSoftShadows ? 'Soft Shadows' : 'Hard Shadows' }</button>
                         <button onClick={this.showRawScene}>JSON Scene</button>
                     </div>
                     <LabeledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
                     <LabeledRange label={`Marching Steps ${maxMarchingStep}`} inputProps={{value: maxMarchingStep, min: 0, max: 1000, step: 1, onInput: this.changeMarchingSteps}} />
+                    <LabeledRange label={`Shadows ${shadowSharpness}`} inputProps={{value: shadowSharpness, min: 0.0, max: 256, step: 0.1, onInput: this.changeShadowSharpness}} />
                 </Popover>
         </div>;
     }
@@ -74,6 +74,18 @@ export default class WebGLViewportOptions extends Component<Props>
         }
 
         this.updateOptions({ epsilon: value });
+    }
+    
+    private changeShadowSharpness = (e: Event) =>
+    {
+        const value = parseFloat((e.target as HTMLInputElement).value);
+        if (!isFinite(value))
+        {
+            console.warn(`Shadow sharpness parse failed`);
+            return;
+        }
+
+        this.updateOptions({ shadowSharpness: value });
     }
 
     private changeMarchingSteps = (e: Event) =>
@@ -116,11 +128,6 @@ export default class WebGLViewportOptions extends Component<Props>
     private toggleToLightNormals = (e: Event) =>
     {
         this.updateOptions({ enableToLightNormals: !this.props.options.enableToLightNormals });
-    }
-
-    private toggleSoftShadows = (e: Event) =>
-    {
-        this.updateOptions({ enableSoftShadows: !this.props.options.enableSoftShadows });
     }
 
     private updateOptions = (options: Partial<ViewportOptions>) =>

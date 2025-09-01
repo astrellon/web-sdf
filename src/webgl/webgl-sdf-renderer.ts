@@ -41,7 +41,6 @@ const ENABLE_NUM_MARCHING = 0x02;
 const ENABLE_DEPTH = 0x04;
 const ENABLE_NORMALS = 0x08;
 const ENABLE_TO_LIGHT_NORMALS = 0x10;
-const ENABLE_SOFT_SHADOWS = 0x20;
 
 function addFlag(check: boolean, flag: number)
 {
@@ -72,6 +71,7 @@ export default class WebGLSdfRenderer
     public readonly uMaxMarchingSteps: WebGLUniformLocation;
     public readonly uEpsilon: WebGLUniformLocation;
     public readonly uFlags: WebGLUniformLocation;
+    public readonly uShadowSharpness: WebGLUniformLocation;
     public readonly uNoise: WebGLUniformLocation;
     public readonly noiseTexture: WebGLTexture;
 
@@ -83,6 +83,7 @@ export default class WebGLSdfRenderer
 
     public maxMarchingSteps = 255;
     public epsilon = 0.001;
+    public shadowSharpness = 128.0;
 
     public enableShadows = true;
     public enableShowMarches = false;
@@ -115,6 +116,7 @@ export default class WebGLSdfRenderer
         uMaxMarchingSteps: WebGLUniformLocation,
         uEpsilon: WebGLUniformLocation,
         uFlags: WebGLUniformLocation,
+        uShadowSharpness: WebGLUniformLocation,
         uNoise: WebGLUniformLocation,
         noiseTexture: WebGLTexture,
     )
@@ -137,6 +139,7 @@ export default class WebGLSdfRenderer
         this.uMaxMarchingSteps = uMaxMarchingSteps;
         this.uEpsilon = uEpsilon;
         this.uFlags = uFlags;
+        this.uShadowSharpness = uShadowSharpness;
         this.uNoise = uNoise;
         this.noiseTexture = noiseTexture;
     }
@@ -221,9 +224,9 @@ export default class WebGLSdfRenderer
         flags |= addFlag(this.enableNormals, ENABLE_NORMALS);
         flags |= addFlag(this.enableShowMarches, ENABLE_NUM_MARCHING);
         flags |= addFlag(this.enableToLightNormals, ENABLE_TO_LIGHT_NORMALS);
-        flags |= addFlag(this.enableSoftShadows, ENABLE_SOFT_SHADOWS);
 
         this.gl.uniform1i(this.uFlags, flags);
+        this.gl.uniform1f(this.uShadowSharpness, this.shadowSharpness);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
 
@@ -284,6 +287,7 @@ export default class WebGLSdfRenderer
         const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
         const uEpsilon = this.getUniform(gl, shader, 'uEpsilon');
         const uFlags = this.getUniform(gl, shader, 'uFlags');
+        const uShadowSharpness = this.getUniform(gl, shader, 'uShadowSharpness');
         const uNoise = this.getUniform(gl, shader, 'uNoise');
 
         const glNoiseTexture = gl.createTexture();
@@ -303,7 +307,8 @@ export default class WebGLSdfRenderer
             uMaterials,
             uParameters,
             uCameraPosition, uCameraMatrix, uAspectRatio,
-            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, glNoiseTexture);
+            uMaxMarchingSteps, uEpsilon, uFlags, uShadowSharpness,
+            uNoise, glNoiseTexture);
     }
 
     private static checkError(gl: WebGL2RenderingContext)

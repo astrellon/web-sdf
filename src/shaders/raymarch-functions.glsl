@@ -19,8 +19,7 @@ vec4 rayMarch(vec3 rayOrigin, vec3 rayDirection)
     return vec4(MAX_DIST, MAX_DIST, float(uMaxMarchingSteps), -1);
 }
 
-const float shadowSharpness = 128.0;
-vec2 softShadow(vec3 rayOrigin, vec3 lightPos)
+vec2 softShadow(vec3 rayOrigin, vec3 lightPos, float shadowSharpness)
 {
     vec3 toLight = lightPos - rayOrigin;
     float lightDist = length(toLight);
@@ -40,6 +39,11 @@ vec2 softShadow(vec3 rayOrigin, vec3 lightPos)
 
         result = min(result, shadowSharpness * dist / depth);
         depth += dist;
+
+        if (depth > lightDist)
+        {
+            return vec2(result, float(i));
+        }
     }
 
     return vec2(clamp(result, 0.0, 1.0), float(i));
@@ -160,7 +164,6 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     vec3 colour = ambientLight;
     float light0Rays;
     bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
-    bool useSoftShadows = checkFlag(ENABLE_SOFT_SHADOWS);
 
     if (uNumLights > 0)
     {
@@ -175,9 +178,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
             if (shadowsEnabled)
             {
                 vec3 shortOffset = worldPoint + normal * 0.01;
-                shadow = useSoftShadows ?
-                    softShadow(shortOffset, lightPos) :
-                    hardShadow(shortOffset, lightPos);
+                shadow = softShadow(shortOffset, lightPos, uShadowSharpness);
 
 
                 if (i == 1)
@@ -238,7 +239,6 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
     vec3 colour = ambientLight;
     float light0Rays;
     bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
-    bool useSoftShadows = checkFlag(ENABLE_SOFT_SHADOWS);
 
     if (uNumLights > 0)
     {
@@ -253,9 +253,7 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
             if (shadowsEnabled)
             {
                 vec3 shortOffset = worldPoint + normal * 0.01;
-                shadow = useSoftShadows ?
-                    softShadow(shortOffset, lightPos) :
-                    hardShadow(shortOffset, lightPos);
+                shadow = softShadow(shortOffset, lightPos, uShadowSharpness);
 
                 if (i == 1)
                 {

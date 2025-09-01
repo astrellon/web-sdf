@@ -102,6 +102,7 @@ export class WebGLViewport extends Component<Props>
 
         const options = this.props.options;
         this.renderer.epsilon = options.epsilon;
+        this.renderer.shadowSharpness = options.shadowSharpness;
         this.renderer.maxMarchingSteps = options.maxMarchingStep;
         this.renderer.enableShadows = options.enableShadows;
         this.renderer.enableShowMarches = options.enableShowMarching;
