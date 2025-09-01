@@ -3,6 +3,8 @@ import vertText from "../shaders/vert.glsl";
 // @ts-ignore
 import sdfFunctionsText from "../shaders/sdf-functions.glsl";
 // @ts-ignore
+import raymarchFunctionsText from "../shaders/raymarch-functions.glsl";
+// @ts-ignore
 import raymarchMainText from "../shaders/raymarch.glsl";
 
 import Shader from "../shaders/shader";
@@ -39,6 +41,7 @@ const ENABLE_NUM_MARCHING = 0x02;
 const ENABLE_DEPTH = 0x04;
 const ENABLE_NORMALS = 0x08;
 const ENABLE_TO_LIGHT_NORMALS = 0x10;
+const ENABLE_SOFT_SHADOWS = 0x20;
 
 function addFlag(check: boolean, flag: number)
 {
@@ -86,6 +89,7 @@ export default class WebGLSdfRenderer
     public enableDepth = false;
     public enableNormals = false;
     public enableToLightNormals = false;
+    public enableSoftShadows = true;
 
     public canvasScale = 1;
 
@@ -167,6 +171,9 @@ export default class WebGLSdfRenderer
         vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
         mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
         mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
+
+        // console.log(this.cameraMatrixForSdfArray);
+        // console.log(this.cameraPosition);
     }
 
     public resizeCanvas = (width: number, height: number) =>
@@ -214,6 +221,7 @@ export default class WebGLSdfRenderer
         flags |= addFlag(this.enableNormals, ENABLE_NORMALS);
         flags |= addFlag(this.enableShowMarches, ENABLE_NUM_MARCHING);
         flags |= addFlag(this.enableToLightNormals, ENABLE_TO_LIGHT_NORMALS);
+        flags |= addFlag(this.enableSoftShadows, ENABLE_SOFT_SHADOWS);
 
         this.gl.uniform1i(this.uFlags, flags);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
@@ -252,7 +260,8 @@ export default class WebGLSdfRenderer
 
         const includeLookup = {
             'assembled-shader': assembledShaderText,
-            'sdf-functions': sdfFunctionsText
+            'sdf-functions': sdfFunctionsText,
+            'raymarch-functions': raymarchFunctionsText
         }
 
         const shader = Shader.create(gl, includeLookup, vertText, raymarchMainText);

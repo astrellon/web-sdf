@@ -31,6 +31,7 @@ export class WebGLViewport extends Component<Props>
     {
         const canvasEl = this.canvasRef.current;
         this.createNewRenderer(canvasEl);
+        this.renderer.updateCamera();
 
         window.addEventListener('resize', this.onViewportResize);
 
@@ -87,8 +88,16 @@ export class WebGLViewport extends Component<Props>
         if (this.renderer.prevShaderText !== this.props.currentShader)
         {
             console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
+            const prevCameraRotationX = this.renderer.cameraRotationX;
+            const prevCameraRotationY = this.renderer.cameraRotationY;
+            const prevCameraDistance = this.renderer.cameraDistance;
             this.renderer.destroy();
             this.createNewRenderer(this.canvasRef.current);
+
+            this.renderer.cameraRotationX = prevCameraRotationX;
+            this.renderer.cameraRotationY = prevCameraRotationY;
+            this.renderer.cameraDistance = prevCameraDistance;
+            this.renderer.updateCamera();
         }
 
         const options = this.props.options;
@@ -99,6 +108,7 @@ export class WebGLViewport extends Component<Props>
         this.renderer.enableDepth = options.enableDepth;
         this.renderer.enableNormals = options.enableNormals;
         this.renderer.enableToLightNormals = options.enableToLightNormals;
+        this.renderer.enableSoftShadows = options.enableSoftShadows;
         if (this.renderer.canvasScale !== options.renderScale)
         {
             this.renderer.canvasScale = options.renderScale;
@@ -112,7 +122,7 @@ export class WebGLViewport extends Component<Props>
         this.renderer = WebGLSdfRenderer.create(canvasEl, this.props.currentShader);
         this.renderer.canvasScale = this.props.options.renderScale;
         this.renderer.cameraDistance = 10.0;
-        this.renderer.updateCamera();
+        // this.renderer.updateCamera();
         this.updateCanvasSize();
 
         this.renderer.setupCanvas();
@@ -124,7 +134,6 @@ export class WebGLViewport extends Component<Props>
         {
             return;
         }
-        console.log(e);
 
         this.mousePosX = e.clientX;
         this.mousePosY = e.clientY;

@@ -3,37 +3,38 @@ import { rvec2, rvec3, rvec4 } from '../math';
 import "./vector-view.scss";
 
 type basicVector = rvec2 | rvec3 | rvec4;
+type ForceLength = undefined | 2 | 3 | 4;
 interface Props
 {
     readonly disabled?: boolean;
     readonly vector: basicVector;
+    readonly forceLength?: ForceLength;
     readonly onChange: (oldVector: basicVector, newVector: basicVector) => void;
 }
 
-function isVec3(x: basicVector): x is rvec3
+function isVec3(x: basicVector, forceLength: ForceLength): x is rvec3
 {
-    return x.length === 3;
+    return x.length >= 3 || forceLength >= 3;
 }
 
-function isVec4(x: basicVector): x is rvec4
+function isVec4(x: basicVector, forceLength: ForceLength): x is rvec4
 {
-    return x.length === 4;
+    return x.length === 4 || forceLength === 4;
 }
 
 export default class VectorView extends Component<Props>
 {
     public render()
     {
-        const v = this.props.vector;
-        const disabled = this.props.disabled;
-        const isV3 = isVec3(v);
-        const isV4 = isVec4(v);
+        const { vector: v, disabled, forceLength } = this.props;
+        const isV3 = isVec3(v, forceLength);
+        const isV4 = isVec4(v, forceLength);
 
         return <div class='vector control-group'>
             <input class='input' disabled={disabled} type='number' value={v[0]} onChange={this.onChangeX} placeholder='x' step={0.1} />
             <input class='input' disabled={disabled} type='number' value={v[1]} onChange={this.onChangeY} placeholder='y' step={0.1} />
 
-            { isV3 &&
+            { (isV3) &&
             <input class='input' disabled={disabled} type='number' value={v[2]} onChange={this.onChangeZ} placeholder='z' step={0.1} />
             }
             { isV4 &&

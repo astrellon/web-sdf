@@ -57,7 +57,7 @@ function loadDefaultSdfScene()
     const box = createNewShapeNode('Box', {
         type: "box",
         shapeParams: vec3New(6, 1, 6),
-        diffuseColour: vec3New(0.2, 0.25, 0.3),
+        diffuseColour: vec3New(1.0, 1.0, 1.0),
         lightingModel: 'lambert'
     }, vec3New(0, -1.5, 0));
     const sphere = createNewShapeNode('Sphere', {
@@ -80,6 +80,31 @@ function loadDefaultSdfScene()
     sceneTreeAddChildMutable(rootNode, greenLight);
 
     const nodes = makeNodeMap(rootNode, mainScene, hexPrism, boxAndSphere, box, sphere, redLight, greenLight);
+
+    /*
+    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'union');
+    const sphereSmall = createNewShapeNode('Sphere Small', {
+        type: "sphere",
+        shapeParams: vec3New(1.25, 2, 1),
+        diffuseColour: vec3New(0.1, 0.2, 0.9),
+        lightingModel: 'phong'
+    })
+    const sphereLarge = createNewShapeNode('Sphere Large', {
+        type: "sphere",
+        shapeParams: vec3New(10, 0, 0),
+        diffuseColour: vec3New(0.9, 0.2, 0.1),
+        lightingModel: 'phong'
+    }, vec3New(0, -11, 0))
+    sceneTreeAddChildMutable(rootNode, sphereSmall);
+    sceneTreeAddChildMutable(rootNode, sphereLarge);
+
+    const redLight = createNewLightNode('Red Light', {
+        colour: vec4New(1.0, 0.8, 0.6, 1)
+    }, vec3New(4, 2, 3));
+    sceneTreeAddChildMutable(rootNode, redLight);
+
+    const nodes = makeNodeMap(rootNode, sphereSmall, sphereLarge, redLight);
+    */
 
     const tree: SceneTree = {
         nodes, rootNodeId: rootNode.id

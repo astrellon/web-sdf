@@ -275,12 +275,12 @@ export class SceneConverter
             if (this.processNode(lights, materials, parameters, nodes[childId], nodes, assembler))
             {
                 shapeIndex++;
-            }
 
-            if (shapeIndex > 1 && numChildren > 2)
-            {
-                startedOperations++;
-                this.processOperation(node.childOpCode, assembler);
+                if (numChildren > 2 && shapeIndex + 1 < numChildren)
+                {
+                    startedOperations++;
+                    this.processOperation(node.childOpCode, assembler);
+                }
             }
         }
 
@@ -322,11 +322,11 @@ export class SceneConverter
     {
         const p = node.position;
         assembler.startFunction('vec3');
-        this.pushParameter(parameters, p[0], assembler);
-        this.pushParameter(parameters, p[1], assembler);
-        this.pushParameter(parameters, p[2], assembler);
+        this.pushParameter(parameters, -p[0], assembler);
+        this.pushParameter(parameters, -p[1], assembler);
+        this.pushParameter(parameters, -p[2], assembler);
         assembler.endFunction();
-        assembler.writeRaw(' - point');
+        assembler.writeRaw(' + point');
     }
 
     private static processShape(node: SceneNode, shape: Shape, materials: ShaderMaterial[], parameters: number[], assembler: ShaderAssembler)

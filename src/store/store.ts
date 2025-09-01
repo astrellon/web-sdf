@@ -9,6 +9,7 @@ export const defaultRenderOptions: ViewportOptions = {
     enableDepth: false,
     enableNormals: false,
     enableToLightNormals: false,
+    enableSoftShadows: true,
     epsilon: 0.0001,
     pixelated: false
 }

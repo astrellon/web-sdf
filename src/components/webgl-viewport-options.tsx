@@ -28,7 +28,10 @@ export default class WebGLViewportOptions extends Component<Props>
 {
     public render(props: Props)
     {
-        const { pixelated, renderScale, enableShadows, enableShowMarching, enableDepth, enableNormals, epsilon, maxMarchingStep } = this.props.options;
+        const { pixelated, renderScale,
+            enableShadows, enableShowMarching, enableDepth,
+            enableNormals, enableToLightNormals, enableSoftShadows,
+            epsilon, maxMarchingStep } = this.props.options;
 
         return <div class='viewport-options'>
                 <Popover text='Menu'>
@@ -46,7 +49,8 @@ export default class WebGLViewportOptions extends Component<Props>
                         <button onClick={this.toggleMarching}>{ enableShowMarching ? 'Hide Marching' : 'Show Marching' }</button>
                         <button onClick={this.toggleDepth}>{ enableDepth ? 'Hide Depth' : 'Show Depth' }</button>
                         <button onClick={this.toggleNormals}>{ enableNormals ? 'Hide Normals' : 'Show Normals' }</button>
-                        <button onClick={this.toggleToLightNormals}>{ enableNormals ? 'Hide To Light' : 'Show To Light' }</button>
+                        <button onClick={this.toggleToLightNormals}>{ enableToLightNormals ? 'Hide To Light' : 'Show To Light' }</button>
+                        <button onClick={this.toggleSoftShadows}>{ enableSoftShadows ? 'Soft Shadows' : 'Hard Shadows' }</button>
                         <button onClick={this.showRawScene}>JSON Scene</button>
                     </div>
                     <LabeledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
@@ -112,6 +116,11 @@ export default class WebGLViewportOptions extends Component<Props>
     private toggleToLightNormals = (e: Event) =>
     {
         this.updateOptions({ enableToLightNormals: !this.props.options.enableToLightNormals });
+    }
+
+    private toggleSoftShadows = (e: Event) =>
+    {
+        this.updateOptions({ enableSoftShadows: !this.props.options.enableSoftShadows });
     }
 
     private updateOptions = (options: Partial<ViewportOptions>) =>
