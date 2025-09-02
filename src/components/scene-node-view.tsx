@@ -6,8 +6,9 @@ import LightView from './light-view';
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
 import { setReparentModal, setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
-import './scene-node-view.scss';
 import { quat, vec3 } from 'gl-matrix';
+import { LabelledRange } from './labelled-range';
+import './scene-node-view.scss';
 
 interface Props
 {
@@ -43,6 +44,7 @@ export default class SceneNodeView extends Component<Props, State>
 
         const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
         const selectedOpCode = node.childOpCode ?? 'none';
+        const operationParams = node.operationParams;
 
         return <div class="scene-node-view">
             <div>
@@ -60,7 +62,14 @@ export default class SceneNodeView extends Component<Props, State>
                     <option value='union'>Union</option>
                     <option value='intersection'>Intersection</option>
                     <option value='subtraction'>Subtraction</option>
+                    <option value='xor'>Xor</option>
+                    <option value='smoothUnion'>Smooth Union</option>
+                    <option value='smoothIntersection'>Smooth Intersection</option>
+                    <option value='smoothSubtraction'>Smooth Subtraction</option>
                 </select>
+            </div>
+            <div>
+                <LabelledRange label={`Operation Param ${operationParams}`} inputProps={{value: operationParams, min: 0, max: 10, step: 0.1, onInput: this.changeOperationParam}} />
             </div>
             <div>
                 <strong>Shape</strong> <button onClick={this.toggleShape}>{node.hasShape ? 'Hide' : 'Show'}</button>
@@ -80,11 +89,6 @@ export default class SceneNodeView extends Component<Props, State>
                     <button onClick={this.reparent}>Re-parent</button>
                 </Fragment>}
             </div>
-            {/* <div>
-                <strong>Children</strong> {
-                    children.map((child, i) => <ShapeNodeView key={i} node={child} onChange={(n) => this.onChangeChild(i, n)}/>)
-                }
-            </div> */}
         </div>
     }
 
@@ -116,6 +120,18 @@ export default class SceneNodeView extends Component<Props, State>
                 childNodeId: this.props.node.id
             })
         );
+    }
+
+    private changeOperationParam = (e: Event) =>
+    {
+        const value = parseFloat((e.target as HTMLInputElement).value);
+        if (!isFinite(value))
+        {
+            console.warn(`Operation param parse failed`);
+            return;
+        }
+
+        this.updateField(value, 'operationParams');
     }
 
     private toggleShape = () =>

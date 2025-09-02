@@ -1,7 +1,7 @@
-import { Editable } from "../common";
-import { quat, vec3, vec4 } from "gl-matrix";
-import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from "./scene-entities";
-import { rquat, rvec3, vec4One } from "../math";
+import { Editable } from '../common';
+import { quat, vec3, vec4 } from 'gl-matrix';
+import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from './scene-entities';
+import { rquat, rvec3, vec4One } from '../math';
 
 export interface SceneTree
 {
@@ -75,6 +75,7 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         rotation: quat.create(),
         childrenIds: [],
         childOpCode: 'none',
+        operationParams: 0.5,
         shape: createNewShape({}),
         hasShape: false,
         light: createNewLight({}),
@@ -93,6 +94,7 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
         rotation: rotation ?? quat.create(),
         childrenIds: [],
         childOpCode: 'none',
+        operationParams: 0.5,
         shape: createNewShape({}),
         hasShape: false,
         light: light != undefined ? createNewLight(light) : undefined,
@@ -112,7 +114,8 @@ export function createNewShapeNode(name: string, shape?: Partial<Shape>, positio
         light: createNewLight({}),
         hasLight: false,
         childrenIds: [],
-        childOpCode: childOpCode != undefined ? childOpCode : 'none'
+        childOpCode: childOpCode != undefined ? childOpCode : 'none',
+        operationParams: 0.5,
     }
 }
 

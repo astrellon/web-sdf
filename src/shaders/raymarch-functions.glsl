@@ -65,23 +65,6 @@ vec2 hardShadow(vec3 rayOrigin, vec3 lightPos)
     return vec2(0.0, dist.z);
 }
 
-vec2 softShadowIQ( in vec3 ro, in vec3 rd, float mint, float maxt, float w )
-{
-    float res = 1.0;
-    float t = mint;
-    int i = 0;
-    for(; i < uMaxMarchingSteps && t < maxt; i++)
-    {
-        float h = sceneSDF(ro + t*rd).x;
-        res = min( res, h/(w*t) );
-        t += clamp(h, 0.005, 0.50);
-        if( res<-1.0 || t>maxt ) break;
-    }
-    res = max(res,-1.0);
-
-    return vec2(0.25*(1.0+res)*(1.0+res)*(2.0-res), float(i));
-}
-
 vec3 estimateNormalPhong(vec3 point, vec3 currentDepth)
 {
     vec2 eps_zero = vec2(currentDepth.x * 0.0015, 0.0);

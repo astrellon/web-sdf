@@ -14,8 +14,8 @@ float sdfHexPrism(vec3 point, vec2 params)
 float sdfBox(vec3 point, vec3 size)
 {
     vec3 d = abs(point) - size;
-    return min(max(d.x, max(d.y, d.z)), 0.0)   // inside distance
-        + length(max(d, 0.0));              // outside distance
+    return min(max(d.x, max(d.y, d.z)), 0.0) // inside distance
+        + length(max(d, 0.0));               // outside distance
 }
 
 float sdfTorus(vec3 point, vec2 params)
@@ -30,8 +30,10 @@ float sdfOctahedron(vec3 point, float s)
     return (point.x + point.y + point.z - s) * 0.57735027;
 }
 
-float sdfCappedCylinder(vec3 point, float height, float radius)
+float sdfCappedCylinder(vec3 point, vec2 params)
 {
+    float height = params.x;
+    float radius = params.y;
     vec2 d = abs(vec2(length(point.xz), point.y)) - vec2(radius, height);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
@@ -66,4 +68,34 @@ vec2 opSubtraction(vec2 d1, vec2 d2)
 vec2 opIntersection(vec2 d1, vec2 d2)
 {
     return d1.x > d2.x ? d1 : d2;
+}
+
+vec2 opXor(vec2 d1, vec2 d2)
+{
+    vec2 unionResult = opUnion(d1, d2);
+    vec2 intersectionResult = opIntersection(d1, d2);
+    intersectionResult.x = -intersectionResult.x;
+
+    return opIntersection(unionResult, intersectionResult);
+}
+
+vec2 opSmoothUnion(float k, vec2 d1, vec2 d2)
+{
+    float h = saturate(0.5 + 0.5 * (d2.x - d1.x) / k);
+    float result = mix(d2.x, d1.x, h) - k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
+}
+
+vec2 opSmoothSubtraction(float k, vec2 d1, vec2 d2)
+{
+    float h = saturate(0.5 - 0.5 * (d2.x + d1.x) / k);
+    float result = mix(d2.x, -d1.x, h) + k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
+}
+
+vec2 opSmoothIntersection(float k, vec2 d1, vec2 d2)
+{
+    float h = saturate(0.5 - 0.5 * (d2.x - d1.x) / k);
+    float result = mix(d2.x, d1.x, h) + k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
 }

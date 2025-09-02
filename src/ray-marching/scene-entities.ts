@@ -1,8 +1,9 @@
-import { vec3 } from "gl-matrix";
-import { Opaque } from "../common";
-import { rquat, rvec3, rvec4 } from "../math";
+import { vec3 } from 'gl-matrix';
+import { Opaque } from '../common';
+import { rquat, rvec3, rvec4 } from '../math';
 
-export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
+export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor' |
+    'smoothUnion' | 'smoothSubtraction' | 'smoothIntersection';
 export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
 export const SdfOpCodeNone = -5e2 as SdfOpCodeInt;
 export const SdfOpCodeUnion = -6e2 as SdfOpCodeInt;
@@ -38,6 +39,7 @@ export interface SceneNode
     readonly shape: Shape;
     readonly hasShape: boolean;
     readonly childOpCode: SdfOpCode;
+    readonly operationParams: number;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;
     readonly parentId?: SceneNodeId;
     readonly light: Light;

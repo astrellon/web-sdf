@@ -32,6 +32,7 @@ uniform mat2x4 uMaterials[32];
 uniform float uShadowSharpness;
 
 #define checkFlag(flag) ((uFlags & flag) > 0)
+#define saturate(x) clamp(x, 0.0, 1.0)
 
 #include <sdf-functions>
 

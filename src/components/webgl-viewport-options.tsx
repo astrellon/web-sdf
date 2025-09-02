@@ -1,27 +1,14 @@
-import { h, Component, Attributes } from 'preact';
+import { h, Component } from 'preact';
 import { setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
 import { store } from '../store/store';
-import "./webgl-viewport-options.scss";
 import Popover from './popover';
+import { LabelledRange } from './labelled-range';
+import './webgl-viewport-options.scss';
 
 interface Props
 {
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
-}
-
-interface LabeledRangeProps
-{
-    readonly label: string;
-    readonly inputProps: any;
-}
-
-const LabeledRange = (props: LabeledRangeProps) =>
-{
-    return <label style={{'display': 'inline-block'}}>
-        {props.label}
-        <input style={{'display': 'block'}} type='range' {...props.inputProps} />
-    </label>
 }
 
 export default class WebGLViewportOptions extends Component<Props>
@@ -30,7 +17,7 @@ export default class WebGLViewportOptions extends Component<Props>
     {
         const { pixelated, renderScale,
             enableShadows, enableShowMarching, enableDepth,
-            enableNormals, enableToLightNormals, enableSoftShadows,
+            enableNormals, enableToLightNormals,
             epsilon, shadowSharpness, maxMarchingStep } = this.props.options;
 
         return <div class='viewport-options'>
@@ -52,9 +39,9 @@ export default class WebGLViewportOptions extends Component<Props>
                         <button onClick={this.toggleToLightNormals}>{ enableToLightNormals ? 'Hide To Light' : 'Show To Light' }</button>
                         <button onClick={this.showRawScene}>JSON Scene</button>
                     </div>
-                    <LabeledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
-                    <LabeledRange label={`Marching Steps ${maxMarchingStep}`} inputProps={{value: maxMarchingStep, min: 0, max: 1000, step: 1, onInput: this.changeMarchingSteps}} />
-                    <LabeledRange label={`Shadows ${shadowSharpness}`} inputProps={{value: shadowSharpness, min: 0.0, max: 256, step: 0.1, onInput: this.changeShadowSharpness}} />
+                    <LabelledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
+                    <LabelledRange label={`Marching Steps ${maxMarchingStep}`} inputProps={{value: maxMarchingStep, min: 0, max: 1000, step: 1, onInput: this.changeMarchingSteps}} />
+                    <LabelledRange label={`Shadows ${shadowSharpness}`} inputProps={{value: shadowSharpness, min: 0.0, max: 256, step: 0.1, onInput: this.changeShadowSharpness}} />
                 </Popover>
         </div>;
     }
@@ -75,7 +62,7 @@ export default class WebGLViewportOptions extends Component<Props>
 
         this.updateOptions({ epsilon: value });
     }
-    
+
     private changeShadowSharpness = (e: Event) =>
     {
         const value = parseFloat((e.target as HTMLInputElement).value);

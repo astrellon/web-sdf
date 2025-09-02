@@ -1,9 +1,9 @@
-import equal from "fast-deep-equal";
-import { SceneTree } from "./scene-tree";
-import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodeId, SceneNodes, SdfOpCode, Shape } from "./scene-entities";
-import { rvec3, rvec4, vec3ApproxEquals, vec3One, vec4One } from "../math";
-import { vec3 } from "gl-matrix";
-import ShaderAssembler from "./shader-assembler";
+import equal from 'fast-deep-equal';
+import { SceneTree } from './scene-tree';
+import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, Shape } from './scene-entities';
+import { rvec3, rvec4, vec3One, vec4One } from '../math';
+import { vec3 } from 'gl-matrix';
+import ShaderAssembler from './shader-assembler';
 
 interface ShaderLight
 {
@@ -46,6 +46,7 @@ const shapeInfoMap: { readonly [type: string]: ShapeInfo } = {
     'hexPrism': {funcName: 'sdfHexPrism', numParams: 2},
     'torus': {funcName: 'sdfTorus', numParams: 2},
     'octahedron': {funcName: 'sdfOctahedron', numParams: 1},
+    'cylinder': {funcName: 'sdfCappedCylinder', numParams: 2},
     'icosahedron': {funcName: 'sdfIcosahedron', numParams: 1},
 }
 
@@ -249,7 +250,7 @@ export class SceneConverter
             if (numChildren > 1)
             {
                 addedFunc = true;
-                this.processOperation(node.childOpCode, assembler);
+                this.processOperation(node.childOpCode, assembler, parameters, node.operationParams);
                 startedOperations++;
             }
         }
@@ -279,7 +280,7 @@ export class SceneConverter
                 if (numChildren > 2 && shapeIndex + 1 < numChildren)
                 {
                     startedOperations++;
-                    this.processOperation(node.childOpCode, assembler);
+                    this.processOperation(node.childOpCode, assembler, parameters, node.operationParams);
                 }
             }
         }
@@ -292,7 +293,7 @@ export class SceneConverter
         return addedFunc;
     }
 
-    private static processOperation(opCode: SdfOpCode, assembler: ShaderAssembler)
+    private static processOperation(opCode: SdfOpCode, assembler: ShaderAssembler, parameters: number[], operationParam: number)
     {
         if (opCode === 'union')
         {
@@ -305,6 +306,25 @@ export class SceneConverter
         else if (opCode === 'subtraction')
         {
             assembler.startFunction('opSubtraction');
+        }
+        else if (opCode === 'xor')
+        {
+            assembler.startFunction('opXor');
+        }
+        else if (opCode === 'smoothUnion')
+        {
+            assembler.startFunction('opSmoothUnion');
+            this.pushParameter(parameters, operationParam, assembler)
+        }
+        else if (opCode === 'smoothSubtraction')
+        {
+            assembler.startFunction('opSmoothSubtraction');
+            this.pushParameter(parameters, operationParam, assembler)
+        }
+        else if (opCode === 'smoothIntersection')
+        {
+            assembler.startFunction('opSmoothIntersection');
+            this.pushParameter(parameters, operationParam, assembler)
         }
         else
         {
