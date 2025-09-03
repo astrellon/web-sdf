@@ -6,7 +6,12 @@ export const defaultRenderOptions: ViewportOptions = {
     maxMarchingStep: 512,
     enableShadows: true,
     enableShowMarching: false,
+    enableDepth: false,
+    enableNormals: false,
+    enableToLightNormals: false,
+    enableSoftShadows: true,
     epsilon: 0.0001,
+    shadowSharpness: 128.0,
     pixelated: false
 }
 export const defaultViewport: ViewportState = {
@@ -22,5 +27,6 @@ export const store = new DataStore<AppState>({
     },
     rawSceneModal: {
         show: false,
-    }
+    },
+    currentShader: 'return 100.0;'
 });

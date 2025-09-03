@@ -10,6 +10,7 @@ interface Props
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
     readonly sceneConverter: SceneConverter;
+    readonly currentShader: string;
 }
 
 export class WebGLViewport extends Component<Props>
@@ -29,13 +30,8 @@ export class WebGLViewport extends Component<Props>
     public componentDidMount(): void
     {
         const canvasEl = this.canvasRef.current;
-        this.renderer = WebGLSdfRenderer.create(canvasEl);
-        this.renderer.canvasScale = this.props.options.renderScale;
-        this.renderer.cameraDistance = 10.0;
+        this.createNewRenderer(canvasEl);
         this.renderer.updateCamera();
-        this.updateCanvasSize();
-
-        this.renderer.setupCanvas();
 
         window.addEventListener('resize', this.onViewportResize);
 
@@ -89,11 +85,31 @@ export class WebGLViewport extends Component<Props>
     private renderScene = () =>
     {
         this.renderFrameCallback = -1;
+        if (this.renderer.prevShaderText !== this.props.currentShader)
+        {
+            console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
+            const prevCameraRotationX = this.renderer.cameraRotationX;
+            const prevCameraRotationY = this.renderer.cameraRotationY;
+            const prevCameraDistance = this.renderer.cameraDistance;
+            this.renderer.destroy();
+            this.createNewRenderer(this.canvasRef.current);
+
+            this.renderer.cameraRotationX = prevCameraRotationX;
+            this.renderer.cameraRotationY = prevCameraRotationY;
+            this.renderer.cameraDistance = prevCameraDistance;
+            this.renderer.updateCamera();
+        }
+
         const options = this.props.options;
         this.renderer.epsilon = options.epsilon;
+        this.renderer.shadowSharpness = options.shadowSharpness;
         this.renderer.maxMarchingSteps = options.maxMarchingStep;
         this.renderer.enableShadows = options.enableShadows;
         this.renderer.enableShowMarches = options.enableShowMarching;
+        this.renderer.enableDepth = options.enableDepth;
+        this.renderer.enableNormals = options.enableNormals;
+        this.renderer.enableToLightNormals = options.enableToLightNormals;
+        this.renderer.enableSoftShadows = options.enableSoftShadows;
         if (this.renderer.canvasScale !== options.renderScale)
         {
             this.renderer.canvasScale = options.renderScale;
@@ -102,13 +118,23 @@ export class WebGLViewport extends Component<Props>
         this.renderer.render(this.props.sceneConverter);
     }
 
+    private createNewRenderer = (canvasEl: HTMLCanvasElement) =>
+    {
+        this.renderer = WebGLSdfRenderer.create(canvasEl, this.props.currentShader);
+        this.renderer.canvasScale = this.props.options.renderScale;
+        this.renderer.cameraDistance = 10.0;
+        // this.renderer.updateCamera();
+        this.updateCanvasSize();
+
+        this.renderer.setupCanvas();
+    }
+
     private onPointerDown = (e: PointerEvent) =>
     {
         if (e.target !== this.canvasRef.current)
         {
             return;
         }
-        console.log(e);
 
         this.mousePosX = e.clientX;
         this.mousePosY = e.clientY;

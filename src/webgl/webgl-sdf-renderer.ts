@@ -1,14 +1,16 @@
 // @ts-ignore These are handled by esbuild
 import vertText from "../shaders/vert.glsl";
 // @ts-ignore
-import fragText from "../shaders/frag.glsl";
-// @ts-ignore
 import sdfFunctionsText from "../shaders/sdf-functions.glsl";
+// @ts-ignore
+import raymarchFunctionsText from "../shaders/raymarch-functions.glsl";
+// @ts-ignore
+import raymarchMainText from "../shaders/raymarch.glsl";
 
 import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
-import { quatFromEuler, quatIdentity, rquat, vec3, vec3ScaleAndAddBy, vec3TransformQuat, vec3Zero } from "../gl-matrix-ts";
-import WebGLGizmos from "./webgl-gizmos";
+import { mat3, quat, vec3 } from "gl-matrix";
+import { noiseTexture } from "./noise-texture";
 
 const positions = [
     -1, -1,
@@ -20,36 +22,33 @@ const positions = [
     -1, 1
 ];
 
-const tempAxisQuat = quatIdentity();
-function mat3ArraySetFromQuat(m: Float32Array, q: rquat)
+const tempAxisQuat = quat.create();
+
+function getErrorMessage(error: number, gl: WebGL2RenderingContext)
 {
-    const x2 = q.x + q.x;
-    const y2 = q.y + q.y;
-    const z2 = q.z + q.z;
+    if (error === gl.INVALID_ENUM) return 'Invalid enum';
+    if (error === gl.INVALID_VALUE) return 'Invalid value';
+    if (error === gl.INVALID_OPERATION) return 'Invalid operation';
+    if (error === gl.INVALID_FRAMEBUFFER_OPERATION) return 'Invalid framebuffer operation';
+    if (error === gl.OUT_OF_MEMORY) return 'Out of memory';
+    if (error === gl.CONTEXT_LOST_WEBGL) return 'Context lost WebGL';
+    if (error === gl.NO_ERROR) return 'No error';
+    return `Unknown error ${error}`;
+}
 
-    const xx = q.x * x2;
-    const yx = q.y * x2;
-    const yy = q.y * y2;
-    const zx = q.z * x2;
-    const zy = q.z * y2;
-    const zz = q.z * z2;
-    const wx = q.w * x2;
-    const wy = q.w * y2;
-    const wz = q.w * z2;
+const ENABLE_SHADOWS = 0x01;
+const ENABLE_NUM_MARCHING = 0x02;
+const ENABLE_DEPTH = 0x04;
+const ENABLE_NORMALS = 0x08;
+const ENABLE_TO_LIGHT_NORMALS = 0x10;
 
-    m[0] = 1 - yy - zz;
-    m[1] = yx - wz;
-    m[2] = zx + wy;
-
-    m[3] = yx + wz;
-    m[4] = 1 - xx - zz;
-    m[5] = zy - wx;
-
-    m[6] = zx - wy;
-    m[7] = zy + wx;
-    m[8] = 1 - xx - yy;
-
-    return m;
+function addFlag(check: boolean, flag: number)
+{
+    if (check)
+    {
+        return flag;
+    }
+    return 0;
 }
 
 export default class WebGLSdfRenderer
@@ -58,12 +57,8 @@ export default class WebGLSdfRenderer
     public readonly shader:Shader;
     public readonly positionBuffer: WebGLBuffer;
 
-    public readonly uShapes: WebGLUniformLocation;
-    public readonly uOperations: WebGLUniformLocation;
-    public readonly uNumOperations: WebGLUniformLocation;
-    public readonly uHighlight: WebGLUniformLocation;
-
     public readonly uMaterials: WebGLUniformLocation;
+    public readonly uParameters: WebGLUniformLocation;
 
     public readonly uLights: WebGLUniformLocation;
     public readonly uNumLights: WebGLUniformLocation;
@@ -76,65 +71,63 @@ export default class WebGLSdfRenderer
     public readonly uMaxMarchingSteps: WebGLUniformLocation;
     public readonly uEpsilon: WebGLUniformLocation;
     public readonly uFlags: WebGLUniformLocation;
+    public readonly uShadowSharpness: WebGLUniformLocation;
     public readonly uNoise: WebGLUniformLocation;
     public readonly noiseTexture: WebGLTexture;
-    public readonly gizmos: WebGLGizmos;
 
-    public cameraPosition: vec3 = vec3Zero();
-    public cameraTarget: vec3 = vec3Zero();
+    public cameraPosition: vec3 = vec3.create();
+    public cameraTarget: vec3 = vec3.create();
     public cameraRotationX = 0;
     public cameraRotationY = 0;
     public cameraDistance = 10;
 
     public maxMarchingSteps = 255;
     public epsilon = 0.001;
+    public shadowSharpness = 128.0;
 
     public enableShadows = true;
     public enableShowMarches = false;
+    public enableDepth = false;
+    public enableNormals = false;
+    public enableToLightNormals = false;
+    public enableSoftShadows = true;
 
     public canvasScale = 1;
 
-    private readonly cameraMatrixForSdfArray = new Float32Array(9);
+    private readonly cameraMatrixForSdfArray = mat3.create();
 
-    private prevShapes: any;
-    private prevOperations: any;
-    private prevHighlights: any;
     private prevMaterials: any;
     private prevLights: any;
+    private prevParameters: any;
+
+    public prevShaderText: string;
 
     constructor(gl: WebGL2RenderingContext,
         shader: Shader,
+        shaderText: string,
         positionBuffer: WebGLBuffer,
-        uShapes: WebGLUniformLocation,
-        uOperations: WebGLUniformLocation,
-        uNumOperations: WebGLUniformLocation,
-        uHighlight: WebGLUniformLocation,
         uLights: WebGLUniformLocation,
         uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
+        uParameters: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
         uCameraMatrix: WebGLUniformLocation,
         uAspectRatio: WebGLUniformLocation,
         uMaxMarchingSteps: WebGLUniformLocation,
         uEpsilon: WebGLUniformLocation,
         uFlags: WebGLUniformLocation,
+        uShadowSharpness: WebGLUniformLocation,
         uNoise: WebGLUniformLocation,
         noiseTexture: WebGLTexture,
-
-        gizmos: WebGLGizmos
     )
     {
         this.gl = gl;
         this.shader = shader;
+        this.prevShaderText = shaderText;
         this.positionBuffer = positionBuffer;
 
-        this.uShapes = uShapes;
-
-        this.uOperations = uOperations;
-        this.uNumOperations = uNumOperations;
-        this.uHighlight = uHighlight;
-
         this.uMaterials = uMaterials;
+        this.uParameters = uParameters;
 
         this.uLights = uLights;
         this.uNumLights = uNumLights;
@@ -146,10 +139,15 @@ export default class WebGLSdfRenderer
         this.uMaxMarchingSteps = uMaxMarchingSteps;
         this.uEpsilon = uEpsilon;
         this.uFlags = uFlags;
+        this.uShadowSharpness = uShadowSharpness;
         this.uNoise = uNoise;
         this.noiseTexture = noiseTexture;
+    }
 
-        this.gizmos = gizmos;
+    public destroy()
+    {
+        this.gl.deleteProgram(this.shader.program);
+        // this.gl.deleteBuffer(this.positionBuffer);
     }
 
     public setupCanvas()
@@ -169,11 +167,16 @@ export default class WebGLSdfRenderer
 
     public updateCamera()
     {
-        quatFromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
-        const forward = vec3TransformQuat(vec3Zero(), {x: 0, y: 0, z: 1}, tempAxisQuat);
+        quat.fromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
+        const forward = vec3.create();
+        vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
 
-        vec3ScaleAndAddBy(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
-        mat3ArraySetFromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
+        vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
+        mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
+        mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
+
+        // console.log(this.cameraMatrixForSdfArray);
+        // console.log(this.cameraPosition);
     }
 
     public resizeCanvas = (width: number, height: number) =>
@@ -201,31 +204,6 @@ export default class WebGLSdfRenderer
             this.prevLights = scene.getLights();
         }
 
-        if (this.prevOperations !== scene.getOperations())
-        {
-            console.info('Rendering new operations');
-            const ops = scene.getOperationNumbers();
-            this.gl.uniform1i(this.uNumOperations, ops.length);
-            this.gl.uniform1iv(this.uOperations, ops);
-            this.prevOperations = scene.getOperations();
-        }
-
-        if (this.prevHighlights !== scene.getHighlights())
-        {
-            const ops = scene.getHighlights();
-            console.info('Rendering new highlight', ops, 'ops', this.prevOperations);
-
-            this.gl.uniform2iv(this.uHighlight, ops);
-            this.prevHighlights = ops;
-        }
-
-        if (this.prevShapes !== scene.getShapes())
-        {
-            console.info('Rendering new shapes');
-            this.gl.uniformMatrix4fv(this.uShapes, false, scene.getShapeDataArray());
-            this.prevShapes = scene.getShapes();
-        }
-
         if (this.prevMaterials !== scene.getMaterials())
         {
             this.prevMaterials = scene.getMaterials();
@@ -233,15 +211,30 @@ export default class WebGLSdfRenderer
             this.gl.uniformMatrix2x4fv(this.uMaterials, false, scene.getMaterialDataArray());
         }
 
-        this.gl.uniform4i(this.uFlags, this.enableShadows ? 1 : 0, this.enableShowMarches ? 1 : 0, 0, 0);
+        if (this.prevParameters !== scene.getParameters())
+        {
+            this.prevParameters = scene.getParameters();
+            console.info('Rendering new parameters', this.prevParameters);
+            this.gl.uniform1fv(this.uParameters, this.prevParameters);
+        }
+
+        let flags = 0;
+        flags |= addFlag(this.enableShadows, ENABLE_SHADOWS);
+        flags |= addFlag(this.enableDepth, ENABLE_DEPTH);
+        flags |= addFlag(this.enableNormals, ENABLE_NORMALS);
+        flags |= addFlag(this.enableShowMarches, ENABLE_NUM_MARCHING);
+        flags |= addFlag(this.enableToLightNormals, ENABLE_TO_LIGHT_NORMALS);
+
+        this.gl.uniform1i(this.uFlags, flags);
+        this.gl.uniform1f(this.uShadowSharpness, this.shadowSharpness);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
 
         this.gl.uniform3f(
             this.uCameraPosition,
-            this.cameraPosition.x,
-            this.cameraPosition.y,
-            this.cameraPosition.z
+            this.cameraPosition[0],
+            this.cameraPosition[1],
+            this.cameraPosition[2]
         );
         this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
 
@@ -251,7 +244,7 @@ export default class WebGLSdfRenderer
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
-    public static create(canvas: HTMLCanvasElement): WebGLSdfRenderer
+    public static create(canvas: HTMLCanvasElement, assembledShaderText: string): WebGLSdfRenderer
     {
         const gl = canvas.getContext('webgl2');
         if (gl == null)
@@ -269,10 +262,12 @@ export default class WebGLSdfRenderer
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
         const includeLookup = {
-            'sdf-functions': sdfFunctionsText
+            'assembled-shader': assembledShaderText,
+            'sdf-functions': sdfFunctionsText,
+            'raymarch-functions': raymarchFunctionsText
         }
 
-        const shader = Shader.create(gl, includeLookup, vertText, fragText);
+        const shader = Shader.create(gl, includeLookup, vertText, raymarchMainText);
         gl.useProgram(shader.program);
 
         const positionAttributeLoc = this.getAttribute(gl, shader, 'aPosition');
@@ -283,25 +278,22 @@ export default class WebGLSdfRenderer
         const uCameraPosition = this.getUniform(gl, shader, 'uCameraPosition');
         const uAspectRatio = this.getUniform(gl, shader, 'uAspectRatio');
 
-        const uShapes = this.getUniform(gl, shader, 'uShapes');
-        const uOperations = this.getUniform(gl, shader, 'uOperations');
-        const uNumOperations = this.getUniform(gl, shader, 'uNumOperations');
-        const uHighlight = this.getUniform(gl, shader, 'uHighlight');
-
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
 
         const uLights = this.getUniform(gl, shader, 'uLights');
         const uNumLights = this.getUniform(gl, shader, 'uNumLights');
+        const uParameters = this.getUniform(gl, shader, 'uParams');
 
         const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
         const uEpsilon = this.getUniform(gl, shader, 'uEpsilon');
         const uFlags = this.getUniform(gl, shader, 'uFlags');
+        const uShadowSharpness = this.getUniform(gl, shader, 'uShadowSharpness');
         const uNoise = this.getUniform(gl, shader, 'uNoise');
 
-        const noiseTexture = gl.createTexture();
-        const noiseCanvas = this.createNoiseCanvas();
+        const glNoiseTexture = gl.createTexture();
+        const noiseCanvas = noiseTexture;
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+        gl.bindTexture(gl.TEXTURE_2D, glNoiseTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseCanvas.canvas);
         this.checkError(gl);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -310,12 +302,13 @@ export default class WebGLSdfRenderer
         gl.uniform1i(uNoise, 0);
         this.checkError(gl);
 
-        return new WebGLSdfRenderer(gl, shader, positionBuffer,
-            uShapes, uOperations, uNumOperations, uHighlight,
+        return new WebGLSdfRenderer(gl, shader, assembledShaderText, positionBuffer,
             uLights, uNumLights,
             uMaterials,
+            uParameters,
             uCameraPosition, uCameraMatrix, uAspectRatio,
-            uMaxMarchingSteps, uEpsilon, uFlags, uNoise, noiseTexture, null);
+            uMaxMarchingSteps, uEpsilon, uFlags, uShadowSharpness,
+            uNoise, glNoiseTexture);
     }
 
     private static checkError(gl: WebGL2RenderingContext)
@@ -326,44 +319,7 @@ export default class WebGLSdfRenderer
             return;
         }
 
-        console.error(`GL Error: ${this.getErrorMessage(error, gl)}`);
-    }
-
-    private static getErrorMessage(error: number, gl: WebGL2RenderingContext)
-    {
-        if (error === gl.INVALID_ENUM) return 'Invalid enum';
-        if (error === gl.INVALID_VALUE) return 'Invalid value';
-        if (error === gl.INVALID_OPERATION) return 'Invalid operation';
-        if (error === gl.INVALID_FRAMEBUFFER_OPERATION) return 'Invalid framebuffer operation';
-        if (error === gl.OUT_OF_MEMORY) return 'Out of memory';
-        if (error === gl.CONTEXT_LOST_WEBGL) return 'Context lost WebGL';
-        if (error === gl.NO_ERROR) return 'No error';
-        return `Unknown error ${error}`;
-    }
-
-    private static createNoiseCanvas()
-    {
-        const canvasEl = document.createElement('canvas');
-        canvasEl.width = 256;
-        canvasEl.height = 256;
-
-        const context = canvasEl.getContext('2d');
-        context.fillRect(0, 0, 255, 255);
-
-        const buff = new Uint8ClampedArray(256 * 4);
-
-        for (let y = 0; y < 256; y++)
-        {
-            for (let x = 0; x < 256 * 4; x++)
-            {
-                buff[x] = Math.floor(Math.random() * 256);
-            }
-
-            const imageData = new ImageData(buff, 256, 1);
-            context.putImageData(imageData, 0, y);
-        }
-
-        return context;
+        console.error(`GL Error: ${getErrorMessage(error, gl)}`);
     }
 
     private static getAttribute(gl: WebGL2RenderingContext, shader: Shader, name: string)

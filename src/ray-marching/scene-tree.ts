@@ -1,6 +1,7 @@
-import { Editable } from "../common";
-import { quatIdentity, rquat, rvec3, vec3Zero, vec4One } from "../gl-matrix-ts";
-import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from "./scene-entities";
+import { Editable } from '../common';
+import { quat, vec3, vec4 } from 'gl-matrix';
+import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from './scene-entities';
+import { rquat, rvec3, vec4One } from '../math';
 
 export interface SceneTree
 {
@@ -70,10 +71,11 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         name,
         id: makeShapeNodeId(),
 
-        position: vec3Zero(),
-        rotation: quatIdentity(),
+        position: vec3.create(),
+        rotation: quat.create(),
         childrenIds: [],
         childOpCode: 'none',
+        operationParams: 0.5,
         shape: createNewShape({}),
         hasShape: false,
         light: createNewLight({}),
@@ -88,10 +90,11 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
     return {
         name,
         id: makeShapeNodeId(),
-        position: position ?? vec3Zero(),
-        rotation: rotation ?? quatIdentity(),
+        position: position ?? vec3.create(),
+        rotation: rotation ?? quat.create(),
         childrenIds: [],
         childOpCode: 'none',
+        operationParams: 0.5,
         shape: createNewShape({}),
         hasShape: false,
         light: light != undefined ? createNewLight(light) : undefined,
@@ -104,14 +107,15 @@ export function createNewShapeNode(name: string, shape?: Partial<Shape>, positio
     return {
         name,
         id: makeShapeNodeId(),
-        position: position ?? vec3Zero(),
-        rotation: rotation ?? quatIdentity(),
+        position: position ?? vec3.create(),
+        rotation: rotation ?? quat.create(),
         shape: shape != undefined ? createNewShape(shape) : undefined,
         hasShape: shape != undefined,
         light: createNewLight({}),
         hasLight: false,
         childrenIds: [],
-        childOpCode: childOpCode != undefined ? childOpCode : 'none'
+        childOpCode: childOpCode != undefined ? childOpCode : 'none',
+        operationParams: 0.5,
     }
 }
 
@@ -120,11 +124,12 @@ export function createNewShape(shape: Partial<Shape>): Shape
     return {
         maxSize: 0,
         type: "none",
-        shapeParams: vec3Zero(),
-        diffuseColour: { x: 0.7, y: 0.3, z: 0.2 },
-        specularColour: { x: 1.0, y: 0.8, z: 0.9 },
+        shapeParams: vec3.create(),
+        diffuseColour: [0.7, 0.3, 0.2],
+        specularColour: [1.0, 0.8, 0.9],
         lightingModel: 'lambert',
         shininess: 10,
+        cloud: false,
 
         ...shape
     };

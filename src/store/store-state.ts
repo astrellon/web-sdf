@@ -7,9 +7,14 @@ export interface ViewportOptions
 {
     readonly enableShadows: boolean;
     readonly enableShowMarching: boolean;
+    readonly enableDepth: boolean;
+    readonly enableNormals: boolean;
+    readonly enableToLightNormals: boolean;
+    readonly enableSoftShadows: boolean;
     readonly renderScale: number;
     readonly maxMarchingStep: number;
     readonly epsilon: number;
+    readonly shadowSharpness: number;
     readonly pixelated: boolean;
 }
 
@@ -35,6 +40,8 @@ export interface AppState
     readonly selectedNodeId?: SceneNodeId;
     readonly reparentModal: ReparentModalState;
     readonly rawSceneModal: RawSceneModalState;
+
+    readonly currentShader: string;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -84,6 +91,11 @@ export function updateNode(node: SceneNode): Modifier<AppState>
 export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 {
     return () => { return { sceneTree } }
+}
+
+export function setCurrentShader(currentShader: string): Modifier<AppState>
+{
+    return () => { return { currentShader } }
 }
 
 export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>

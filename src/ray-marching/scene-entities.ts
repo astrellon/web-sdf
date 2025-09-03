@@ -1,7 +1,9 @@
-import { Opaque } from "../common";
-import { rquat, rvec3, vec3, rvec4 } from "../gl-matrix-ts";
+import { vec3 } from 'gl-matrix';
+import { Opaque } from '../common';
+import { rquat, rvec3, rvec4 } from '../math';
 
-export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor';
+export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor' |
+    'smoothUnion' | 'smoothSubtraction' | 'smoothIntersection';
 export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
 export const SdfOpCodeNone = -5e2 as SdfOpCodeInt;
 export const SdfOpCodeUnion = -6e2 as SdfOpCodeInt;
@@ -17,6 +19,8 @@ export const ShapeTypeSphere = -5020 as ShapeTypeInt;
 export const ShapeTypeHexPrism = -5030 as ShapeTypeInt;
 export const ShapeTypeTorus = -5040 as ShapeTypeInt;
 export const ShapeTypeOctahedron = -5050 as ShapeTypeInt;
+export const ShapeTypeCylinder = -5060 as ShapeTypeInt;
+export const ShapeTypeIcosahedron = -5070 as ShapeTypeInt;
 
 export type LightingModelInt = Opaque<number, 'lightingModel'>;
 export const LightingModelUnlit = 0 as LightingModelInt;
@@ -35,6 +39,7 @@ export interface SceneNode
     readonly shape: Shape;
     readonly hasShape: boolean;
     readonly childOpCode: SdfOpCode;
+    readonly operationParams: number;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;
     readonly parentId?: SceneNodeId;
     readonly light: Light;
@@ -56,6 +61,7 @@ export interface Shape
     readonly diffuseColour: vec3;
     readonly specularColour: vec3;
     readonly shininess: number;
+    readonly cloud: boolean;
     readonly lightingModel: LightingModelType;
 }
 

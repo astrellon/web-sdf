@@ -1,15 +1,3 @@
-const int ShapeTypeNone = -5000;
-const int ShapeTypeBox = -5010;
-const int ShapeTypeSphere = -5020;
-const int ShapeTypeHexPrism = -5030;
-const int ShapeTypeTorus = -5040;
-const int ShapeTypeOctahedron = -5050;
-
-const int SdfOpCodeNone = -500;
-const int SdfOpCodeUnion = -600;
-const int SdfOpCodeIntersection = -700;
-const int SdfOpCodeSubtraction = -800;
-
 float sdfSphere(vec3 point, float radius)
 {
     return length(point) - radius;
@@ -26,8 +14,8 @@ float sdfHexPrism(vec3 point, vec2 params)
 float sdfBox(vec3 point, vec3 size)
 {
     vec3 d = abs(point) - size;
-    return min(max(d.x, max(d.y, d.z)), 0.0)   // inside distance
-        + length(max(d, 0.0));              // outside distance
+    return min(max(d.x, max(d.y, d.z)), 0.0) // inside distance
+        + length(max(d, 0.0));               // outside distance
 }
 
 float sdfTorus(vec3 point, vec2 params)
@@ -42,46 +30,72 @@ float sdfOctahedron(vec3 point, float s)
     return (point.x + point.y + point.z - s) * 0.57735027;
 }
 
+float sdfCappedCylinder(vec3 point, vec2 params)
+{
+    float height = params.x;
+    float radius = params.y;
+    vec2 d = abs(vec2(length(point.xz), point.y)) - vec2(radius, height);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
+// Taken from https://github.com/fogleman/sdf/blob/d58a6fc63b75fc1cf1ebb71e0b42bf552319c8f1/sdf/d3.py#L314
+float sdfIcosahedron(vec3 point, float radius)
+{
+    vec3 xyz = normalize(vec3((sqrt(5.0) + 3.0) / 2.0, 1.0, 0.0));
+    const vec3 w = vec3(sqrt(3.0) / 3.0);
+
+    radius *= 0.8506507174597755;
+
+    point = abs(point / radius);
+    float a = dot(point, xyz.xyz);
+    float b = dot(point, xyz.zxy);
+    float c = dot(point, xyz.yzx);
+    float d = dot(point, w) - xyz.x;
+
+    return max(max(max(a, b), c) - xyz.x, d) * radius;
+}
+
 vec2 opUnion(vec2 d1, vec2 d2)
 {
     return d1.x < d2.x ? d1 : d2;
-    // return min(d1, d2);
 }
 
 vec2 opSubtraction(vec2 d1, vec2 d2)
 {
     return -d1.x > d2.x ? vec2(-d1.x, d1.y) : d2;
-    // return max(-d1, d2);
 }
 
 vec2 opIntersection(vec2 d1, vec2 d2)
 {
     return d1.x > d2.x ? d1 : d2;
-    // return max(d1, d2);
 }
 
-vec2 applyOpCode(int opCode, vec2 dist1, vec2 dist2)
+vec2 opXor(vec2 d1, vec2 d2)
 {
-    switch (opCode)
-    {
-        case SdfOpCodeUnion: return opUnion(dist1, dist2);
-        case SdfOpCodeIntersection: return opIntersection(dist1, dist2);
-        case SdfOpCodeSubtraction: return opSubtraction(dist1, dist2);
-    }
+    vec2 unionResult = opUnion(d1, d2);
+    vec2 intersectionResult = opIntersection(d1, d2);
+    intersectionResult.x = -intersectionResult.x;
 
-    return vec2(100.0, -1);
+    return opIntersection(unionResult, intersectionResult);
 }
 
-float getDistToType(int type, vec3 point, vec3 params)
+vec2 opSmoothUnion(float k, vec2 d1, vec2 d2)
 {
-    switch (type)
-    {
-        case ShapeTypeBox: return sdfBox(point, params);
-        case ShapeTypeSphere: return sdfSphere(point, params.x);
-        case ShapeTypeHexPrism: return sdfHexPrism(point, params.xy);
-        case ShapeTypeTorus: return sdfTorus(point, params.xy);
-        case ShapeTypeOctahedron: return sdfOctahedron(point, params.x);
-    }
+    float h = saturate(0.5 + 0.5 * (d2.x - d1.x) / k);
+    float result = mix(d2.x, d1.x, h) - k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
+}
 
-    return 100.0;
+vec2 opSmoothSubtraction(float k, vec2 d1, vec2 d2)
+{
+    float h = saturate(0.5 - 0.5 * (d2.x + d1.x) / k);
+    float result = mix(d2.x, -d1.x, h) + k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
+}
+
+vec2 opSmoothIntersection(float k, vec2 d1, vec2 d2)
+{
+    float h = saturate(0.5 - 0.5 * (d2.x - d1.x) / k);
+    float result = mix(d2.x, d1.x, h) + k * h * (1.0 - h);
+    return vec2(result, h > 0.5 ? d1.y : d2.y);
 }

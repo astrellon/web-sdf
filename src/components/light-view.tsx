@@ -1,7 +1,7 @@
 import { h, Component } from 'preact';
 import VectorView from './vector-view';
-import { vec4 } from '../gl-matrix-ts';
 import { Light } from '../ray-marching/scene-entities';
+import { vec4 } from 'gl-matrix';
 
 interface Props
 {
@@ -21,7 +21,7 @@ export default class LightView extends Component<Props>
 
         return <div>
             <div>
-                <strong>Colour</strong> <VectorView vector={light.colour} onChange={this.onChangeColour} />
+                <strong>Colour</strong> <VectorView forceLength={3} vector={light.colour} onChange={this.onChangeColour} />
             </div>
         </div>
     }
