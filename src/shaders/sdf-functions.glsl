@@ -99,3 +99,8 @@ vec2 opSmoothIntersection(float k, vec2 d1, vec2 d2)
     float result = mix(d2.x, d1.x, h) + k * h * (1.0 - h);
     return vec2(result, h > 0.5 ? d1.y : d2.y);
 }
+
+vec3 repeatDomain(vec3 point, float size)
+{
+    return point - size * round(point / size);
+}

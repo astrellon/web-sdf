@@ -341,12 +341,24 @@ export class SceneConverter
     private static writeSamplePoint(node: SceneNode, parameters: number[], assembler: ShaderAssembler)
     {
         const p = node.position;
+        if (node.selfOpCode === 'repeatDomain')
+        {
+            console.log('repeat');
+            assembler.startFunction('repeatDomain');
+        }
+
         assembler.startFunction('vec3');
         this.pushParameter(parameters, -p[0], assembler);
         this.pushParameter(parameters, -p[1], assembler);
         this.pushParameter(parameters, -p[2], assembler);
         assembler.endFunction();
         assembler.writeRaw(' + point');
+
+        if (node.selfOpCode === 'repeatDomain')
+        {
+            this.pushParameter(parameters, node.operationParams, assembler);
+            assembler.endFunction();
+        }
     }
 
     private static processShape(node: SceneNode, shape: Shape, materials: ShaderMaterial[], parameters: number[], assembler: ShaderAssembler)
