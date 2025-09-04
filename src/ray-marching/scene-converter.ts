@@ -48,6 +48,7 @@ const shapeInfoMap: { readonly [type: string]: ShapeInfo } = {
     'octahedron': {funcName: 'sdfOctahedron', numParams: 1},
     'cylinder': {funcName: 'sdfCappedCylinder', numParams: 2},
     'icosahedron': {funcName: 'sdfIcosahedron', numParams: 1},
+    'mandelbulb': {funcName: 'sdfMandelbulb', numParams: 2},
 }
 
 export class SceneConverter

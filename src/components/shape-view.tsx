@@ -26,6 +26,7 @@ export default class ShapeView extends Component<Props>
                     <option value='octahedron'>Octahedron</option>
                     <option value='cylinder'>Cylinder</option>
                     <option value='icosahedron'>Icosahedron</option>
+                    <option value='mandelbulb'>Mandelbulb</option>
                 </select>
             </div>
             <div>

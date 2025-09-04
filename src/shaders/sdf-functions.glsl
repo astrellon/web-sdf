@@ -55,6 +55,44 @@ float sdfIcosahedron(vec3 point, float radius)
     return max(max(max(a, b), c) - xyz.x, d) * radius;
 }
 
+// https://iquilezles.org/articles/mandelbulb
+float sdfMandelbulb(vec3 point, vec2 params)
+{
+    point = point * params.y;
+    vec3 w = point;
+    float m = dot(w, w);
+
+    int p1 = int(params.x); // default 4;
+
+    // vec4 trap = vec4(abs(w),m);
+    float dz = 1.0;
+
+    for(int i = 0; i < p1; i++)
+    {
+        // dz = 8*z^7*dz
+        dz = 8.0 * pow(m, 3.5) * dz + 1.0;
+
+        // z = z^8+c
+        float r = length(w);
+        float b = 8.0 * acos(w.y / r);
+        float a = 8.0 * atan(w.x, w.z);
+        w = point + pow(r, 8.0) * vec3(sin(b) * sin(a), cos(b), sin(b) * cos(a));
+
+        // trap = min( trap, vec4(abs(w),m) );
+
+        m = dot(w, w);
+        if (m > 256.0)
+        {
+            break;
+        }
+    }
+
+    // resColor = vec4(m,trap.yzw);
+
+    // distance estimation (through the Hubbard-Douady potential)
+    return 0.25 * log(m) * sqrt(m) / dz;
+}
+
 vec2 opUnion(vec2 d1, vec2 d2)
 {
     return d1.x < d2.x ? d1 : d2;
