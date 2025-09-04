@@ -1,6 +1,6 @@
 import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
-import { Light, SceneNode, SdfOpCode, Shape } from '../ray-marching/scene-entities';
+import { Light, SceneNode, SdfOpCode, SelfSdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import LightView from './light-view';
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
@@ -43,7 +43,8 @@ export default class SceneNodeView extends Component<Props, State>
         }
 
         const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
-        const selectedOpCode = node.childOpCode ?? 'none';
+        const selectedChildOpCode = node.childOpCode ?? 'none';
+        const selectedSelfOpCode = node.selfOpCode ?? 'none';
         const operationParams = node.operationParams;
 
         return <div class="scene-node-view">
@@ -57,7 +58,13 @@ export default class SceneNodeView extends Component<Props, State>
                 <strong>Rotation</strong> <VectorView vector={node.rotation} onChange={this.onChangeRotation} />
             </div>
             <div>
-                <strong>Op Code</strong> <select value={selectedOpCode} onChange={this.onChangeOpCode}>
+                <strong>Self Op Code</strong> <select value={selectedSelfOpCode} onChange={this.onChangeSelfOpCode}>
+                    <option value='none'>None</option>
+                    <option value='repeatDomain'>Repeat Domain</option>
+                </select>
+            </div>
+            <div>
+                <strong>Child Op Code</strong> <select value={selectedChildOpCode} onChange={this.onChangeChildOpCode}>
                     <option value='none'>None</option>
                     <option value='union'>Union</option>
                     <option value='intersection'>Intersection</option>
@@ -162,8 +169,13 @@ export default class SceneNodeView extends Component<Props, State>
         this.updateField(newQuat, 'rotation');
     }
 
+    private onChangeSelfOpCode = (e: Event) =>
+    {
+        const value = (e.target as HTMLSelectElement).value as SelfSdfOpCode;
+        this.updateField(value, 'selfOpCode');
+    }
 
-    private onChangeOpCode = (e: Event) =>
+    private onChangeChildOpCode = (e: Event) =>
     {
         const value = (e.target as HTMLSelectElement).value as SdfOpCode;
         this.updateField(value, 'childOpCode');
@@ -178,14 +190,6 @@ export default class SceneNodeView extends Component<Props, State>
     {
         this.updateField(light, 'light');
     }
-
-    // private onChangeChild = (index: number, child: SceneNode) =>
-    // {
-    //     const children = this.props.node.children !== undefined ? [...this.props.node.children] : [];
-    //     children[index] = child;
-
-    //     this.updateField(children, 'children');
-    // }
 
     private updateField = (value: any, field: keyof SceneNode) =>
     {

@@ -4,23 +4,9 @@ import { rquat, rvec3, rvec4 } from '../math';
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor' |
     'smoothUnion' | 'smoothSubtraction' | 'smoothIntersection';
-export type SdfOpCodeInt = Opaque<number, 'sdfOpCode'>;
-export const SdfOpCodeNone = -5e2 as SdfOpCodeInt;
-export const SdfOpCodeUnion = -6e2 as SdfOpCodeInt;
-export const SdfOpCodeIntersection = -7e2 as SdfOpCodeInt;
-export const SdfOpCodeSubtraction = -8e2 as SdfOpCodeInt;
-export const SdfOpCodeXor = -9e2 as SdfOpCodeInt;
+export type SelfSdfOpCode = 'none' | 'repeatDomain';
 
 export type ShapeType = 'none' | 'box' | 'sphere' | 'hexPrism';
-export type ShapeTypeInt = Opaque<number, 'shapeType'>;
-export const ShapeTypeNone = -5000 as ShapeTypeInt;
-export const ShapeTypeBox = -5010 as ShapeTypeInt;
-export const ShapeTypeSphere = -5020 as ShapeTypeInt;
-export const ShapeTypeHexPrism = -5030 as ShapeTypeInt;
-export const ShapeTypeTorus = -5040 as ShapeTypeInt;
-export const ShapeTypeOctahedron = -5050 as ShapeTypeInt;
-export const ShapeTypeCylinder = -5060 as ShapeTypeInt;
-export const ShapeTypeIcosahedron = -5070 as ShapeTypeInt;
 
 export type LightingModelInt = Opaque<number, 'lightingModel'>;
 export const LightingModelUnlit = 0 as LightingModelInt;
@@ -38,6 +24,7 @@ export interface SceneNode
 
     readonly shape: Shape;
     readonly hasShape: boolean;
+    readonly selfOpCode: SelfSdfOpCode;
     readonly childOpCode: SdfOpCode;
     readonly operationParams: number;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;

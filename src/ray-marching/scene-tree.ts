@@ -74,6 +74,7 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         position: vec3.create(),
         rotation: quat.create(),
         childrenIds: [],
+        selfOpCode: 'none',
         childOpCode: 'none',
         operationParams: 0.5,
         shape: createNewShape({}),
@@ -93,6 +94,7 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
         position: position ?? vec3.create(),
         rotation: rotation ?? quat.create(),
         childrenIds: [],
+        selfOpCode: 'none',
         childOpCode: 'none',
         operationParams: 0.5,
         shape: createNewShape({}),
@@ -114,6 +116,7 @@ export function createNewShapeNode(name: string, shape?: Partial<Shape>, positio
         light: createNewLight({}),
         hasLight: false,
         childrenIds: [],
+        selfOpCode: 'none',
         childOpCode: childOpCode != undefined ? childOpCode : 'none',
         operationParams: 0.5,
     }
