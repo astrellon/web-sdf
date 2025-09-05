@@ -28,5 +28,8 @@ export const store = new DataStore<AppState>({
     rawSceneModal: {
         show: false,
     },
+    exampleModal: {
+        show: false
+    },
     currentShader: 'return 100.0;'
 });

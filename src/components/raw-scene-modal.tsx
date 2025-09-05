@@ -27,7 +27,7 @@ export default class RawSceneModal extends Component<Props>
             sceneText = JSON.stringify(sceneTree, null, 2);
         }
 
-        return <Modal show={show} onRequestClose={this.onCloseModal} class='raw-scene-modal'>
+        return <Modal show={show} onRequestClose={this.onCloseModal} class='raw-scene-modal' portalContainer='raw-json-modal'>
             <div ref={this.preRef} class='raw-scene-modal__text' contenteditable>
                 <pre>{sceneText}</pre>
             </div>

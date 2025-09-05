@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import { setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
+import { setExampleModal, setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
 import { store } from '../store/store';
 import Popover from './popover';
 import { LabelledRange } from './labelled-range';
@@ -37,6 +37,7 @@ export default class WebGLViewportOptions extends Component<Props>
                         <button onClick={this.toggleDepth}>{ enableDepth ? 'Hide Depth' : 'Show Depth' }</button>
                         <button onClick={this.toggleNormals}>{ enableNormals ? 'Hide Normals' : 'Show Normals' }</button>
                         <button onClick={this.toggleToLightNormals}>{ enableToLightNormals ? 'Hide To Light' : 'Show To Light' }</button>
+                        <button onClick={this.showExamples}>Show Examples</button>
                         <button onClick={this.showRawScene}>JSON Scene</button>
                     </div>
                     <LabelledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
@@ -49,6 +50,11 @@ export default class WebGLViewportOptions extends Component<Props>
     private showRawScene = () =>
     {
         store.execute(setRawSceneModal({show: true}));
+    }
+
+    private showExamples = () =>
+    {
+        store.execute(setExampleModal({show: true}));
     }
 
     private changeEpsilon = (e: Event) =>

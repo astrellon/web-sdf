@@ -32,6 +32,10 @@ export interface RawSceneModalState
 {
     readonly show: boolean;
 }
+export interface ExampleModalState
+{
+    readonly show: boolean;
+}
 
 export interface AppState
 {
@@ -40,6 +44,7 @@ export interface AppState
     readonly selectedNodeId?: SceneNodeId;
     readonly reparentModal: ReparentModalState;
     readonly rawSceneModal: RawSceneModalState;
+    readonly exampleModal: ExampleModalState;
 
     readonly currentShader: string;
 }
@@ -61,7 +66,7 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     }
 }
 
-export function setReparentModal(options: ReparentModalState): Modifier<AppState>
+export function setReparentModal(options: Partial<ReparentModalState>): Modifier<AppState>
 {
     return (state: AppState) =>
     {
@@ -70,12 +75,21 @@ export function setReparentModal(options: ReparentModalState): Modifier<AppState
     }
 }
 
-export function setRawSceneModal(options: RawSceneModalState): Modifier<AppState>
+export function setRawSceneModal(options: Partial<RawSceneModalState>): Modifier<AppState>
 {
     return (state: AppState) =>
     {
         const rawSceneModal = { ...state.rawSceneModal, ...options };
         return { rawSceneModal }
+    }
+}
+
+export function setExampleModal(options: Partial<ExampleModalState>): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const exampleModal = { ...state.exampleModal, ...options };
+        return { exampleModal }
     }
 }
 
