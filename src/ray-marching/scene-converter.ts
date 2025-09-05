@@ -2,7 +2,7 @@ import equal from 'fast-deep-equal';
 import { SceneTree } from './scene-tree';
 import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, Shape } from './scene-entities';
 import { rvec3, rvec4, vec3One, vec4One } from '../math';
-import { vec3 } from 'gl-matrix';
+import { quat, vec3 } from 'gl-matrix';
 import ShaderAssembler from './shader-assembler';
 
 interface ShaderLight
@@ -346,12 +346,25 @@ export class SceneConverter
         {
             assembler.startFunction('repeatDomain');
         }
+
+        const rotation = quat.create();
+        quat.fromEuler(rotation, node.rotation[0], node.rotation[1], node.rotation[2]);
+        assembler.startFunction('quatMul');
+        assembler.startFunction('vec4');
+        this.pushParameter(parameters, rotation[0], assembler);
+        this.pushParameter(parameters, rotation[1], assembler);
+        this.pushParameter(parameters, rotation[2], assembler);
+        this.pushParameter(parameters, rotation[3], assembler);
+        assembler.endFunction();
+
         assembler.startFunction('vec3');
         this.pushParameter(parameters, -p[0], assembler);
         this.pushParameter(parameters, -p[1], assembler);
         this.pushParameter(parameters, -p[2], assembler);
         assembler.endFunction();
         assembler.writeRaw(' + point');
+
+        assembler.endFunction();
 
         if (node.selfOpCode === 'repeatDomain')
         {

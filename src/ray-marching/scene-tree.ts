@@ -1,7 +1,7 @@
 import { Editable } from '../common';
-import { quat, vec3, vec4 } from 'gl-matrix';
+import { vec3 } from 'gl-matrix';
 import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from './scene-entities';
-import { rquat, rvec3, vec4One } from '../math';
+import { rvec3, vec4One } from '../math';
 
 export interface SceneTree
 {
@@ -72,7 +72,7 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         id: makeShapeNodeId(),
 
         position: vec3.create(),
-        rotation: quat.create(),
+        rotation: vec3.create(),
         childrenIds: [],
         selfOpCode: 'none',
         childOpCode: 'none',
@@ -86,13 +86,13 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
     }
 }
 
-export function createNewLightNode(name: string, light?: Partial<Light>, position?: rvec3, rotation?: rquat): SceneNode
+export function createNewLightNode(name: string, light?: Partial<Light>, position?: rvec3, rotation?: rvec3): SceneNode
 {
     return {
         name,
         id: makeShapeNodeId(),
         position: position ?? vec3.create(),
-        rotation: rotation ?? quat.create(),
+        rotation: rotation ?? vec3.create(),
         childrenIds: [],
         selfOpCode: 'none',
         childOpCode: 'none',
@@ -104,13 +104,13 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
     }
 }
 
-export function createNewShapeNode(name: string, shape?: Partial<Shape>, position?: rvec3, rotation?: rquat, childOpCode?: SdfOpCode): SceneNode
+export function createNewShapeNode(name: string, shape?: Partial<Shape>, position?: rvec3, rotation?: rvec3, childOpCode?: SdfOpCode): SceneNode
 {
     return {
         name,
         id: makeShapeNodeId(),
         position: position ?? vec3.create(),
-        rotation: rotation ?? quat.create(),
+        rotation: rotation ?? vec3.create(),
         shape: shape != undefined ? createNewShape(shape) : undefined,
         hasShape: shape != undefined,
         light: createNewLight({}),

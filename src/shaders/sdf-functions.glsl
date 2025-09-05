@@ -142,3 +142,8 @@ vec3 repeatDomain(vec3 point, float size)
 {
     return point - size * round(point / size);
 }
+
+vec3 quatMul( vec4 q, vec3 v )
+{
+    return v + 2.0 * cross(cross(v, q.xyz ) + q.w * v, q.xyz);
+}

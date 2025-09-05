@@ -21,7 +21,7 @@ export default class LightView extends Component<Props>
 
         return <div>
             <div>
-                <strong>Colour</strong> <VectorView forceLength={3} vector={light.colour} onChange={this.onChangeColour} />
+                <strong>Colour</strong> <VectorView forceLength={3} value={light.colour} onChange={this.onChangeColour} />
             </div>
         </div>
     }

@@ -6,8 +6,8 @@ import LightView from './light-view';
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
 import { setReparentModal, setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
-import { quat, vec3 } from 'gl-matrix';
 import { LabelledRange } from './labelled-range';
+import { rvec3 } from '../math';
 import './scene-node-view.scss';
 
 interface Props
@@ -52,10 +52,10 @@ export default class SceneNodeView extends Component<Props, State>
                 <strong>Name</strong> <input class='input' type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
             </div>
             <div>
-                <strong>Position</strong> <VectorView vector={node.position} onChange={this.onChangePosition} />
+                <strong>Position</strong> <VectorView value={node.position} onChange={this.onChangePosition} />
             </div>
             <div>
-                <strong>Rotation</strong> <VectorView vector={node.rotation} onChange={this.onChangeRotation} />
+                <strong>Rotation</strong> <VectorView value={node.rotation} onChange={this.onChangeRotation} />
             </div>
             <div>
                 <strong>Self Op Code</strong> <select value={selectedSelfOpCode} onChange={this.onChangeSelfOpCode}>
@@ -159,14 +159,14 @@ export default class SceneNodeView extends Component<Props, State>
         this.updateField(value, 'name');
     }
 
-    private onChangePosition = (oldVec: vec3, newVec: vec3) =>
+    private onChangePosition = (oldVec: rvec3, newVec: rvec3) =>
     {
         this.updateField(newVec, 'position');
     }
 
-    private onChangeRotation = (oldQuat: quat, newQuat: quat) =>
+    private onChangeRotation = (oldVec: rvec3, newVec: rvec3) =>
     {
-        this.updateField(newQuat, 'rotation');
+        this.updateField(newVec, 'rotation');
     }
 
     private onChangeSelfOpCode = (e: Event) =>

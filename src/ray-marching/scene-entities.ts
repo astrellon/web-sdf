@@ -20,7 +20,7 @@ export interface SceneNode
     readonly name: string;
 
     readonly position: rvec3;
-    readonly rotation: rquat;
+    readonly rotation: rvec3;
 
     readonly shape: Shape;
     readonly hasShape: boolean;

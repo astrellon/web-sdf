@@ -30,7 +30,7 @@ export default class ShapeView extends Component<Props>
                 </select>
             </div>
             <div>
-                <strong>Shape Params</strong> <VectorView vector={shape.shapeParams} onChange={this.onChangeShapeParams} />
+                <strong>Shape Params</strong> <VectorView value={shape.shapeParams} onChange={this.onChangeShapeParams} />
             </div>
             <div>
                 <strong>Lighting Model</strong> <select value={shape.lightingModel} onChange={this.onChangeLightingModel}>
@@ -43,10 +43,10 @@ export default class ShapeView extends Component<Props>
                 <strong>Cloud</strong> <input type='checkbox' checked={shape.cloud} onChange={this.onChangeCloud} />
             </div>
             <div>
-                <strong>Diffuse Colour</strong> <VectorView vector={shape.diffuseColour} onChange={this.onChangeDiffuseColour} />
+                <strong>Diffuse Colour</strong> <VectorView value={shape.diffuseColour} onChange={this.onChangeDiffuseColour} />
             </div>
             <div>
-                <strong>Specular Colour</strong> <VectorView disabled={!isPhong} vector={shape.specularColour} onChange={this.onChangeSpecularColour} />
+                <strong>Specular Colour</strong> <VectorView disabled={!isPhong} value={shape.specularColour} onChange={this.onChangeSpecularColour} />
             </div>
             <div>
                 <strong>Shininess</strong> <input class='input' disabled={!isPhong} type='number' min={0} max={100} step={0.1} value={shape.shininess} placeholder='Shininess' onChange={this.onChangeShininess} />
