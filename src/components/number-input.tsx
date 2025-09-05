@@ -33,12 +33,17 @@ export default class NumberInput extends Component<Props>
 
     public render()
     {
-        return <input disabled={this.props.disabled} step={this.props.step} placeholder={this.props.placeholder} type='number' class={this.props.class} value={this.props.value} ref={this.inputRef} />;
+        const { value, placeholder, disabled, step } = this.props;
+        const rounding = 100.0 * (step || 1.0);
+        const rounded = Math.round(value * rounding) / rounding;
+        return <input disabled={disabled} step={step} placeholder={placeholder} type='number' class={this.props.class} value={rounded} ref={this.inputRef} />;
     }
 
     private onChange = (e: InputEvent) =>
     {
         const target = (e.target as HTMLInputElement);
-        this.props.onChange(this.props.value, target.valueAsNumber);
+        const rounding = 100.0 * (this.props.step || 1.0);
+        const value = Math.round(target.valueAsNumber * rounding) / rounding;
+        this.props.onChange(this.props.value, value);
     }
 }
