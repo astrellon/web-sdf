@@ -1,10 +1,10 @@
 import { vec3New, vec4New } from "../math";
-import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from "../ray-marching/scene-tree";
+import { createNewLightNode, createNewOperationNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from "../ray-marching/scene-tree";
 import { makeNodeMap } from "./examples";
 
 function createScene()
 {
-    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'union');
+    const rootNode = createNewOperationNode('Root', 'union');
     const sphereSmall = createNewShapeNode('Sphere Small', {
         type: "sphere",
         params: {

@@ -204,7 +204,7 @@ export class SceneConverter
 
     private static nodeHasValidShape(node: SceneNode)
     {
-        if (!node.hasShape || node.shape == undefined)
+        if (node.type !== 'shape' || node.shape == undefined)
         {
             return false;
         }
@@ -247,7 +247,7 @@ export class SceneConverter
             this.processShape(node, node.shape, materials, parameters, assembler);
         }
 
-        if (node.hasLight)
+        if (node.type === 'light')
         {
             const converted = SceneConverter.convertToLight(node);
             if (converted != null)

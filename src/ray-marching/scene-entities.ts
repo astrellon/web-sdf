@@ -13,24 +13,26 @@ export const LightingModelUnlit = 0 as LightingModelInt;
 export const LightingModelLambert = 1 as LightingModelInt;
 export const LightingModelPhong = 2 as LightingModelInt;
 
+export type SceneNodeType = 'none' | 'shape' | 'operation' | 'light';
 export type SceneNodeId = Opaque<string, 'SceneNodeId'>;
 export interface SceneNode
 {
     readonly id: SceneNodeId;
     readonly name: string;
+    readonly type: SceneNodeType;
 
     readonly position: rvec3;
     readonly rotation: rvec3;
 
     readonly shape: Shape;
-    readonly hasShape: boolean;
+    // readonly hasShape: boolean;
     readonly selfOpCode: SelfSdfOpCode;
     readonly childOpCode: SdfOpCode;
     readonly operationParams: number;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;
     readonly parentId?: SceneNodeId;
     readonly light: Light;
-    readonly hasLight: boolean;
+    // readonly hasLight: boolean;
 }
 
 export interface Light

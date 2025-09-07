@@ -1,11 +1,11 @@
 import { vec3New, vec4New } from "../math";
-import { createNewLightNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from "../ray-marching/scene-tree";
+import { createNewLightNode, createNewOperationNode, createNewShapeNode, SceneTree, sceneTreeAddChildMutable } from "../ray-marching/scene-tree";
 import { makeNodeMap } from "./examples";
 
 function createScene()
 {
-    const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'union');
-    const mainScene = createNewShapeNode('Main', null, undefined, undefined, 'subtraction');
+    const rootNode = createNewOperationNode('Root', 'union');
+    const mainScene = createNewOperationNode('Main', 'subtraction');
     sceneTreeAddChildMutable(rootNode, mainScene);
 
     const hexPrism = createNewShapeNode('Hex Prism', {
@@ -17,7 +17,7 @@ function createScene()
         maxSize: 1.5,
         diffuseColour: vec3New(0.5, 0.5, 0.5)
     });
-    const boxAndSphere = createNewShapeNode('Box & Sphere', undefined, undefined, undefined, 'union');
+    const boxAndSphere = createNewOperationNode('Box & Sphere', 'union');
 
     sceneTreeAddChildMutable(mainScene, hexPrism);
     sceneTreeAddChildMutable(mainScene, boxAndSphere);

@@ -1,6 +1,6 @@
 import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
-import { Light, SceneNode, SdfOpCode, SelfSdfOpCode, Shape } from '../ray-marching/scene-entities';
+import { Light, SceneNode, SceneNodeType, SdfOpCode, SelfSdfOpCode, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import LightView from './light-view';
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
@@ -52,6 +52,18 @@ export default class SceneNodeView extends Component<Props, State>
                 <strong>Name</strong> <input class='input' type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
             </div>
             <div>
+                <strong>Type</strong>
+                <select value={node.type} onChange={this.onChangeType}>
+                    <option value='none'>None</option>
+                    <option value='shape'>Shape</option>
+                    <option value='light'>Light</option>
+                    <option value='operation'>Operation</option>
+                </select>
+            </div>
+
+            { node.type === 'shape' &&
+            <Fragment>
+            <div>
                 <strong>Position</strong> <VectorView value={node.position} onChange={this.onChangePosition} />
             </div>
             <div>
@@ -63,6 +75,32 @@ export default class SceneNodeView extends Component<Props, State>
                     <option value='repeatDomain'>Repeat Domain</option>
                 </select>
             </div>
+            <div>
+                <LabelledRange label={`Operation Param ${operationParams}`} inputProps={{value: operationParams, min: 0, max: 10, step: 0.1, onInput: this.changeOperationParam}} />
+            </div>
+            <div>
+                <strong>Shape</strong>
+                <ShapeView shape={node.shape} onChange={this.onChangeShape} />
+            </div>
+            </Fragment> }
+
+            { node.type === 'light' &&
+            <Fragment>
+            <div>
+                <strong>Position</strong> <VectorView value={node.position} onChange={this.onChangePosition} />
+            </div>
+            <div>
+                <strong>Rotation</strong> <VectorView value={node.rotation} onChange={this.onChangeRotation} />
+            </div>
+
+            <div>
+                <strong>Light</strong>
+                <LightView light={node.light} onChange={this.onChangeLight} />
+            </div>
+            </Fragment> }
+
+            { node.type === 'operation' &&
+            <Fragment>
             <div>
                 <strong>Child Op Code</strong> <select value={selectedChildOpCode} onChange={this.onChangeChildOpCode}>
                     <option value='none'>None</option>
@@ -78,15 +116,6 @@ export default class SceneNodeView extends Component<Props, State>
             <div>
                 <LabelledRange label={`Operation Param ${operationParams}`} inputProps={{value: operationParams, min: 0, max: 10, step: 0.1, onInput: this.changeOperationParam}} />
             </div>
-            <div>
-                <strong>Shape</strong> <button onClick={this.toggleShape}>{node.hasShape ? 'Hide' : 'Show'}</button>
-                { node.hasShape && <ShapeView shape={node.shape} onChange={this.onChangeShape} /> }
-            </div>
-            <div>
-                <strong>Light</strong> <button onClick={this.toggleLight}>{node.hasLight ? 'Hide' : 'Show'}</button>
-                { node.hasLight && <LightView light={node.light} onChange={this.onChangeLight} /> }
-            </div>
-
             <div><strong>Children</strong></div>
             <div class='control-group'>
                 <button onClick={this.addChild}>Add</button>
@@ -96,6 +125,7 @@ export default class SceneNodeView extends Component<Props, State>
                     <button onClick={this.reparent}>Re-parent</button>
                 </Fragment>}
             </div>
+            </Fragment> }
         </div>
     }
 
@@ -141,18 +171,6 @@ export default class SceneNodeView extends Component<Props, State>
         this.updateField(value, 'operationParams');
     }
 
-    private toggleShape = () =>
-    {
-        const currentHasShape = this.props.node.hasShape;
-        this.updateField(!currentHasShape, 'hasShape');
-    }
-
-    private toggleLight = () =>
-    {
-        const currentHasLight = this.props.node.hasLight;
-        this.updateField(!currentHasLight, 'hasLight');
-    }
-
     private onChangeName = (e: Event) =>
     {
         const value = (e.target as HTMLInputElement).value;
@@ -167,6 +185,12 @@ export default class SceneNodeView extends Component<Props, State>
     private onChangeRotation = (oldVec: rvec3, newVec: rvec3) =>
     {
         this.updateField(newVec, 'rotation');
+    }
+
+    private onChangeType = (e: Event) =>
+    {
+        const value = (e.target as HTMLSelectElement).value as SceneNodeType;
+        this.updateField(value, 'type');
     }
 
     private onChangeSelfOpCode = (e: Event) =>

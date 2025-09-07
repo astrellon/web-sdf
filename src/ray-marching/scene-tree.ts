@@ -69,6 +69,7 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
 {
     return {
         name,
+        type: 'none',
         id: makeShapeNodeId(),
 
         position: vec3.create(),
@@ -78,9 +79,7 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         childOpCode: 'none',
         operationParams: 0.5,
         shape: createNewShape({}),
-        hasShape: false,
         light: createNewLight({}),
-        hasLight: false,
 
         ...node
     }
@@ -90,6 +89,7 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
 {
     return {
         name,
+        type: 'light',
         id: makeShapeNodeId(),
         position: position ?? vec3.create(),
         rotation: rotation ?? vec3.create(),
@@ -98,26 +98,40 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
         childOpCode: 'none',
         operationParams: 0.5,
         shape: createNewShape({}),
-        hasShape: false,
         light: light != undefined ? createNewLight(light) : undefined,
-        hasLight: light != undefined
     }
 }
 
-export function createNewShapeNode(name: string, shape?: Partial<Shape>, position?: rvec3, rotation?: rvec3, childOpCode?: SdfOpCode): SceneNode
+export function createNewShapeNode(name: string, shape?: Partial<Shape>, position?: rvec3, rotation?: rvec3): SceneNode
 {
     return {
         name,
+        type: 'shape',
         id: makeShapeNodeId(),
         position: position ?? vec3.create(),
         rotation: rotation ?? vec3.create(),
         shape: shape != undefined ? createNewShape(shape) : undefined,
-        hasShape: shape != undefined,
         light: createNewLight({}),
-        hasLight: false,
         childrenIds: [],
         selfOpCode: 'none',
-        childOpCode: childOpCode != undefined ? childOpCode : 'none',
+        childOpCode: 'none',
+        operationParams: 0.5,
+    }
+}
+
+export function createNewOperationNode(name: string, childOpCode: SdfOpCode): SceneNode
+{
+    return {
+        name,
+        type: 'operation',
+        id: makeShapeNodeId(),
+        position: vec3.create(),
+        rotation: vec3.create(),
+        shape: createNewShape({}),
+        light: createNewLight({}),
+        childrenIds: [],
+        selfOpCode: 'none',
+        childOpCode: childOpCode,
         operationParams: 0.5,
     }
 }
