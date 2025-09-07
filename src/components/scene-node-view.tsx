@@ -131,7 +131,7 @@ export default class SceneNodeView extends Component<Props, State>
 
     private changeOperationParam = (e: Event) =>
     {
-        const value = parseFloat((e.target as HTMLInputElement).value);
+        const value = (e.target as HTMLInputElement).valueAsNumber;
         if (!isFinite(value))
         {
             console.warn(`Operation param parse failed`);

@@ -3,25 +3,25 @@ float sdfSphere(vec3 point, float radius)
     return length(point) - radius;
 }
 
-float sdfHexPrism(vec3 point, vec2 params)
+float sdfHexPrism(vec3 point, float radius, float depth)
 {
     vec3 absPoint = abs(point);
-    float d1 = absPoint.z - params.y;
-    float d2 = max((absPoint.x * 0.866025 + absPoint.y * 0.5), absPoint.y) - params.x;
+    float d1 = absPoint.z - depth;
+    float d2 = max((absPoint.x * 0.866025 + absPoint.y * 0.5), absPoint.y) - radius;
     return length(max(vec2(d1, d2), 0.0)) + min(max(d1, d2), 0.0);
 }
 
-float sdfBox(vec3 point, vec3 size)
+float sdfBox(vec3 point, float x, float y, float z)
 {
-    vec3 d = abs(point) - size;
+    vec3 d = abs(point) - vec3(x, y, z);
     return min(max(d.x, max(d.y, d.z)), 0.0) // inside distance
         + length(max(d, 0.0));               // outside distance
 }
 
-float sdfTorus(vec3 point, vec2 params)
+float sdfTorus(vec3 point, float majorRadius, float minorRadius)
 {
-    vec2 q = vec2(length(point.xz) - params.x, point.y);
-    return length(q) - params.y;
+    vec2 q = vec2(length(point.xz) - majorRadius, point.y);
+    return length(q) - minorRadius;
 }
 
 float sdfOctahedron(vec3 point, float s)
@@ -56,15 +56,14 @@ float sdfIcosahedron(vec3 point, float radius)
 }
 
 // https://iquilezles.org/articles/mandelbulb
-float sdfMandelbulb(vec3 point, vec2 params)
+float sdfMandelbulb(vec3 point, float iterations, float scale)
 {
-    point = point * params.y;
+    point = point / scale;
     vec3 w = point;
     float m = dot(w, w);
 
-    int p1 = int(params.x); // default 4;
+    int p1 = int(iterations); // default 4;
 
-    // vec4 trap = vec4(abs(w),m);
     float dz = 1.0;
 
     for(int i = 0; i < p1; i++)
@@ -78,16 +77,12 @@ float sdfMandelbulb(vec3 point, vec2 params)
         float a = 8.0 * atan(w.x, w.z);
         w = point + pow(r, 8.0) * vec3(sin(b) * sin(a), cos(b), sin(b) * cos(a));
 
-        // trap = min( trap, vec4(abs(w),m) );
-
         m = dot(w, w);
         if (m > 256.0)
         {
             break;
         }
     }
-
-    // resColor = vec4(m,trap.yzw);
 
     // distance estimation (through the Hubbard-Douady potential)
     return 0.25 * log(m) * sqrt(m) / dz;

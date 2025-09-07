@@ -1,4 +1,4 @@
-import { Editable } from "../common";
+import { makeMap } from "../common";
 import { SceneNode, SceneNodes } from "../ray-marching/scene-entities";
 import { SceneTree } from "../ray-marching/scene-tree";
 import { boxSphereHexScene } from "./box-sphere-hex";
@@ -6,12 +6,7 @@ import { twoSpheres } from "./two-spheres";
 
 export function makeNodeMap(...nodes: SceneNode[]): SceneNodes
 {
-    const result: Editable<SceneNodes> = {};
-    for (const node of nodes)
-    {
-        result[node.id] = node;
-    }
-    return result;
+    return makeMap(nodes, (n) => n.id);
 }
 
 export interface ExampleInfo

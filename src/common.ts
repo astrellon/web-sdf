@@ -18,3 +18,14 @@ export function addClass(target: string, className: string, addIfTrue?: boolean)
     }
     return target;
 }
+
+export function makeMap<T>(input: ReadonlyArray<T>, keySelector: (item: T) => string)
+{
+    const result: { [key: string]: T } = {};
+    for (const item of input)
+    {
+        const key = keySelector(item);
+        result[key] = item;
+    }
+    return result;
+}

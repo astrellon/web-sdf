@@ -7,13 +7,17 @@ function createScene()
     const rootNode = createNewShapeNode('Root', null, undefined, undefined, 'union');
     const sphereSmall = createNewShapeNode('Sphere Small', {
         type: "sphere",
-        shapeParams: vec3New(1.25, 2, 1),
+        params: {
+            'Radius': 1.25
+        },
         diffuseColour: vec3New(0.1, 0.2, 0.9),
         lightingModel: 'phong'
     })
     const sphereLarge = createNewShapeNode('Sphere Large', {
         type: "sphere",
-        shapeParams: vec3New(10, 0, 0),
+        params: {
+            'Radius': 10.0
+        },
         diffuseColour: vec3New(0.9, 0.2, 0.1),
         lightingModel: 'phong'
     }, vec3New(0, -11, 0))

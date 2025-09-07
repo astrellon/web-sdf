@@ -1,13 +1,21 @@
-import { h, Component } from 'preact';
+import { h, Component, JSX } from 'preact';
 import VectorView from './vector-view';
 import { Shape } from '../ray-marching/scene-entities';
 import { vec3, vec4 } from 'gl-matrix';
+import { SdfShapeParameter, sdfShapes, sdfShapesMap } from '../ray-marching/sdf-shapes';
+import { LabelledRange } from './labelled-range';
+import ShapeParamEdit from './shape-param-edit';
 
 interface Props
 {
     readonly shape: Shape;
     readonly onChange: (newShape: Shape) => void;
 }
+
+const shapeSelectOptions = sdfShapes.map(s =>
+    <option key={s.id} value={s.id}>{s.name}</option>
+);
+
 export default class ShapeView extends Component<Props>
 {
     public render()
@@ -19,18 +27,11 @@ export default class ShapeView extends Component<Props>
             <div>
                 <strong>Type</strong> <select value={shape.type ?? 'none'} onChange={this.onChangeType}>
                     <option value='none'>None</option>
-                    <option value='box'>Box</option>
-                    <option value='sphere'>Sphere</option>
-                    <option value='hexPrism'>Hex Prism</option>
-                    <option value='torus'>Torus</option>
-                    <option value='octahedron'>Octahedron</option>
-                    <option value='cylinder'>Cylinder</option>
-                    <option value='icosahedron'>Icosahedron</option>
-                    <option value='mandelbulb'>Mandelbulb</option>
+                    { shapeSelectOptions }
                 </select>
             </div>
             <div>
-                <strong>Shape Params</strong> <VectorView value={shape.shapeParams} onChange={this.onChangeShapeParams} />
+                { this.renderCurrentParams() }
             </div>
             <div>
                 <strong>Lighting Model</strong> <select value={shape.lightingModel} onChange={this.onChangeLightingModel}>
@@ -38,9 +39,6 @@ export default class ShapeView extends Component<Props>
                     <option value='lambert'>Lambert</option>
                     <option value='phong'>Phong</option>
                 </select>
-            </div>
-            <div>
-                <strong>Cloud</strong> <input type='checkbox' checked={shape.cloud} onChange={this.onChangeCloud} />
             </div>
             <div>
                 <strong>Diffuse Colour</strong> <VectorView value={shape.diffuseColour} onChange={this.onChangeDiffuseColour} />
@@ -54,10 +52,25 @@ export default class ShapeView extends Component<Props>
         </div>
     }
 
-    private onChangeCloud = (e: Event) =>
+    private renderCurrentParams = () =>
     {
-        const value = (e.target as HTMLInputElement).checked;
-        this.updateField(value, 'cloud');
+        const result: JSX.Element[] = [];
+        const { shape } = this.props;
+        const currentShapeInfo = sdfShapesMap[shape.type];
+
+        for (const paramInfo of currentShapeInfo.params)
+        {
+            result.push(<ShapeParamEdit key={paramInfo.name} shape={shape} paramInfo={paramInfo} onChange={this.updateParam} />);
+        }
+
+        return result;
+    }
+
+    private updateParam = (value: number, paramInfo: SdfShapeParameter) =>
+    {
+        const currentParams = this.props.shape.params;
+        const newParams = { ...currentParams, [paramInfo.name]: value };
+        this.updateField(newParams, 'params');
     }
 
     private onChangeType = (e: Event) =>
@@ -79,11 +92,6 @@ export default class ShapeView extends Component<Props>
         {
             this.updateField(value, 'shininess');
         }
-    }
-
-    private onChangeShapeParams = (oldVec: vec3, newVec: vec3) =>
-    {
-        this.updateField(newVec, 'shapeParams');
     }
 
     private onChangeDiffuseColour = (oldVec: vec4, newVec: vec4) =>

@@ -4,6 +4,7 @@ import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingMod
 import { rvec3, rvec4, vec3One, vec4One } from '../math';
 import { quat, vec3 } from 'gl-matrix';
 import ShaderAssembler from './shader-assembler';
+import { sdfShapesMap } from './sdf-shapes';
 
 interface ShaderLight
 {
@@ -33,22 +34,6 @@ const LightingModelMap: { readonly [key: string]: LightingModelInt} =
 function toLightingModelInt(type: LightingModelType): LightingModelInt
 {
     return LightingModelMap[type] || LightingModelUnlit;
-}
-
-interface ShapeInfo
-{
-    readonly funcName: string;
-    readonly numParams: number;
-}
-const shapeInfoMap: { readonly [type: string]: ShapeInfo } = {
-    'box': {funcName: 'sdfBox', numParams: 3},
-    'sphere': {funcName: 'sdfSphere', numParams: 1},
-    'hexPrism': {funcName: 'sdfHexPrism', numParams: 2},
-    'torus': {funcName: 'sdfTorus', numParams: 2},
-    'octahedron': {funcName: 'sdfOctahedron', numParams: 1},
-    'cylinder': {funcName: 'sdfCappedCylinder', numParams: 2},
-    'icosahedron': {funcName: 'sdfIcosahedron', numParams: 1},
-    'mandelbulb': {funcName: 'sdfMandelbulb', numParams: 2},
 }
 
 export class SceneConverter
@@ -375,7 +360,7 @@ export class SceneConverter
 
     private static processShape(node: SceneNode, shape: Shape, materials: ShaderMaterial[], parameters: number[], assembler: ShaderAssembler)
     {
-        const shapeInfo = shapeInfoMap[shape.type];
+        const shapeInfo = sdfShapesMap[shape.type];
         if (shapeInfo == undefined)
         {
             console.error('Unsupported shape type');
@@ -395,21 +380,10 @@ export class SceneConverter
         assembler.startFunction(shapeInfo.funcName);
         this.writeSamplePoint(node, parameters, assembler);
 
-        let startedFunction = false;
-        if (shapeInfo.numParams >= 2 && shapeInfo.numParams <= 4)
+        for (const paramInfo of shapeInfo.params)
         {
-            startedFunction = true;
-            assembler.startFunction('vec' + shapeInfo.numParams);
-        }
-
-        for (let i = 0; i < shapeInfo.numParams; i++)
-        {
-            this.pushParameter(parameters, shape.shapeParams[i], assembler);
-        }
-
-        if (startedFunction)
-        {
-            assembler.endFunction();
+            const value = (shape.params[paramInfo.name] ?? paramInfo.default) ?? 1.0;
+            this.pushParameter(parameters, value, assembler);
         }
 
         assembler.endFunction();

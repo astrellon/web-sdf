@@ -10,7 +10,10 @@ function createScene()
 
     const hexPrism = createNewShapeNode('Hex Prism', {
         type: 'hexPrism',
-        shapeParams: vec3New(0.75, 2, 0),
+        params: {
+            'Radius': 0.75,
+            'Depth': 2.0
+        },
         maxSize: 1.5,
         diffuseColour: vec3New(0.5, 0.5, 0.5)
     });
@@ -21,13 +24,19 @@ function createScene()
 
     const box = createNewShapeNode('Box', {
         type: "box",
-        shapeParams: vec3New(6, 1, 6),
+        params: {
+            'X': 6,
+            'Y': 1,
+            'Z': 6
+        },
         diffuseColour: vec3New(1.0, 1.0, 1.0),
         lightingModel: 'lambert'
     }, vec3New(0, -1.5, 0));
     const sphere = createNewShapeNode('Sphere', {
         type: "sphere",
-        shapeParams: vec3New(1.25, 2, 1),
+        params: {
+            'Radius': 1.25
+        },
         maxSize: 2.0,
         diffuseColour: vec3New(0.1, 0.2, 0.9),
         lightingModel: 'phong'

@@ -40,15 +40,18 @@ export interface Light
 }
 
 export type LightingModelType = 'unlit' | 'lambert' | 'phong';
+export interface ShapeParamMap
+{
+    readonly [key: string]: number;
+}
 export interface Shape
 {
     readonly maxSize: number;
     readonly type: ShapeType;
-    readonly shapeParams: vec3;
+    readonly params: ShapeParamMap;
     readonly diffuseColour: vec3;
     readonly specularColour: vec3;
     readonly shininess: number;
-    readonly cloud: boolean;
     readonly lightingModel: LightingModelType;
 }
 

@@ -127,12 +127,11 @@ export function createNewShape(shape: Partial<Shape>): Shape
     return {
         maxSize: 0,
         type: "none",
-        shapeParams: vec3.create(),
+        params: {},
         diffuseColour: [0.7, 0.3, 0.2],
         specularColour: [1.0, 0.8, 0.9],
         lightingModel: 'lambert',
         shininess: 10,
-        cloud: false,
 
         ...shape
     };
