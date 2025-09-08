@@ -1,10 +1,10 @@
-import { h, Component, createRef } from "preact";
-import { ViewportOptions } from "../store/store-state";
-import WebGLSdfRenderer from "../webgl/webgl-sdf-renderer";
-import WebGLViewportOptions from "./webgl-viewport-options";
-import { SceneConverter } from "../ray-marching/scene-converter";
-import "./webgl-viewport.scss";
-import { Camera } from "../ray-marching/camera";
+import { h, Component, createRef } from 'preact';
+import { ViewportOptions } from '../store/store-state';
+import WebGLSdfRenderer from '../webgl/webgl-sdf-renderer';
+import WebGLViewportOptions from './webgl-viewport-options';
+import { SceneConverter } from '../ray-marching/scene-converter';
+import { Camera } from '../ray-marching/camera';
+import './webgl-viewport.scss';
 
 interface Props
 {
@@ -18,10 +18,6 @@ export class WebGLViewport extends Component<Props>
 {
     private canvasRef = createRef<HTMLCanvasElement>();
     private renderer?: WebGLSdfRenderer;
-
-    // private zoom = 20;
-    // private zoomMin = 1;
-    // private zoomMax = 80;
 
     private mousePosX = 0;
     private mousePosY = 0;
@@ -90,16 +86,8 @@ export class WebGLViewport extends Component<Props>
         if (this.renderer.prevShaderText !== this.props.currentShader)
         {
             console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
-            // const prevCameraRotationX = this.renderer.cameraRotationX;
-            // const prevCameraRotationY = this.renderer.cameraRotationY;
-            // const prevCameraDistance = this.renderer.cameraDistance;
             this.renderer.destroy();
             this.createNewRenderer(this.canvasRef.current);
-
-            // this.renderer.cameraRotationX = prevCameraRotationX;
-            // this.renderer.cameraRotationY = prevCameraRotationY;
-            // this.renderer.cameraDistance = prevCameraDistance;
-            // this.renderer.updateCamera();
         }
 
         const options = this.props.options;
@@ -112,6 +100,8 @@ export class WebGLViewport extends Component<Props>
         this.renderer.enableNormals = options.enableNormals;
         this.renderer.enableToLightNormals = options.enableToLightNormals;
         this.renderer.enableSoftShadows = options.enableSoftShadows;
+        this.camera.setFov(options.cameraFov);
+
         if (this.renderer.canvasScale !== options.renderScale)
         {
             this.renderer.canvasScale = options.renderScale;
@@ -124,8 +114,6 @@ export class WebGLViewport extends Component<Props>
     {
         this.renderer = WebGLSdfRenderer.create(canvasEl, this.props.currentShader);
         this.renderer.canvasScale = this.props.options.renderScale;
-        // this.renderer.cameraDistance = 10.0;
-        // this.renderer.updateCamera();
         this.updateCanvasSize();
 
         this.renderer.setupCanvas();
@@ -150,13 +138,24 @@ export class WebGLViewport extends Component<Props>
             return;
         }
 
-        const dx = (e.clientX - this.mousePosX) * 0.1;
-        const dy = (e.clientY - this.mousePosY) * 0.1;
+        const dx = (e.clientX - this.mousePosX) * 0.005;
+        const dy = (e.clientY - this.mousePosY) * 0.005;
 
         this.mousePosX = e.clientX;
         this.mousePosY = e.clientY;
 
-        this.camera.orbitPositionAroundTarget(-dx, -dy);
+        if (e.ctrlKey)
+        {
+            this.camera.panRelative(dx, -dy);
+        }
+        else if (e.shiftKey)
+        {
+            this.camera.orbitTargetAroundPosition(-dx, -dy);
+        }
+        else
+        {
+            this.camera.orbitPositionAroundTarget(-dx, -dy);
+        }
 
         this.manualRenderTrigger();
     }

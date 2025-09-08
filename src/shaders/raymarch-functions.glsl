@@ -267,9 +267,9 @@ vec4 toLightNormal(int lightIndex, vec3 worldPoint)
     return vec4(0.0);
 }
 
-vec3 createRayDirection(float fieldOfView, vec2 fragCoord)
+// float z = 2.0 / tan(radius(fieldOfView))
+vec3 createRayDirection(float z, vec2 fragCoord)
 {
     vec2 xy = fragCoord / 2.0;
-    float z = 2.0 / tan(radians(fieldOfView));
     return normalize(vec3(xy, -z));
 }

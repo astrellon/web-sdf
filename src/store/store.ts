@@ -12,7 +12,8 @@ export const defaultRenderOptions: ViewportOptions = {
     enableSoftShadows: true,
     epsilon: 0.0001,
     shadowSharpness: 128.0,
-    pixelated: false
+    pixelated: false,
+    cameraFov: 45.0,
 }
 export const defaultViewport: ViewportState = {
     options: defaultRenderOptions

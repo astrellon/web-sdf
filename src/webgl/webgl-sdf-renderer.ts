@@ -65,6 +65,7 @@ export default class WebGLSdfRenderer
     public readonly uNumLights: WebGLUniformLocation;
 
     public readonly uCameraPosition: WebGLUniformLocation;
+    public readonly uCameraFov: WebGLUniformLocation;
     public readonly uCameraMatrix: WebGLUniformLocation;
 
     public readonly uAspectRatio: WebGLUniformLocation;
@@ -75,12 +76,6 @@ export default class WebGLSdfRenderer
     public readonly uShadowSharpness: WebGLUniformLocation;
     public readonly uNoise: WebGLUniformLocation;
     public readonly noiseTexture: WebGLTexture;
-
-    // public cameraPosition: vec3 = vec3.create();
-    // public cameraTarget: vec3 = vec3.create();
-    // public cameraRotationX = 0;
-    // public cameraRotationY = 0;
-    // public cameraDistance = 10;
 
     public maxMarchingSteps = 255;
     public epsilon = 0.001;
@@ -94,8 +89,6 @@ export default class WebGLSdfRenderer
     public enableSoftShadows = true;
 
     public canvasScale = 1;
-
-    // private readonly cameraMatrixForSdfArray = mat3.create();
 
     private prevMaterials: any;
     private prevLights: any;
@@ -112,6 +105,7 @@ export default class WebGLSdfRenderer
         uMaterials: WebGLUniformLocation,
         uParameters: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
+        uCameraFov: WebGLUniformLocation,
         uCameraMatrix: WebGLUniformLocation,
         uAspectRatio: WebGLUniformLocation,
         uMaxMarchingSteps: WebGLUniformLocation,
@@ -134,6 +128,7 @@ export default class WebGLSdfRenderer
         this.uNumLights = uNumLights;
 
         this.uCameraPosition = uCameraPosition;
+        this.uCameraFov = uCameraFov;
         this.uCameraMatrix = uCameraMatrix;
         this.uAspectRatio = uAspectRatio;
 
@@ -229,7 +224,8 @@ export default class WebGLSdfRenderer
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
 
         this.gl.uniform3fv(this.uCameraPosition, camera.position);
-        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, camera.getCameraRotation());
+        this.gl.uniform1f(this.uCameraFov, camera.fovZ);
+        this.gl.uniformMatrix3fv(this.uCameraMatrix, false, camera.getCameraRotation());
 
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.noiseTexture);
 
@@ -269,6 +265,7 @@ export default class WebGLSdfRenderer
 
         const uCameraMatrix = this.getUniform(gl, shader, 'uCameraMatrix');
         const uCameraPosition = this.getUniform(gl, shader, 'uCameraPosition');
+        const uCameraFov = this.getUniform(gl, shader, 'uCameraFov');
         const uAspectRatio = this.getUniform(gl, shader, 'uAspectRatio');
 
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
@@ -299,7 +296,7 @@ export default class WebGLSdfRenderer
             uLights, uNumLights,
             uMaterials,
             uParameters,
-            uCameraPosition, uCameraMatrix, uAspectRatio,
+            uCameraPosition, uCameraFov, uCameraMatrix, uAspectRatio,
             uMaxMarchingSteps, uEpsilon, uFlags, uShadowSharpness,
             uNoise, glNoiseTexture);
     }

@@ -21,6 +21,7 @@ in vec2 oPosition;
 
 uniform mat3 uCameraMatrix;
 uniform vec3 uCameraPosition;
+uniform float uCameraFov;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
 uniform int uFlags;
@@ -45,8 +46,8 @@ vec2 sceneSDF(vec3 point)
 
 void main()
 {
-    vec3 rayDir = uCameraMatrix * createRayDirection(45.0, oPosition);
-    vec3 rayOrigin = uCameraPosition;
+    vec3 rayDir = uCameraMatrix * createRayDirection(uCameraFov, oPosition);
+    vec3 rayOrigin = uCameraPosition.xyz;
 
     vec4 dist = rayMarch(rayOrigin, rayDir);
 

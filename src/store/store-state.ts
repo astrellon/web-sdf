@@ -16,6 +16,7 @@ export interface ViewportOptions
     readonly epsilon: number;
     readonly shadowSharpness: number;
     readonly pixelated: boolean;
+    readonly cameraFov: number;
 }
 
 export interface ViewportState

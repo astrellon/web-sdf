@@ -18,7 +18,8 @@ export default class WebGLViewportOptions extends Component<Props>
         const { pixelated, renderScale,
             enableShadows, enableShowMarching, enableDepth,
             enableNormals, enableToLightNormals,
-            epsilon, shadowSharpness, maxMarchingStep } = this.props.options;
+            epsilon, shadowSharpness, maxMarchingStep,
+            cameraFov } = this.props.options;
 
         return <div class='viewport-options'>
                 <Popover text='Menu'>
@@ -43,6 +44,7 @@ export default class WebGLViewportOptions extends Component<Props>
                     <LabelledRange label={`Epsilon ${epsilon}`} inputProps={{value: epsilon, min: 0, max: 0.1, step: 0.000001, onInput: this.changeEpsilon}} />
                     <LabelledRange label={`Marching Steps ${maxMarchingStep}`} inputProps={{value: maxMarchingStep, min: 0, max: 1000, step: 1, onInput: this.changeMarchingSteps}} />
                     <LabelledRange label={`Shadows ${shadowSharpness}`} inputProps={{value: shadowSharpness, min: 0.0, max: 256, step: 0.1, onInput: this.changeShadowSharpness}} />
+                    <LabelledRange label={`Camera FOV ${cameraFov}`} inputProps={{value: cameraFov, min: 1.0, max: 90, step: 0.1, onInput: this.changeCameraFov}} />
                 </Popover>
         </div>;
     }
@@ -59,7 +61,7 @@ export default class WebGLViewportOptions extends Component<Props>
 
     private changeEpsilon = (e: Event) =>
     {
-        const value = parseFloat((e.target as HTMLInputElement).value);
+        const value = (e.target as HTMLInputElement).valueAsNumber;
         if (!isFinite(value))
         {
             console.warn(`Epsilon parse failed`);
@@ -71,7 +73,7 @@ export default class WebGLViewportOptions extends Component<Props>
 
     private changeShadowSharpness = (e: Event) =>
     {
-        const value = parseFloat((e.target as HTMLInputElement).value);
+        const value = (e.target as HTMLInputElement).valueAsNumber;
         if (!isFinite(value))
         {
             console.warn(`Shadow sharpness parse failed`);
@@ -83,7 +85,7 @@ export default class WebGLViewportOptions extends Component<Props>
 
     private changeMarchingSteps = (e: Event) =>
     {
-        const value = parseFloat((e.target as HTMLInputElement).value);
+        const value = (e.target as HTMLInputElement).valueAsNumber;
         if (!isFinite(value))
         {
             console.warn(`Marching steps parse failed`);
@@ -91,6 +93,18 @@ export default class WebGLViewportOptions extends Component<Props>
         }
 
         this.updateOptions({ maxMarchingStep: Math.round(value) });
+    }
+
+    private changeCameraFov = (e: Event) =>
+    {
+        const value = (e.target as HTMLInputElement).valueAsNumber;
+        if (!isFinite(value))
+        {
+            console.warn(`Marching steps parse camera fov`);
+            return;
+        }
+
+        this.updateOptions({ cameraFov: value });
     }
 
     private togglePixelated = (e: Event) =>
