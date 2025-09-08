@@ -19,6 +19,14 @@ export const sdfSelfOperations: ReadonlyArray<SdfSelfOperationInfo> = [
             { name: 'Y', type: 'input', default: 8, max: 50 },
             { name: 'Z', type: 'input', default: 8, max: 50 },
         ]
+    },
+    {
+        id: 'rotationRepeatSimple',
+        name: 'Rotation Repeat Simple',
+        funcName: 'opRotationSimple',
+        params: [
+            { name: 'n', type: 'input', default: 6, max: 32 }
+        ]
     }
 ]
 

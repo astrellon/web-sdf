@@ -137,6 +137,19 @@ vec3 opRepeatDomain(vec3 point, float x, float y, float z)
     return point - size * round(point / size);
 }
 
+vec3 opRotationSimple(vec3 point, float n)
+{
+    // naive domain repetition
+    float b = 6.283185 / n;
+    float a = atan(point.z, point.x);
+    float i = round(a / b);
+
+    float c = b * i;
+    mat2 rotation = mat2(cos(c), -sin(c), sin(c), cos(c));
+    vec2 xz = rotation * point.xz;
+
+    return vec3(xz.x, point.y, xz.y);
+}
 vec3 quatMul( vec4 q, vec3 v )
 {
     return v + 2.0 * cross(cross(v, q.xyz ) + q.w * v, q.xyz);

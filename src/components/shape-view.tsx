@@ -12,7 +12,7 @@ interface Props
     readonly onChange: (newShape: Shape) => void;
 }
 
-const shapeSelectOptions = sdfShapes.map(s =>
+const typeSelectOptions = sdfShapes.map(s =>
     <option key={s.id} value={s.id}>{s.name}</option>
 );
 
@@ -27,7 +27,7 @@ export default class ShapeView extends Component<Props>
             <div>
                 <strong>Type</strong> <select value={shape.type ?? 'none'} onChange={this.onChangeType}>
                     <option value='none'>None</option>
-                    { shapeSelectOptions }
+                    { typeSelectOptions }
                 </select>
             </div>
             <div>

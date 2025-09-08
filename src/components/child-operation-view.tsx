@@ -3,7 +3,7 @@ import { ChildOperation, SceneNode, SdfOpCode } from '../ray-marching/scene-enti
 import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
 import { setReparentModal, setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
-import { sdfChildOperationsMap } from '../ray-marching/sdf-child-operations';
+import { sdfChildOperations, sdfChildOperationsMap } from '../ray-marching/sdf-child-operations';
 import ParameterEdit from './parameter-edit';
 import { SdfParameter } from '../ray-marching/sdf-parameters';
 
@@ -13,6 +13,10 @@ interface Props
     readonly node: SceneNode;
     readonly onChange: (newOperation: ChildOperation) => void;
 }
+
+const typeSelectOptions = sdfChildOperations.map(s =>
+    <option key={s.id} value={s.id}>{s.name}</option>
+);
 
 export default class ChildOperationView extends Component<Props>
 {
@@ -27,13 +31,7 @@ export default class ChildOperationView extends Component<Props>
             <div>
                 <strong>Child Op Code</strong> <select value={selectedChildOpCode} onChange={this.onChangeChildOpCode}>
                     <option value='none'>None</option>
-                    <option value='union'>Union</option>
-                    <option value='intersection'>Intersection</option>
-                    <option value='subtraction'>Subtraction</option>
-                    <option value='xor'>Xor</option>
-                    <option value='smoothUnion'>Smooth Union</option>
-                    <option value='smoothIntersection'>Smooth Intersection</option>
-                    <option value='smoothSubtraction'>Smooth Subtraction</option>
+                    { typeSelectOptions }
                 </select>
             </div>
             <div>

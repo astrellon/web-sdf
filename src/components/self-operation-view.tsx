@@ -2,13 +2,17 @@ import { h, Component, JSX } from 'preact';
 import { SelfOperation, SelfSdfOpCode } from '../ray-marching/scene-entities';
 import ParameterEdit from './parameter-edit';
 import { SdfParameter } from '../ray-marching/sdf-parameters';
-import { sdfSelfOperationsMap } from '../ray-marching/sdf-self-operations';
+import { sdfSelfOperations, sdfSelfOperationsMap } from '../ray-marching/sdf-self-operations';
 
 interface Props
 {
     readonly selfOperation: SelfOperation;
     readonly onChange: (newOperation: SelfOperation) => void;
 }
+
+const typeSelectOptions = sdfSelfOperations.map(s =>
+    <option key={s.id} value={s.id}>{s.name}</option>
+);
 
 export default class SelfOperationView extends Component<Props>
 {
@@ -22,7 +26,7 @@ export default class SelfOperationView extends Component<Props>
             <div>
                 <strong>Self Op Code</strong> <select value={selectedSelfOpCode} onChange={this.onChangeSelfOpCode}>
                     <option value='none'>None</option>
-                    <option value='repeatDomain'>Repeat Domain</option>
+                    { typeSelectOptions }
                 </select>
             </div>
             <div>
