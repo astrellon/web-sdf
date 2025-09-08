@@ -2,8 +2,8 @@ import { h, Component, } from 'preact';
 import { ExampleModalState, setExampleModal, setSceneTree } from '../store/store-state';
 import Modal from './modal';
 import { store } from '../store/store';
-import './raw-scene-modal.scss';
 import { ExampleInfo, examples } from '../examples/examples';
+import './example-modal.scss';
 
 interface Props
 {
@@ -19,8 +19,7 @@ const ExamplePanel = (props: ExamplePanelProps) =>
 {
     const { title, tree } = props.example;
     return <div>
-        <div>{title}</div>
-        <div><button onClick={() => store.execute(setSceneTree(tree))}>Load</button></div>
+        <button onClick={() => store.execute(setSceneTree(tree))}>Load</button> { title }
     </div>
 }
 

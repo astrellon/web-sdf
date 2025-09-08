@@ -30,10 +30,8 @@ float sdfOctahedron(vec3 point, float s)
     return (point.x + point.y + point.z - s) * 0.57735027;
 }
 
-float sdfCappedCylinder(vec3 point, vec2 params)
+float sdfCappedCylinder(vec3 point, float radius, float height)
 {
-    float height = params.x;
-    float radius = params.y;
     vec2 d = abs(vec2(length(point.xz), point.y)) - vec2(radius, height);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
 }
@@ -133,8 +131,9 @@ vec2 opSmoothIntersection(float k, vec2 d1, vec2 d2)
     return vec2(result, h > 0.5 ? d1.y : d2.y);
 }
 
-vec3 repeatDomain(vec3 point, float size)
+vec3 opRepeatDomain(vec3 point, float x, float y, float z)
 {
+    vec3 size = vec3(x, y, z);
     return point - size * round(point / size);
 }
 

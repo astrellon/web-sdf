@@ -1,13 +1,12 @@
 import { h, Component, Fragment } from 'preact';
 import ShapeView from './shape-view';
-import { Light, SceneNode, SceneNodeType, SdfOpCode, SelfSdfOpCode, Shape } from '../ray-marching/scene-entities';
+import { ChildOperation, Light, SceneNode, SceneNodeType, SelfOperation, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import LightView from './light-view';
-import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
-import { setReparentModal, setSceneTree } from '../store/store-state';
-import { store } from '../store/store';
-import { LabelledRange } from './labelled-range';
+import { SceneTree } from '../ray-marching/scene-tree';
 import { rvec3 } from '../math';
+import ChildOperationView from './child-operation-view';
+import SelfOperationView from './self-operation-view';
 import './scene-node-view.scss';
 
 interface Props
@@ -42,11 +41,6 @@ export default class SceneNodeView extends Component<Props, State>
             </div>
         }
 
-        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
-        const selectedChildOpCode = node.childOpCode ?? 'none';
-        const selectedSelfOpCode = node.selfOpCode ?? 'none';
-        const operationParams = node.operationParams;
-
         return <div class="scene-node-view">
             <div>
                 <strong>Name</strong> <input class='input' type='text' placeholder='Name' value={node.name} onChange={this.onChangeName} />
@@ -69,15 +63,7 @@ export default class SceneNodeView extends Component<Props, State>
             <div>
                 <strong>Rotation</strong> <VectorView value={node.rotation} onChange={this.onChangeRotation} />
             </div>
-            <div>
-                <strong>Self Op Code</strong> <select value={selectedSelfOpCode} onChange={this.onChangeSelfOpCode}>
-                    <option value='none'>None</option>
-                    <option value='repeatDomain'>Repeat Domain</option>
-                </select>
-            </div>
-            <div>
-                <LabelledRange label={`Operation Param ${operationParams}`} inputProps={{value: operationParams, min: 0, max: 10, step: 0.1, onInput: this.changeOperationParam}} />
-            </div>
+            <SelfOperationView selfOperation={node.selfOperation} onChange={this.onChangeSelfOperation} />
             <div>
                 <strong>Shape</strong>
                 <ShapeView shape={node.shape} onChange={this.onChangeShape} />
@@ -100,75 +86,11 @@ export default class SceneNodeView extends Component<Props, State>
             </Fragment> }
 
             { node.type === 'operation' &&
-            <Fragment>
             <div>
-                <strong>Child Op Code</strong> <select value={selectedChildOpCode} onChange={this.onChangeChildOpCode}>
-                    <option value='none'>None</option>
-                    <option value='union'>Union</option>
-                    <option value='intersection'>Intersection</option>
-                    <option value='subtraction'>Subtraction</option>
-                    <option value='xor'>Xor</option>
-                    <option value='smoothUnion'>Smooth Union</option>
-                    <option value='smoothIntersection'>Smooth Intersection</option>
-                    <option value='smoothSubtraction'>Smooth Subtraction</option>
-                </select>
-            </div>
-            <div>
-                <LabelledRange label={`Operation Param ${operationParams}`} inputProps={{value: operationParams, min: 0, max: 10, step: 0.1, onInput: this.changeOperationParam}} />
-            </div>
-            <div><strong>Children</strong></div>
-            <div class='control-group'>
-                <button onClick={this.addChild}>Add</button>
-                { parent != null &&
-                <Fragment>
-                    <button onClick={this.deleteSelf}>Delete</button>
-                    <button onClick={this.reparent}>Re-parent</button>
-                </Fragment>}
-            </div>
-            </Fragment> }
+                <strong>Operation</strong>
+                <ChildOperationView node={node} sceneTree={sceneTree} onChange={this.onChangeChildOperation} />
+            </div> }
         </div>
-    }
-
-    private addChild = () =>
-    {
-        const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, createSceneNode('New Child', {}));
-        store.execute(setSceneTree(newTree));
-    }
-
-    private deleteSelf = () =>
-    {
-        const newTree = sceneTreeDeleteChild(this.props.sceneTree, this.props.node);
-        store.execute(setSceneTree(newTree));
-    }
-
-    private reparent = () =>
-    {
-        const { node, sceneTree } = this.props;
-        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
-        if (parent == null)
-        {
-            console.warn('Cannot reparent root node');
-            return;
-        }
-
-        store.execute(
-            setReparentModal({
-                show: true,
-                childNodeId: this.props.node.id
-            })
-        );
-    }
-
-    private changeOperationParam = (e: Event) =>
-    {
-        const value = (e.target as HTMLInputElement).valueAsNumber;
-        if (!isFinite(value))
-        {
-            console.warn(`Operation param parse failed`);
-            return;
-        }
-
-        this.updateField(value, 'operationParams');
     }
 
     private onChangeName = (e: Event) =>
@@ -193,18 +115,6 @@ export default class SceneNodeView extends Component<Props, State>
         this.updateField(value, 'type');
     }
 
-    private onChangeSelfOpCode = (e: Event) =>
-    {
-        const value = (e.target as HTMLSelectElement).value as SelfSdfOpCode;
-        this.updateField(value, 'selfOpCode');
-    }
-
-    private onChangeChildOpCode = (e: Event) =>
-    {
-        const value = (e.target as HTMLSelectElement).value as SdfOpCode;
-        this.updateField(value, 'childOpCode');
-    }
-
     private onChangeShape = (shape: Shape) =>
     {
         this.updateField(shape, 'shape');
@@ -213,6 +123,16 @@ export default class SceneNodeView extends Component<Props, State>
     private onChangeLight = (light: Light) =>
     {
         this.updateField(light, 'light');
+    }
+
+    private onChangeSelfOperation = (selfOperation: SelfOperation) =>
+    {
+        this.updateField(selfOperation, 'selfOperation');
+    }
+
+    private onChangeChildOperation = (childOperation: ChildOperation) =>
+    {
+        this.updateField(childOperation, 'childOperation');
     }
 
     private updateField = (value: any, field: keyof SceneNode) =>

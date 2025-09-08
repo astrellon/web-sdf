@@ -1,21 +1,12 @@
 import { makeMap } from "../common";
+import { SdfParameter } from "./sdf-parameters";
 
-export type SdfShapeParameterType = 'range' | 'input';
-export interface SdfShapeParameter
-{
-    readonly name: string;
-    readonly type: SdfShapeParameterType;
-    readonly default?: number;
-    readonly min?: number;
-    readonly max?: number;
-    readonly step?: number;
-}
 export interface SdfShapeInfo
 {
     readonly id: string;
     readonly name: string;
     readonly funcName: string;
-    readonly params: SdfShapeParameter[];
+    readonly params: SdfParameter[];
 }
 
 export const sdfShapes: ReadonlyArray<SdfShapeInfo> = [
@@ -81,7 +72,7 @@ export const sdfShapes: ReadonlyArray<SdfShapeInfo> = [
         name: 'Mandelbulb',
         funcName: 'sdfMandelbulb',
         params: [
-            { name: 'Iterations', type: 'input', min: 0, max: 5, step: 1 },
+            { name: 'Iterations', type: 'input', default: 4, min: 0, max: 5, step: 1 },
             { name: 'Scale', type: 'input' },
         ]
     },

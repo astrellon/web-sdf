@@ -1,10 +1,10 @@
 import { h, Component, JSX } from 'preact';
 import VectorView from './vector-view';
 import { Shape } from '../ray-marching/scene-entities';
-import { vec3, vec4 } from 'gl-matrix';
-import { SdfShapeParameter, sdfShapes, sdfShapesMap } from '../ray-marching/sdf-shapes';
-import { LabelledRange } from './labelled-range';
-import ShapeParamEdit from './shape-param-edit';
+import { vec4 } from 'gl-matrix';
+import { sdfShapes, sdfShapesMap } from '../ray-marching/sdf-shapes';
+import ParameterEdit from './parameter-edit';
+import { SdfParameter } from '../ray-marching/sdf-parameters';
 
 interface Props
 {
@@ -57,16 +57,20 @@ export default class ShapeView extends Component<Props>
         const result: JSX.Element[] = [];
         const { shape } = this.props;
         const currentShapeInfo = sdfShapesMap[shape.type];
+        if (!currentShapeInfo)
+        {
+            return result;
+        }
 
         for (const paramInfo of currentShapeInfo.params)
         {
-            result.push(<ShapeParamEdit key={paramInfo.name} shape={shape} paramInfo={paramInfo} onChange={this.updateParam} />);
+            result.push(<ParameterEdit key={paramInfo.name} parameters={shape.params} paramInfo={paramInfo} onChange={this.updateParam} />);
         }
 
         return result;
     }
 
-    private updateParam = (value: number, paramInfo: SdfShapeParameter) =>
+    private updateParam = (value: number, paramInfo: SdfParameter) =>
     {
         const currentParams = this.props.shape.params;
         const newParams = { ...currentParams, [paramInfo.name]: value };

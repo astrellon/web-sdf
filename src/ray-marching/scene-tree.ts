@@ -1,6 +1,6 @@
 import { Editable } from '../common';
 import { vec3 } from 'gl-matrix';
-import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId } from './scene-entities';
+import { Light, makeShapeNodeId, SceneNode, SceneNodes, SdfOpCode, Shape, SceneNodeId, ChildOperation, SelfOperation } from './scene-entities';
 import { rvec3, vec4One } from '../math';
 
 export interface SceneTree
@@ -75,10 +75,9 @@ export function createSceneNode(name: string, node: Partial<SceneNode>): SceneNo
         position: vec3.create(),
         rotation: vec3.create(),
         childrenIds: [],
-        selfOpCode: 'none',
-        childOpCode: 'none',
-        operationParams: 0.5,
-        shape: createNewShape({}),
+        selfOperation: defaultEmptySelfOperation,
+        childOperation: defaultEmptyChildOperation,
+        shape: defaultEmptyShape,
         light: createNewLight({}),
 
         ...node
@@ -94,10 +93,9 @@ export function createNewLightNode(name: string, light?: Partial<Light>, positio
         position: position ?? vec3.create(),
         rotation: rotation ?? vec3.create(),
         childrenIds: [],
-        selfOpCode: 'none',
-        childOpCode: 'none',
-        operationParams: 0.5,
-        shape: createNewShape({}),
+        selfOperation: defaultEmptySelfOperation,
+        childOperation: defaultEmptyChildOperation,
+        shape: defaultEmptyShape,
         light: light != undefined ? createNewLight(light) : undefined,
     }
 }
@@ -110,12 +108,11 @@ export function createNewShapeNode(name: string, shape?: Partial<Shape>, positio
         id: makeShapeNodeId(),
         position: position ?? vec3.create(),
         rotation: rotation ?? vec3.create(),
-        shape: shape != undefined ? createNewShape(shape) : undefined,
+        shape: shape != undefined ? createNewShape(shape) : defaultEmptyShape,
         light: createNewLight({}),
         childrenIds: [],
-        selfOpCode: 'none',
-        childOpCode: 'none',
-        operationParams: 0.5,
+        selfOperation: defaultEmptySelfOperation,
+        childOperation: defaultEmptyChildOperation
     }
 }
 
@@ -130,25 +127,38 @@ export function createNewOperationNode(name: string, childOpCode: SdfOpCode): Sc
         shape: createNewShape({}),
         light: createNewLight({}),
         childrenIds: [],
-        selfOpCode: 'none',
-        childOpCode: childOpCode,
-        operationParams: 0.5,
+        selfOperation: defaultEmptySelfOperation,
+        childOperation: createNewChildOperation({type: childOpCode})
     }
+}
+
+const defaultEmptyShape: Shape = {
+    maxSize: 0,
+    type: "none",
+    params: {},
+    diffuseColour: [0.7, 0.3, 0.2],
+    specularColour: [1.0, 0.8, 0.9],
+    lightingModel: 'lambert',
+    shininess: 10,
+}
+
+const defaultEmptySelfOperation: SelfOperation = {
+    params: {},
+    type: 'none'
+}
+const defaultEmptyChildOperation: ChildOperation = {
+    params: {},
+    type: 'none'
 }
 
 export function createNewShape(shape: Partial<Shape>): Shape
 {
-    return {
-        maxSize: 0,
-        type: "none",
-        params: {},
-        diffuseColour: [0.7, 0.3, 0.2],
-        specularColour: [1.0, 0.8, 0.9],
-        lightingModel: 'lambert',
-        shininess: 10,
+    return { ...defaultEmptyShape, ...shape };
+}
 
-        ...shape
-    };
+export function createNewChildOperation(childOperation: Partial<ChildOperation>): ChildOperation
+{
+    return { ...defaultEmptyChildOperation, ...childOperation };
 }
 
 // Build time functions

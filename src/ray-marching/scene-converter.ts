@@ -1,10 +1,12 @@
 import equal from 'fast-deep-equal';
 import { SceneTree } from './scene-tree';
-import { LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, Shape } from './scene-entities';
+import { ChildOperation, LightingModelInt, LightingModelLambert, LightingModelPhong, LightingModelType, LightingModelUnlit, SceneNode, SceneNodes, SdfOpCode, Shape } from './scene-entities';
 import { rvec3, rvec4, vec3One, vec4One } from '../math';
 import { quat, vec3 } from 'gl-matrix';
 import ShaderAssembler from './shader-assembler';
 import { sdfShapesMap } from './sdf-shapes';
+import { sdfChildOperationsMap } from './sdf-child-operations';
+import { SdfSelfOperationInfo, sdfSelfOperationsMap } from './sdf-self-operations';
 
 interface ShaderLight
 {
@@ -222,12 +224,12 @@ export class SceneConverter
         let addedFunc = false;
         let startedOperations = 0;
         let numChildren = 0;
-        if (node.childOpCode !== 'none')
+        if (node.type === 'operation' && node.childOperation.type !== 'none')
         {
             for (const childId of node.childrenIds)
             {
                 const child = nodes[childId];
-                if (this.nodeHasValidShape(child) || child.childOpCode !== 'none')
+                if (this.nodeHasValidShape(child) || child.childOperation.type !== 'none')
                 {
                     numChildren++;
                 }
@@ -236,7 +238,7 @@ export class SceneConverter
             if (numChildren > 1)
             {
                 addedFunc = true;
-                this.processOperation(node.childOpCode, assembler, parameters, node.operationParams);
+                this.processOperation(node.childOperation, assembler, parameters);
                 startedOperations++;
             }
         }
@@ -266,7 +268,7 @@ export class SceneConverter
                 if (numChildren > 2 && shapeIndex + 1 < numChildren)
                 {
                     startedOperations++;
-                    this.processOperation(node.childOpCode, assembler, parameters, node.operationParams);
+                    this.processOperation(node.childOperation, assembler, parameters);
                 }
             }
         }
@@ -279,43 +281,24 @@ export class SceneConverter
         return addedFunc;
     }
 
-    private static processOperation(opCode: SdfOpCode, assembler: ShaderAssembler, parameters: number[], operationParam: number)
+    private static processOperation(childOperation: ChildOperation, assembler: ShaderAssembler, parameters: number[])
     {
-        if (opCode === 'union')
+        const opInfo = sdfChildOperationsMap[childOperation.type];
+        if (opInfo == undefined)
         {
-            assembler.startFunction('opUnion');
+            console.error('Unsupported operation type', childOperation.type, childOperation);
+            return;
         }
-        else if (opCode === 'intersection')
+
+        assembler.startFunction(opInfo.funcName);
+
+        for (const paramInfo of opInfo.params)
         {
-            assembler.startFunction('opIntersection');
+            const value = (childOperation.params[paramInfo.name] ?? paramInfo.default) ?? 1.0;
+            this.pushParameter(parameters, value, assembler);
         }
-        else if (opCode === 'subtraction')
-        {
-            assembler.startFunction('opSubtraction');
-        }
-        else if (opCode === 'xor')
-        {
-            assembler.startFunction('opXor');
-        }
-        else if (opCode === 'smoothUnion')
-        {
-            assembler.startFunction('opSmoothUnion');
-            this.pushParameter(parameters, operationParam, assembler)
-        }
-        else if (opCode === 'smoothSubtraction')
-        {
-            assembler.startFunction('opSmoothSubtraction');
-            this.pushParameter(parameters, operationParam, assembler)
-        }
-        else if (opCode === 'smoothIntersection')
-        {
-            assembler.startFunction('opSmoothIntersection');
-            this.pushParameter(parameters, operationParam, assembler)
-        }
-        else
-        {
-            console.error('Unknown operation', opCode);
-        }
+
+        // end function will be written later
     }
 
     private static pushParameter(parameters: number[], value: number, assembler: ShaderAssembler)
@@ -327,9 +310,15 @@ export class SceneConverter
     private static writeSamplePoint(node: SceneNode, parameters: number[], assembler: ShaderAssembler)
     {
         const p = node.position;
-        if (node.selfOpCode === 'repeatDomain')
+
+        let selfOperationInfo: SdfSelfOperationInfo | undefined = undefined;
+        if (node.selfOperation.type !== 'none')
         {
-            assembler.startFunction('repeatDomain');
+            selfOperationInfo = sdfSelfOperationsMap[node.selfOperation.type];
+            if (selfOperationInfo)
+            {
+                assembler.startFunction(selfOperationInfo.funcName);
+            }
         }
 
         const rotation = quat.create();
@@ -351,9 +340,13 @@ export class SceneConverter
 
         assembler.endFunction();
 
-        if (node.selfOpCode === 'repeatDomain')
+        if (selfOperationInfo)
         {
-            this.pushParameter(parameters, node.operationParams, assembler);
+            for (const paramInfo of selfOperationInfo.params)
+            {
+                const value = (node.selfOperation.params[paramInfo.name] ?? paramInfo.default) ?? 1.0;
+                this.pushParameter(parameters, value, assembler);
+            }
             assembler.endFunction();
         }
     }
@@ -363,7 +356,7 @@ export class SceneConverter
         const shapeInfo = sdfShapesMap[shape.type];
         if (shapeInfo == undefined)
         {
-            console.error('Unsupported shape type');
+            console.error('Unsupported shape type', shape.type, shape);
             return;
         }
 

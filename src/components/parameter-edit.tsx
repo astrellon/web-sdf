@@ -1,22 +1,22 @@
 import { h, Component } from 'preact';
-import { Shape } from '../ray-marching/scene-entities';
-import { SdfShapeParameter } from '../ray-marching/sdf-shapes';
+import { ParameterMap, Shape } from '../ray-marching/scene-entities';
 import { LabelledRange } from './labelled-range';
+import { SdfParameter } from '../ray-marching/sdf-parameters';
 
 interface Props
 {
-    readonly shape: Shape;
-    readonly paramInfo: SdfShapeParameter;
-    readonly onChange: (value: number, paramInfo: SdfShapeParameter) => void;
+    readonly parameters: ParameterMap;
+    readonly paramInfo: SdfParameter;
+    readonly onChange: (value: number, paramInfo: SdfParameter) => void;
 }
 
-export default class ShapeParamEdit extends Component<Props>
+export default class ParameterEdit extends Component<Props>
 {
     public render()
     {
-        const { shape, paramInfo } = this.props;
+        const { parameters, paramInfo } = this.props;
 
-        const param = shape.params[paramInfo.name];
+        const param = parameters[paramInfo.name];
         const currentValue = (isFinite(param) ? param : paramInfo.default) ?? 1.0;
         const label = `${paramInfo.name}: ${currentValue}`;
         const min = paramInfo.min ?? 0.0;
@@ -33,7 +33,7 @@ export default class ShapeParamEdit extends Component<Props>
         const value = (e.target as HTMLInputElement).valueAsNumber;
         if (!isFinite(value))
         {
-            console.log('Unable to parse shape param:', paramInfo.name, (e.target as HTMLInputElement).value);
+            console.log('Unable to parse param:', paramInfo.name, (e.target as HTMLInputElement).value);
             return;
         }
 

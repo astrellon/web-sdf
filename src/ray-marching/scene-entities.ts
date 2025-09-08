@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix';
 import { Opaque } from '../common';
-import { rquat, rvec3, rvec4 } from '../math';
+import { rvec3, rvec4 } from '../math';
 
 export type SdfOpCode = 'none' | 'union' | 'intersection' | 'subtraction' | 'xor' |
     'smoothUnion' | 'smoothSubtraction' | 'smoothIntersection';
@@ -25,14 +25,11 @@ export interface SceneNode
     readonly rotation: rvec3;
 
     readonly shape: Shape;
-    // readonly hasShape: boolean;
-    readonly selfOpCode: SelfSdfOpCode;
-    readonly childOpCode: SdfOpCode;
-    readonly operationParams: number;
+    readonly selfOperation: SelfOperation;
+    readonly childOperation: ChildOperation;
     readonly childrenIds: ReadonlyArray<SceneNodeId>;
     readonly parentId?: SceneNodeId;
     readonly light: Light;
-    // readonly hasLight: boolean;
 }
 
 export interface Light
@@ -42,7 +39,7 @@ export interface Light
 }
 
 export type LightingModelType = 'unlit' | 'lambert' | 'phong';
-export interface ShapeParamMap
+export interface ParameterMap
 {
     readonly [key: string]: number;
 }
@@ -50,11 +47,21 @@ export interface Shape
 {
     readonly maxSize: number;
     readonly type: ShapeType;
-    readonly params: ShapeParamMap;
+    readonly params: ParameterMap;
     readonly diffuseColour: vec3;
     readonly specularColour: vec3;
     readonly shininess: number;
     readonly lightingModel: LightingModelType;
+}
+export interface SelfOperation
+{
+    readonly type: SelfSdfOpCode;
+    readonly params: ParameterMap;
+}
+export interface ChildOperation
+{
+    readonly type: SdfOpCode;
+    readonly params: ParameterMap;
 }
 
 export interface SceneNodes
