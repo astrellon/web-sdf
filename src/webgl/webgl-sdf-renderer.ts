@@ -11,6 +11,7 @@ import Shader from "../shaders/shader";
 import { SceneConverter } from "../ray-marching/scene-converter";
 import { mat3, quat, vec3 } from "gl-matrix";
 import { noiseTexture } from "./noise-texture";
+import { Camera } from "../ray-marching/camera";
 
 const positions = [
     -1, -1,
@@ -75,11 +76,11 @@ export default class WebGLSdfRenderer
     public readonly uNoise: WebGLUniformLocation;
     public readonly noiseTexture: WebGLTexture;
 
-    public cameraPosition: vec3 = vec3.create();
-    public cameraTarget: vec3 = vec3.create();
-    public cameraRotationX = 0;
-    public cameraRotationY = 0;
-    public cameraDistance = 10;
+    // public cameraPosition: vec3 = vec3.create();
+    // public cameraTarget: vec3 = vec3.create();
+    // public cameraRotationX = 0;
+    // public cameraRotationY = 0;
+    // public cameraDistance = 10;
 
     public maxMarchingSteps = 255;
     public epsilon = 0.001;
@@ -94,7 +95,7 @@ export default class WebGLSdfRenderer
 
     public canvasScale = 1;
 
-    private readonly cameraMatrixForSdfArray = mat3.create();
+    // private readonly cameraMatrixForSdfArray = mat3.create();
 
     private prevMaterials: any;
     private prevLights: any;
@@ -157,27 +158,24 @@ export default class WebGLSdfRenderer
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
-    public orbitCamera(horizontal: number, vertical: number)
-    {
-        this.cameraRotationX += horizontal;
-        this.cameraRotationY += vertical;
+    // public orbitCamera(horizontal: number, vertical: number)
+    // {
+    //     this.cameraRotationX += horizontal;
+    //     this.cameraRotationY += vertical;
 
-        this.updateCamera();
-    }
+    //     this.updateCamera();
+    // }
 
-    public updateCamera()
-    {
-        quat.fromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
-        const forward = vec3.create();
-        vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
+    // public updateCamera()
+    // {
+    //     quat.fromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
+    //     const forward = vec3.create();
+    //     vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
 
-        vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
-        mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
-        mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
-
-        // console.log(this.cameraMatrixForSdfArray);
-        // console.log(this.cameraPosition);
-    }
+    //     vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
+    //     mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
+    //     mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
+    // }
 
     public resizeCanvas = (width: number, height: number) =>
     {
@@ -192,7 +190,7 @@ export default class WebGLSdfRenderer
         this.gl.uniform1f(this.uAspectRatio, aspectRatio);
     }
 
-    public render(scene: SceneConverter)
+    public render(scene: SceneConverter, camera: Camera)
     {
         this.gl.useProgram(this.shader.program);
 
@@ -230,13 +228,8 @@ export default class WebGLSdfRenderer
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);
 
-        this.gl.uniform3f(
-            this.uCameraPosition,
-            this.cameraPosition[0],
-            this.cameraPosition[1],
-            this.cameraPosition[2]
-        );
-        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, this.cameraMatrixForSdfArray);
+        this.gl.uniform3fv(this.uCameraPosition, camera.position);
+        this.gl.uniformMatrix3fv(this.uCameraMatrix, true, camera.getCameraRotation());
 
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.noiseTexture);
 

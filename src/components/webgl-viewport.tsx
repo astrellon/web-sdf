@@ -4,6 +4,7 @@ import WebGLSdfRenderer from "../webgl/webgl-sdf-renderer";
 import WebGLViewportOptions from "./webgl-viewport-options";
 import { SceneConverter } from "../ray-marching/scene-converter";
 import "./webgl-viewport.scss";
+import { Camera } from "../ray-marching/camera";
 
 interface Props
 {
@@ -18,20 +19,21 @@ export class WebGLViewport extends Component<Props>
     private canvasRef = createRef<HTMLCanvasElement>();
     private renderer?: WebGLSdfRenderer;
 
-    private zoom = 20;
-    private zoomMin = 1;
-    private zoomMax = 80;
+    // private zoom = 20;
+    // private zoomMin = 1;
+    // private zoomMax = 80;
 
     private mousePosX = 0;
     private mousePosY = 0;
     private mouseDown = false;
     private renderFrameCallback: number = -1;
 
+    public readonly camera = new Camera();
+
     public componentDidMount(): void
     {
         const canvasEl = this.canvasRef.current;
         this.createNewRenderer(canvasEl);
-        this.renderer.updateCamera();
 
         window.addEventListener('resize', this.onViewportResize);
 
@@ -88,16 +90,16 @@ export class WebGLViewport extends Component<Props>
         if (this.renderer.prevShaderText !== this.props.currentShader)
         {
             console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
-            const prevCameraRotationX = this.renderer.cameraRotationX;
-            const prevCameraRotationY = this.renderer.cameraRotationY;
-            const prevCameraDistance = this.renderer.cameraDistance;
+            // const prevCameraRotationX = this.renderer.cameraRotationX;
+            // const prevCameraRotationY = this.renderer.cameraRotationY;
+            // const prevCameraDistance = this.renderer.cameraDistance;
             this.renderer.destroy();
             this.createNewRenderer(this.canvasRef.current);
 
-            this.renderer.cameraRotationX = prevCameraRotationX;
-            this.renderer.cameraRotationY = prevCameraRotationY;
-            this.renderer.cameraDistance = prevCameraDistance;
-            this.renderer.updateCamera();
+            // this.renderer.cameraRotationX = prevCameraRotationX;
+            // this.renderer.cameraRotationY = prevCameraRotationY;
+            // this.renderer.cameraDistance = prevCameraDistance;
+            // this.renderer.updateCamera();
         }
 
         const options = this.props.options;
@@ -115,14 +117,14 @@ export class WebGLViewport extends Component<Props>
             this.renderer.canvasScale = options.renderScale;
             this.updateCanvasSize();
         }
-        this.renderer.render(this.props.sceneConverter);
+        this.renderer.render(this.props.sceneConverter, this.camera);
     }
 
     private createNewRenderer = (canvasEl: HTMLCanvasElement) =>
     {
         this.renderer = WebGLSdfRenderer.create(canvasEl, this.props.currentShader);
         this.renderer.canvasScale = this.props.options.renderScale;
-        this.renderer.cameraDistance = 10.0;
+        // this.renderer.cameraDistance = 10.0;
         // this.renderer.updateCamera();
         this.updateCanvasSize();
 
@@ -148,13 +150,13 @@ export class WebGLViewport extends Component<Props>
             return;
         }
 
-        const dx = e.clientX - this.mousePosX;
-        const dy = e.clientY - this.mousePosY;
+        const dx = (e.clientX - this.mousePosX) * 0.1;
+        const dy = (e.clientY - this.mousePosY) * 0.1;
 
         this.mousePosX = e.clientX;
         this.mousePosY = e.clientY;
 
-        this.renderer.orbitCamera(-dy, -dx);
+        this.camera.orbitPositionAroundTarget(-dx, -dy);
 
         this.manualRenderTrigger();
     }
@@ -167,10 +169,7 @@ export class WebGLViewport extends Component<Props>
     private onMouseWheel = (e: WheelEvent) =>
     {
         const delta = e.deltaY > 0 ? 1 : -1;
-        const newZoom = this.zoom + delta;
-        this.zoom = Math.max(Math.min(100, newZoom), 0);
-        this.renderer.cameraDistance = (this.zoom * 0.01) * (this.zoomMax - this.zoomMin) + this.zoomMin;
-        this.renderer.updateCamera();
+        this.camera.dolly(delta);
 
         this.manualRenderTrigger();
     }
