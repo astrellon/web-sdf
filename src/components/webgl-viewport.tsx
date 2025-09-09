@@ -1,15 +1,18 @@
 import { h, Component, createRef } from 'preact';
-import { ViewportOptions } from '../store/store-state';
+import { setMaximiseViewport, ViewportOptions } from '../store/store-state';
 import WebGLSdfRenderer from '../webgl/webgl-sdf-renderer';
 import WebGLViewportOptions from './webgl-viewport-options';
 import { SceneConverter } from '../ray-marching/scene-converter';
 import { Camera } from '../ray-marching/camera';
+import { store } from '../store/store';
 import './webgl-viewport.scss';
 
 interface Props
 {
     readonly viewportIndex: number;
+    readonly isMaximised?: boolean;
     readonly options: ViewportOptions;
+    readonly camera: Camera;
     readonly sceneConverter: SceneConverter;
     readonly currentShader: string;
 }
@@ -24,7 +27,7 @@ export class WebGLViewport extends Component<Props>
     private mouseDown = false;
     private renderFrameCallback: number = -1;
 
-    public readonly camera = new Camera();
+    // public readonly camera = new Camera();
 
     public componentDidMount(): void
     {
@@ -56,16 +59,27 @@ export class WebGLViewport extends Component<Props>
     {
         this.requestRender();
 
+        const { viewportIndex, options, isMaximised } = this.props;
+
         let canvasClassName = 'viewport__canvas';
-        if (this.props.options.pixelated)
+        if (options.pixelated)
         {
             canvasClassName += ' is-pixelated';
         }
 
         return <div class='viewport outer-panel'>
-            <canvas className={canvasClassName} ref={this.canvasRef} />
-            <WebGLViewportOptions viewportIndex={this.props.viewportIndex} options={this.props.options} />
+            <canvas class={canvasClassName} ref={this.canvasRef} />
+            <WebGLViewportOptions viewportIndex={viewportIndex} options={options} />
+            <div class='viewport__buttons'>
+                <button onClick={this.toggleMaximise}>{isMaximised ? 'Minimise' : 'Maximise'}</button>
+            </div>
         </div>
+    }
+
+    private toggleMaximise = () =>
+    {
+        const { isMaximised, viewportIndex } = this.props;
+        store.execute(setMaximiseViewport(isMaximised ? -1 : viewportIndex));
     }
 
     private updateCanvasSize = () =>
@@ -82,15 +96,16 @@ export class WebGLViewport extends Component<Props>
 
     private renderScene = () =>
     {
+        const { options, currentShader, camera, sceneConverter } = this.props;
+
         this.renderFrameCallback = -1;
-        if (this.renderer.prevShaderText !== this.props.currentShader)
+        if (this.renderer.prevShaderText !== currentShader)
         {
-            console.log('New shader!', this.renderer.prevShaderText, this.props.currentShader);
+            console.log('New shader!', this.renderer.prevShaderText, currentShader);
             this.renderer.destroy();
             this.createNewRenderer(this.canvasRef.current);
         }
 
-        const options = this.props.options;
         this.renderer.epsilon = options.epsilon;
         this.renderer.shadowSharpness = options.shadowSharpness;
         this.renderer.maxMarchingSteps = options.maxMarchingStep;
@@ -100,14 +115,14 @@ export class WebGLViewport extends Component<Props>
         this.renderer.enableNormals = options.enableNormals;
         this.renderer.enableToLightNormals = options.enableToLightNormals;
         this.renderer.enableSoftShadows = options.enableSoftShadows;
-        this.camera.setFov(options.cameraFov);
+        camera.setFov(options.cameraFov);
 
         if (this.renderer.canvasScale !== options.renderScale)
         {
             this.renderer.canvasScale = options.renderScale;
             this.updateCanvasSize();
         }
-        this.renderer.render(this.props.sceneConverter, this.camera);
+        this.renderer.render(sceneConverter, camera);
     }
 
     private createNewRenderer = (canvasEl: HTMLCanvasElement) =>
@@ -144,17 +159,19 @@ export class WebGLViewport extends Component<Props>
         this.mousePosX = e.clientX;
         this.mousePosY = e.clientY;
 
+        const { camera } = this.props;
+
         if (e.ctrlKey)
         {
-            this.camera.panRelative(dx, -dy);
+            camera.panRelative(dx, -dy);
         }
         else if (e.shiftKey)
         {
-            this.camera.orbitTargetAroundPosition(-dx, -dy);
+            camera.orbitTargetAroundPosition(-dx, -dy);
         }
         else
         {
-            this.camera.orbitPositionAroundTarget(-dx, -dy);
+            camera.orbitPositionAroundTarget(-dx, -dy);
         }
 
         this.manualRenderTrigger();
@@ -168,7 +185,7 @@ export class WebGLViewport extends Component<Props>
     private onMouseWheel = (e: WheelEvent) =>
     {
         const delta = e.deltaY > 0 ? 1 : -1;
-        this.camera.dolly(delta);
+        this.props.camera.dolly(delta);
 
         this.manualRenderTrigger();
     }

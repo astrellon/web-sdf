@@ -41,6 +41,7 @@ export interface ExampleModalState
 export interface AppState
 {
     readonly viewports: ViewportState[];
+    readonly maximiseViewport: number;
     readonly sceneTree: SceneTree;
     readonly selectedNodeId?: SceneNodeId;
     readonly reparentModal: ReparentModalState;
@@ -65,6 +66,11 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
 
         return { viewports }
     }
+}
+
+export function setMaximiseViewport(maximiseViewport: number = -1): Modifier<AppState>
+{
+    return () => { return { maximiseViewport } };
 }
 
 export function setReparentModal(options: Partial<ReparentModalState>): Modifier<AppState>

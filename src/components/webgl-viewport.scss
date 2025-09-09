@@ -13,4 +13,10 @@
             image-rendering: pixelated;
         }
     }
+
+    &__buttons {
+        position: absolute;
+        right: 0.5rem;
+        top: 0.5rem;
+    }
 }
