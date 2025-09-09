@@ -11,6 +11,14 @@ export interface SdfSelfOperationInfo
 
 export const sdfSelfOperations: ReadonlyArray<SdfSelfOperationInfo> = [
     {
+        id: 'twistXY',
+        name: 'Twist XY',
+        funcName: 'opTwistXY',
+        params: [
+            { name: 'Amount', type: 'input', default: 0.5, min: -10, max: 10 }
+        ]
+    },
+    {
         id: 'repeatDomain',
         name: 'Repeat Domain',
         funcName: 'opRepeatDomain',
@@ -25,7 +33,7 @@ export const sdfSelfOperations: ReadonlyArray<SdfSelfOperationInfo> = [
         name: 'Rotation Repeat Simple',
         funcName: 'opRotationSimple',
         params: [
-            { name: 'n', type: 'input', default: 6, max: 32 }
+            { name: 'Amount', type: 'input', default: 6, max: 32 }
         ]
     }
 ]

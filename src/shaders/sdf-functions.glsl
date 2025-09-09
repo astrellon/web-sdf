@@ -137,6 +137,14 @@ vec3 opRepeatDomain(vec3 point, float x, float y, float z)
     return point - size * round(point / size);
 }
 
+vec3 opTwistXY(vec3 point, float amount)
+{
+    float c = cos(amount * point.z);
+    float s = sin(amount * point.z);
+    mat2 m = mat2(c, -s, s, c);
+    return vec3(m * point.xy, point.z);
+}
+
 vec3 opRotationSimple(vec3 point, float n)
 {
     // naive domain repetition
