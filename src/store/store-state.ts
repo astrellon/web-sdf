@@ -3,6 +3,7 @@ import { defaultViewport } from "./store";
 import { SceneTree, sceneTreeUpdateNode, } from "../ray-marching/scene-tree";
 import { SceneNode, SceneNodeId } from "../ray-marching/scene-entities";
 
+export type CameraMove = 'orbit' | 'look' | 'pan' | 'dolly'
 export interface ViewportOptions
 {
     readonly enableShadows: boolean;
@@ -17,6 +18,7 @@ export interface ViewportOptions
     readonly shadowSharpness: number;
     readonly pixelated: boolean;
     readonly cameraFov: number;
+    readonly cameraMove: CameraMove;
 }
 
 export interface ViewportState

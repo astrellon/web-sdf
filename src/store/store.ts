@@ -15,6 +15,7 @@ export const defaultRenderOptions: ViewportOptions = {
     shadowSharpness: 128.0,
     pixelated: false,
     cameraFov: 45.0,
+    cameraMove: 'orbit'
 }
 export const defaultViewport: ViewportState = {
     options: defaultRenderOptions

@@ -69,17 +69,8 @@ export class WebGLViewport extends Component<Props>
 
         return <div class='viewport outer-panel'>
             <canvas class={canvasClassName} ref={this.canvasRef} />
-            <WebGLViewportOptions viewportIndex={viewportIndex} options={options} />
-            <div class='viewport__buttons'>
-                <button onClick={this.toggleMaximise}>{isMaximised ? 'Minimise' : 'Maximise'}</button>
-            </div>
+            <WebGLViewportOptions isMaximised={isMaximised} viewportIndex={viewportIndex} options={options} />
         </div>
-    }
-
-    private toggleMaximise = () =>
-    {
-        const { isMaximised, viewportIndex } = this.props;
-        store.execute(setMaximiseViewport(isMaximised ? -1 : viewportIndex));
     }
 
     private updateCanvasSize = () =>
@@ -171,7 +162,23 @@ export class WebGLViewport extends Component<Props>
         }
         else
         {
-            camera.orbitPositionAroundTarget(-dx, -dy);
+            const { cameraMove } = this.props.options;
+            if (cameraMove === 'orbit')
+            {
+                camera.orbitPositionAroundTarget(-dx, -dy);
+            }
+            else if (cameraMove === 'dolly')
+            {
+                camera.dolly(dy);
+            }
+            else if (cameraMove === 'look')
+            {
+                camera.orbitTargetAroundPosition(-dx, -dy);
+            }
+            else if (cameraMove === 'pan')
+            {
+                camera.panRelative(dx, -dy);
+            }
         }
 
         this.manualRenderTrigger();

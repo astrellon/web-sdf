@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import { setExampleModal, setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
+import { CameraMove, setExampleModal, setMaximiseViewport, setRawSceneModal, setViewportOptions, ViewportOptions } from '../store/store-state';
 import { store } from '../store/store';
 import Popover from './popover';
 import { LabelledRange } from './labelled-range';
@@ -9,17 +9,19 @@ interface Props
 {
     readonly viewportIndex: number;
     readonly options: ViewportOptions;
+    readonly isMaximised?: boolean;
 }
 
 export default class WebGLViewportOptions extends Component<Props>
 {
     public render(props: Props)
     {
+        const { options, isMaximised } = this.props;
         const { pixelated, renderScale,
             enableShadows, enableShowMarching, enableDepth,
             enableNormals, enableToLightNormals,
             epsilon, shadowSharpness, maxMarchingStep,
-            cameraFov } = this.props.options;
+            cameraFov, cameraMove } = options;
 
         return <div class='viewport-options'>
                 <Popover text='Menu'>
@@ -33,6 +35,13 @@ export default class WebGLViewportOptions extends Component<Props>
                             <option value='0.25'>0.25x</option>
                             <option value='0.125'>0.125x</option>
                         </select>
+                        <select onChange={this.changeCameraMove} value={cameraMove}>
+                            <option value='orbit'>Orbit</option>
+                            <option value='look'>Look</option>
+                            <option value='pan'>Pan</option>
+                            <option value='dolly'>Dolly</option>
+                        </select>
+                        <button onClick={this.toggleMaximise}>{isMaximised ? 'Minimise' : 'Maximise'}</button>
                         <button onClick={this.toggleShadows}>{ enableShadows ? 'Hide Shadows' : 'Show Shadows' }</button>
                         <button onClick={this.toggleMarching}>{ enableShowMarching ? 'Hide Marching' : 'Show Marching' }</button>
                         <button onClick={this.toggleDepth}>{ enableDepth ? 'Hide Depth' : 'Show Depth' }</button>
@@ -47,6 +56,12 @@ export default class WebGLViewportOptions extends Component<Props>
                     <LabelledRange label={`Camera FOV ${cameraFov}`} inputProps={{value: cameraFov, min: 1.0, max: 90, step: 0.1, onInput: this.changeCameraFov}} />
                 </Popover>
         </div>;
+    }
+
+    private toggleMaximise = () =>
+    {
+        const { isMaximised, viewportIndex } = this.props;
+        store.execute(setMaximiseViewport(isMaximised ? -1 : viewportIndex));
     }
 
     private showRawScene = () =>
@@ -141,6 +156,12 @@ export default class WebGLViewportOptions extends Component<Props>
     {
         console.log('Options', options);
         store.execute(setViewportOptions(this.props.viewportIndex, options));
+    }
+
+    private changeCameraMove = (e: Event) =>
+    {
+        const selectedValue = (e.target as HTMLSelectElement).value as CameraMove;
+        store.execute(setViewportOptions(this.props.viewportIndex, { cameraMove: selectedValue, }));
     }
 
     private changeRenderScale = (e: Event) =>

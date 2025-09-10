@@ -38,9 +38,13 @@ export default class Popover extends Component<Props, State>
         {
             modalEl = document.getElementById('modals');
             const bounds = this.buttonRef.current.getBoundingClientRect();
+            const top = bounds.top + bounds.height;
+
+            const maxHeight = document.body.clientHeight;
             styles = {
                 left: bounds.left + 'px',
-                top: bounds.top + bounds.height + 'px'
+                top: top + 'px',
+                maxHeight: (maxHeight - top - 10) + 'px'
             }
         }
 
