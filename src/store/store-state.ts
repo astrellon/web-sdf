@@ -2,6 +2,7 @@ import { Modifier } from "simple-data-store";
 import { defaultViewport } from "./store";
 import { SceneTree, sceneTreeUpdateNode, } from "../ray-marching/scene-tree";
 import { SceneNode, SceneNodeId } from "../ray-marching/scene-entities";
+import { CompiledShaderInfo } from "../webgl/webgl-sdf-renderer";
 
 export type CameraMove = 'orbit' | 'look' | 'pan' | 'dolly'
 export interface ViewportOptions
@@ -24,6 +25,7 @@ export interface ViewportOptions
 export interface ViewportState
 {
     readonly options: ViewportOptions;
+    readonly shader: CompiledShaderInfo;
 }
 
 export interface ReparentModalState
@@ -39,6 +41,10 @@ export interface ExampleModalState
 {
     readonly show: boolean;
 }
+export interface InfoModalState
+{
+    readonly show: boolean;
+}
 
 export interface AppState
 {
@@ -49,8 +55,7 @@ export interface AppState
     readonly reparentModal: ReparentModalState;
     readonly rawSceneModal: RawSceneModalState;
     readonly exampleModal: ExampleModalState;
-
-    readonly currentShader: string;
+    readonly infoModal: InfoModalState;
 }
 
 export function setViewportOptions(index: number, options: Partial<ViewportOptions>): Modifier<AppState>
@@ -58,7 +63,7 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
     return (state: AppState) =>
     {
         const viewport = state.viewports[index] ?? defaultViewport;
-        const newViewport = {
+        const newViewport: ViewportState = {
             ...viewport,
             options: { ...viewport.options, ...options }
         };
@@ -69,6 +74,23 @@ export function setViewportOptions(index: number, options: Partial<ViewportOptio
         return { viewports }
     }
 }
+export function setCurrentShader(viewportIndex: number, shader: CompiledShaderInfo): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const viewport = state.viewports[viewportIndex] ?? defaultViewport;
+        const newViewport: ViewportState = {
+            ...viewport,
+            shader
+        };
+
+        const viewports = [ ...state.viewports ];
+        viewports[viewportIndex] = newViewport;
+
+        return { viewports }
+    }
+}
+
 
 export function setMaximiseViewport(maximiseViewport: number = -1): Modifier<AppState>
 {
@@ -102,6 +124,15 @@ export function setExampleModal(options: Partial<ExampleModalState>): Modifier<A
     }
 }
 
+export function setInfoModal(options: Partial<InfoModalState>): Modifier<AppState>
+{
+    return (state: AppState) =>
+    {
+        const infoModal = { ...state.infoModal, ...options };
+        return { infoModal }
+    }
+}
+
 export function updateNode(node: SceneNode): Modifier<AppState>
 {
     return (state: AppState) =>
@@ -114,11 +145,6 @@ export function updateNode(node: SceneNode): Modifier<AppState>
 export function setSceneTree(sceneTree: SceneTree): Modifier<AppState>
 {
     return () => { return { sceneTree } }
-}
-
-export function setCurrentShader(currentShader: string): Modifier<AppState>
-{
-    return () => { return { currentShader } }
 }
 
 export function setSelectedNode(selectedNodeId?: SceneNodeId): Modifier<AppState>

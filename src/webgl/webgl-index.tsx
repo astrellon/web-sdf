@@ -15,7 +15,7 @@ function updateFromStoreChange(state: AppState)
 {
     if (sceneConverter.updateShapesFromTree(state.sceneTree))
     {
-        store.execute(setCurrentShader(sceneConverter.getShader()));
+        store.execute(setCurrentShader(0, sceneConverter.getShader()));
     }
 }
 

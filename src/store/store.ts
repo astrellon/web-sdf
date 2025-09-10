@@ -1,6 +1,6 @@
-import DataStore from "simple-data-store";
-import { AppState, ViewportOptions, ViewportState } from "./store-state";
-import { Camera } from "../ray-marching/camera";
+import DataStore from 'simple-data-store';
+import { AppState, ViewportOptions, ViewportState } from './store-state';
+import { Camera } from '../ray-marching/camera';
 
 export const defaultRenderOptions: ViewportOptions = {
     renderScale: 1.0,
@@ -18,7 +18,13 @@ export const defaultRenderOptions: ViewportOptions = {
     cameraMove: 'orbit'
 }
 export const defaultViewport: ViewportState = {
-    options: defaultRenderOptions
+    options: defaultRenderOptions,
+    shader: {
+        text: 'return vec2(100.0, -1.0);',
+        numLights: 0,
+        numMaterials: 0,
+        numParameters: 0
+    }
 }
 export const store = new DataStore<AppState>({
     viewports: [defaultViewport],
@@ -35,7 +41,9 @@ export const store = new DataStore<AppState>({
     exampleModal: {
         show: false
     },
-    currentShader: 'return 100.0;'
+    infoModal: {
+        show: false
+    }
 });
 
 export const cameras: Camera[] = [

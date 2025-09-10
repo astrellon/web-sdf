@@ -148,11 +148,11 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
     float light0Rays;
     bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
 
-    if (uNumLights > 0)
+    if (NUM_LIGHTS > 0)
     {
         vec3 normal = estimateNormalPhong(worldPoint, currentDepth);
 
-        for (int i = 0; i < uNumLights; i++)
+        for (int i = 0; i < NUM_LIGHTS; i++)
         {
             mat2x4 light = uLights[i];
             vec3 lightPos = light[0].xyz;
@@ -223,11 +223,11 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
     float light0Rays;
     bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
 
-    if (uNumLights > 0)
+    if (NUM_LIGHTS > 0)
     {
         vec3 normal = estimateNormalTetrahedron(worldPoint, currentDepth);
 
-        for (int i = 0; i < uNumLights; i++)
+        for (int i = 0; i < NUM_LIGHTS; i++)
         {
             mat2x4 light = uLights[i];
             vec3 lightPos = light[0].xyz;
@@ -255,7 +255,7 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
 
 vec4 toLightNormal(int lightIndex, vec3 worldPoint)
 {
-    if (lightIndex < uNumLights)
+    if (lightIndex < NUM_LIGHTS)
     {
         mat2x4 light = uLights[lightIndex];
         vec3 lightPos = light[0].xyz;

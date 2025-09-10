@@ -14,6 +14,7 @@ const int ENABLE_NUM_MARCHING = 0x02;
 const int ENABLE_DEPTH = 0x04;
 const int ENABLE_NORMALS = 0x08;
 const int ENABLE_TO_LIGHT_NORMALS = 0x10;
+const int NUM_LIGHTS = #include <num-lights>;
 
 layout(location = 0) out vec4 fragColour;
 
@@ -26,10 +27,9 @@ uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
 uniform int uFlags;
 uniform sampler2D uNoise;
-uniform mat2x4 uLights[8];
-uniform int uNumLights;
-uniform float uParams[128];
-uniform mat2x4 uMaterials[32];
+uniform mat2x4 uLights[#include <num-lights>];
+uniform float uParams[#include <num-parameters>];
+uniform mat2x4 uMaterials[#include <num-materials>];
 uniform float uShadowSharpness;
 
 #define checkFlag(flag) ((uFlags & flag) > 0)

@@ -7,6 +7,7 @@ import ShaderAssembler from './shader-assembler';
 import { sdfShapesMap } from './sdf-shapes';
 import { sdfChildOperationsMap } from './sdf-child-operations';
 import { SdfSelfOperationInfo, sdfSelfOperationsMap } from './sdf-self-operations';
+import { CompiledShaderInfo } from '../webgl/webgl-sdf-renderer';
 
 interface ShaderLight
 {
@@ -91,9 +92,14 @@ export class SceneConverter
         return this.parameters;
     }
 
-    public getShader()
+    public getShader(): CompiledShaderInfo
     {
-        return this.shader;
+        return {
+            text: this.shader,
+            numLights: this.lights.length,
+            numMaterials: this.materials.length,
+            numParameters: this.parameters.length
+        }
     }
 
     public setLight(index: number, light: Partial<ShaderLight>)

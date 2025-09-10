@@ -6,8 +6,9 @@ import { SceneConverter } from '../ray-marching/scene-converter';
 import ReparentModal from './reparent-modal';
 import RawSceneModal from './raw-scene-modal';
 import ExampleModal from './example-modal';
-import './webgl-app.scss'
+import InfoModal from './info-modal';
 import { cameras } from '../store/store';
+import './webgl-app.scss'
 
 interface Props
 {
@@ -25,16 +26,16 @@ export class WebGLApp extends Component<Props>
     public render()
     {
         const sceneConverter = this.props.sceneConverter;
-        const { viewports, maximiseViewport, sceneTree, selectedNodeId, reparentModal, rawSceneModal, exampleModal, currentShader } = this.props.state;
+        const { viewports, maximiseViewport, sceneTree, selectedNodeId, reparentModal, rawSceneModal, exampleModal, infoModal } = this.props.state;
 
         return <Fragment>
             <div class="main-view">
                 { maximiseViewport >= 0 ?
-                    <WebGLViewport isMaximised camera={cameras[maximiseViewport]} viewportIndex={maximiseViewport} options={viewports[maximiseViewport].options} sceneConverter={sceneConverter} currentShader={currentShader} />
+                    <WebGLViewport isMaximised camera={cameras[maximiseViewport]} viewportIndex={maximiseViewport} viewportState={viewports[maximiseViewport]} sceneConverter={sceneConverter} />
                     :
                     <Fragment>
                         <div class="viewports">
-                            <WebGLViewport viewportIndex={0} camera={cameras[0]} options={viewports[0].options} sceneConverter={sceneConverter} currentShader={currentShader} />
+                            <WebGLViewport viewportIndex={0} camera={cameras[0]} viewportState={viewports[0]} sceneConverter={sceneConverter} />
                         </div>
                         <SceneGraph sceneTree={sceneTree} selectedNodeId={selectedNodeId} />
                     </Fragment> }
@@ -43,6 +44,7 @@ export class WebGLApp extends Component<Props>
             <ReparentModal state={reparentModal} sceneTree={sceneTree} />
             <RawSceneModal state={rawSceneModal} sceneTree={sceneTree} />
             <ExampleModal state={exampleModal} />
+            <InfoModal state={infoModal} viewportShader={viewports[0].shader} />
 
         </Fragment>
     }

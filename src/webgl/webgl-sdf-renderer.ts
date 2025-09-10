@@ -12,6 +12,7 @@ import { SceneConverter } from "../ray-marching/scene-converter";
 import { mat3, quat, vec3 } from "gl-matrix";
 import { noiseTexture } from "./noise-texture";
 import { Camera } from "../ray-marching/camera";
+import { WebGLInfo } from "./webgl-info";
 
 const positions = [
     -1, -1,
@@ -23,7 +24,13 @@ const positions = [
     -1, 1
 ];
 
-const tempAxisQuat = quat.create();
+export interface CompiledShaderInfo
+{
+    readonly text: string;
+    readonly numMaterials: number;
+    readonly numParameters: number;
+    readonly numLights: number;
+}
 
 function getErrorMessage(error: number, gl: WebGL2RenderingContext)
 {
@@ -62,7 +69,6 @@ export default class WebGLSdfRenderer
     public readonly uParameters: WebGLUniformLocation;
 
     public readonly uLights: WebGLUniformLocation;
-    public readonly uNumLights: WebGLUniformLocation;
 
     public readonly uCameraPosition: WebGLUniformLocation;
     public readonly uCameraFov: WebGLUniformLocation;
@@ -101,7 +107,6 @@ export default class WebGLSdfRenderer
         shaderText: string,
         positionBuffer: WebGLBuffer,
         uLights: WebGLUniformLocation,
-        uNumLights: WebGLUniformLocation,
         uMaterials: WebGLUniformLocation,
         uParameters: WebGLUniformLocation,
         uCameraPosition: WebGLUniformLocation,
@@ -125,7 +130,6 @@ export default class WebGLSdfRenderer
         this.uParameters = uParameters;
 
         this.uLights = uLights;
-        this.uNumLights = uNumLights;
 
         this.uCameraPosition = uCameraPosition;
         this.uCameraFov = uCameraFov;
@@ -193,7 +197,6 @@ export default class WebGLSdfRenderer
         {
             console.info('Rendering new lights');
             this.gl.uniformMatrix2x4fv(this.uLights, false, scene.getLightDataArray());
-            this.gl.uniform1i(this.uNumLights, scene.getNumLights());
             this.prevLights = scene.getLights();
         }
 
@@ -233,13 +236,15 @@ export default class WebGLSdfRenderer
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
-    public static create(canvas: HTMLCanvasElement, assembledShaderText: string): WebGLSdfRenderer
+    public static create(canvas: HTMLCanvasElement, compiledShader: CompiledShaderInfo): WebGLSdfRenderer
     {
         const gl = canvas.getContext('webgl2');
         if (gl == null)
         {
             throw new Error('Unable to get webgl2 context');
         }
+
+        WebGLInfo.updateParameters(gl);
 
         const positionBuffer = gl.createBuffer();
         if (positionBuffer == null)
@@ -251,7 +256,10 @@ export default class WebGLSdfRenderer
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
         const includeLookup = {
-            'assembled-shader': assembledShaderText,
+            'assembled-shader': compiledShader.text,
+            'num-lights': Math.max(1, compiledShader.numLights).toString(),
+            'num-parameters': Math.max(1, compiledShader.numParameters).toString(),
+            'num-materials': Math.max(1, compiledShader.numMaterials).toString(),
             'sdf-functions': sdfFunctionsText,
             'raymarch-functions': raymarchFunctionsText
         }
@@ -271,7 +279,6 @@ export default class WebGLSdfRenderer
         const uMaterials = this.getUniform(gl, shader, 'uMaterials');
 
         const uLights = this.getUniform(gl, shader, 'uLights');
-        const uNumLights = this.getUniform(gl, shader, 'uNumLights');
         const uParameters = this.getUniform(gl, shader, 'uParams');
 
         const uMaxMarchingSteps = this.getUniform(gl, shader, 'uMaxMarchingSteps');
@@ -292,8 +299,8 @@ export default class WebGLSdfRenderer
         gl.uniform1i(uNoise, 0);
         this.checkError(gl);
 
-        return new WebGLSdfRenderer(gl, shader, assembledShaderText, positionBuffer,
-            uLights, uNumLights,
+        return new WebGLSdfRenderer(gl, shader, compiledShader.text, positionBuffer,
+            uLights,
             uMaterials,
             uParameters,
             uCameraPosition, uCameraFov, uCameraMatrix, uAspectRatio,
