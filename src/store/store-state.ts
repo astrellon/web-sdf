@@ -11,7 +11,6 @@ export interface ViewportOptions
     readonly enableShowMarching: boolean;
     readonly enableDepth: boolean;
     readonly enableNormals: boolean;
-    readonly enableToLightNormals: boolean;
     readonly enableSoftShadows: boolean;
     readonly renderScale: number;
     readonly maxMarchingStep: number;

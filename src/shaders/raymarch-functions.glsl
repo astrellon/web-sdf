@@ -146,7 +146,7 @@ vec4 phongIllumination(vec3 currentDepth, vec3 diffuse, vec3 specular, float shi
 {
     vec3 colour = ambientLight;
     float light0Rays;
-    bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
+    bool shadowsEnabled = checkEnableShadows();
 
     if (NUM_LIGHTS > 0)
     {
@@ -221,7 +221,7 @@ vec4 lambertIllumination(vec3 currentDepth, vec3 diffuse, vec3 worldPoint, vec3 
 {
     vec3 colour = ambientLight;
     float light0Rays;
-    bool shadowsEnabled = checkFlag(ENABLE_SHADOWS);
+    bool shadowsEnabled = checkEnableShadows();
 
     if (NUM_LIGHTS > 0)
     {

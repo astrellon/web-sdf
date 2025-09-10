@@ -18,8 +18,8 @@ export default class WebGLViewportOptions extends Component<Props>
     {
         const { options, isMaximised } = this.props;
         const { pixelated, renderScale,
-            enableShadows, enableShowMarching, enableDepth,
-            enableNormals, enableToLightNormals,
+            enableShadows, enableShowMarching,
+            enableDepth, enableNormals,
             epsilon, shadowSharpness, maxMarchingStep,
             cameraFov, cameraMove } = options;
 
@@ -46,7 +46,6 @@ export default class WebGLViewportOptions extends Component<Props>
                         <button onClick={this.toggleMarching}>{ enableShowMarching ? 'Hide Marching' : 'Show Marching' }</button>
                         <button onClick={this.toggleDepth}>{ enableDepth ? 'Hide Depth' : 'Show Depth' }</button>
                         <button onClick={this.toggleNormals}>{ enableNormals ? 'Hide Normals' : 'Show Normals' }</button>
-                        <button onClick={this.toggleToLightNormals}>{ enableToLightNormals ? 'Hide To Light' : 'Show To Light' }</button>
                         <button onClick={this.showExamples}>Show Examples</button>
                         <button onClick={this.showInfo}>About/Info</button>
                         <button onClick={this.showRawScene}>JSON Scene</button>
@@ -151,11 +150,6 @@ export default class WebGLViewportOptions extends Component<Props>
     private toggleNormals = (e: Event) =>
     {
         this.updateOptions({ enableNormals: !this.props.options.enableNormals });
-    }
-
-    private toggleToLightNormals = (e: Event) =>
-    {
-        this.updateOptions({ enableToLightNormals: !this.props.options.enableToLightNormals });
     }
 
     private updateOptions = (options: Partial<ViewportOptions>) =>

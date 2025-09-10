@@ -44,21 +44,6 @@ function getErrorMessage(error: number, gl: WebGL2RenderingContext)
     return `Unknown error ${error}`;
 }
 
-const ENABLE_SHADOWS = 0x01;
-const ENABLE_NUM_MARCHING = 0x02;
-const ENABLE_DEPTH = 0x04;
-const ENABLE_NORMALS = 0x08;
-const ENABLE_TO_LIGHT_NORMALS = 0x10;
-
-function addFlag(check: boolean, flag: number)
-{
-    if (check)
-    {
-        return flag;
-    }
-    return 0;
-}
-
 export default class WebGLSdfRenderer
 {
     public readonly gl: WebGL2RenderingContext;
@@ -91,7 +76,6 @@ export default class WebGLSdfRenderer
     public enableShowMarches = false;
     public enableDepth = false;
     public enableNormals = false;
-    public enableToLightNormals = false;
     public enableSoftShadows = true;
 
     public canvasScale = 1;
@@ -147,7 +131,6 @@ export default class WebGLSdfRenderer
     public destroy()
     {
         this.gl.deleteProgram(this.shader.program);
-        // this.gl.deleteBuffer(this.positionBuffer);
     }
 
     public setupCanvas()
@@ -156,25 +139,6 @@ export default class WebGLSdfRenderer
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
-
-    // public orbitCamera(horizontal: number, vertical: number)
-    // {
-    //     this.cameraRotationX += horizontal;
-    //     this.cameraRotationY += vertical;
-
-    //     this.updateCamera();
-    // }
-
-    // public updateCamera()
-    // {
-    //     quat.fromEuler(tempAxisQuat, this.cameraRotationX, this.cameraRotationY, 0);
-    //     const forward = vec3.create();
-    //     vec3.transformQuat(forward, [0, 0, 1], tempAxisQuat);
-
-    //     vec3.scaleAndAdd(this.cameraPosition, this.cameraTarget, forward, this.cameraDistance);
-    //     mat3.fromQuat(this.cameraMatrixForSdfArray, tempAxisQuat);
-    //     mat3.transpose(this.cameraMatrixForSdfArray, this.cameraMatrixForSdfArray);
-    // }
 
     public resizeCanvas = (width: number, height: number) =>
     {
@@ -214,14 +178,14 @@ export default class WebGLSdfRenderer
             this.gl.uniform1fv(this.uParameters, this.prevParameters);
         }
 
-        let flags = 0;
-        flags |= addFlag(this.enableShadows, ENABLE_SHADOWS);
-        flags |= addFlag(this.enableDepth, ENABLE_DEPTH);
-        flags |= addFlag(this.enableNormals, ENABLE_NORMALS);
-        flags |= addFlag(this.enableShowMarches, ENABLE_NUM_MARCHING);
-        flags |= addFlag(this.enableToLightNormals, ENABLE_TO_LIGHT_NORMALS);
+        const flags = [
+            this.enableShadows ? 1 : 0,
+            this.enableShowMarches ? 1 : 0,
+            this.enableDepth ? 1 : 0,
+            this.enableNormals ? 1 : 0,
+        ]
 
-        this.gl.uniform1i(this.uFlags, flags);
+        this.gl.uniform4iv(this.uFlags, flags);
         this.gl.uniform1f(this.uShadowSharpness, this.shadowSharpness);
         this.gl.uniform1f(this.uEpsilon, this.epsilon);
         this.gl.uniform1i(this.uMaxMarchingSteps, this.maxMarchingSteps);

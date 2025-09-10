@@ -9,11 +9,6 @@ const int UNLIT = 0;
 const int LAMBERT = 1;
 const int PHONG = 2;
 
-const int ENABLE_SHADOWS = 0x01;
-const int ENABLE_NUM_MARCHING = 0x02;
-const int ENABLE_DEPTH = 0x04;
-const int ENABLE_NORMALS = 0x08;
-const int ENABLE_TO_LIGHT_NORMALS = 0x10;
 const int NUM_LIGHTS = #include <num-lights>;
 
 layout(location = 0) out vec4 fragColour;
@@ -25,14 +20,17 @@ uniform vec3 uCameraPosition;
 uniform float uCameraFov;
 uniform int uMaxMarchingSteps;
 uniform float uEpsilon;
-uniform int uFlags;
+uniform bvec4 uFlags;
 uniform sampler2D uNoise;
 uniform mat2x4 uLights[#include <num-lights>];
 uniform float uParams[#include <num-parameters>];
 uniform mat2x4 uMaterials[#include <num-materials>];
 uniform float uShadowSharpness;
 
-#define checkFlag(flag) ((uFlags & flag) > 0)
+#define checkEnableShadows() uFlags[0] == true
+#define checkShowMarching() uFlags[1] == true
+#define checkShowDepth() uFlags[2] == true
+#define checkShowNormals() uFlags[3] == true
 #define saturate(x) clamp(x, 0.0, 1.0)
 
 #include <sdf-functions>
@@ -56,27 +54,22 @@ void main()
         discard;
     }
 
-    if (checkFlag(ENABLE_DEPTH)) // Depth view
+    if (checkShowDepth())
     {
         fragColour = vec4(vec3(dist.x / MAX_DIST), 1.0);
     }
-    else if (checkFlag(ENABLE_NUM_MARCHING)) // Num marching
+    else if (checkShowMarching())
     {
         float r = dist.z / float(uMaxMarchingSteps);
 
         fragColour = vec4(r, 0.0, 0.0, 1);
     }
-    else if (checkFlag(ENABLE_NORMALS)) // Show normals
+    else if (checkShowNormals())
     {
         vec3 worldPoint = rayOrigin + dist.x * rayDir;
         vec3 normal = estimateNormalPhong(worldPoint, dist.xyz);
 
         fragColour = vec4(normal, 1.0);
-    }
-    else if (checkFlag(ENABLE_TO_LIGHT_NORMALS)) // Show normals from world position to a specific light
-    {
-        vec3 worldPoint = rayOrigin + dist.x * rayDir;
-        fragColour = toLightNormal(0, worldPoint);
     }
     else
     {

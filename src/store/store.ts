@@ -9,7 +9,6 @@ export const defaultRenderOptions: ViewportOptions = {
     enableShowMarching: false,
     enableDepth: false,
     enableNormals: false,
-    enableToLightNormals: false,
     enableSoftShadows: true,
     epsilon: 0.0001,
     shadowSharpness: 128.0,

@@ -101,7 +101,6 @@ export class WebGLViewport extends Component<Props>
         this.renderer.enableShowMarches = options.enableShowMarching;
         this.renderer.enableDepth = options.enableDepth;
         this.renderer.enableNormals = options.enableNormals;
-        this.renderer.enableToLightNormals = options.enableToLightNormals;
         this.renderer.enableSoftShadows = options.enableSoftShadows;
         camera.setFov(options.cameraFov);
 
