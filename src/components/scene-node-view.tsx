@@ -3,10 +3,12 @@ import ShapeView from './shape-view';
 import { ChildOperation, Light, SceneNode, SceneNodeType, SelfOperation, Shape } from '../ray-marching/scene-entities';
 import VectorView from './vector-view';
 import LightView from './light-view';
-import { SceneTree } from '../ray-marching/scene-tree';
+import { SceneTree, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
 import { rvec3 } from '../math';
 import ChildOperationView from './child-operation-view';
 import SelfOperationView from './self-operation-view';
+import { store } from '../store/store';
+import { setReparentModal, setSceneTree } from '../store/store-state';
 import './scene-node-view.scss';
 
 interface Props
@@ -90,8 +92,39 @@ export default class SceneNodeView extends Component<Props, State>
                 <strong>Operation</strong>
                 <ChildOperationView node={node} sceneTree={sceneTree} onChange={this.onChangeChildOperation} />
             </div> }
+
+            { parent != null &&
+            <div class='control-group'>
+                <button onClick={this.deleteSelf}>Delete Self</button>
+                <button onClick={this.reparent}>Re-parent</button>
+            </div>}
         </div>
     }
+
+    private deleteSelf = () =>
+    {
+        const newTree = sceneTreeDeleteChild(this.props.sceneTree, this.props.node);
+        store.execute(setSceneTree(newTree));
+    }
+
+    private reparent = () =>
+    {
+        const { node, sceneTree } = this.props;
+        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
+        if (parent == null)
+        {
+            console.warn('Cannot reparent root node');
+            return;
+        }
+
+        store.execute(
+            setReparentModal({
+                show: true,
+                childNodeId: this.props.node.id
+            })
+        );
+    }
+
 
     private onChangeName = (e: Event) =>
     {

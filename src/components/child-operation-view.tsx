@@ -1,7 +1,7 @@
-import { h, Component, Fragment, JSX } from 'preact';
+import { h, Component, JSX } from 'preact';
 import { ChildOperation, SceneNode, SdfOpCode } from '../ray-marching/scene-entities';
-import { createSceneNode, SceneTree, sceneTreeAddChild, sceneTreeDeleteChild } from '../ray-marching/scene-tree';
-import { setReparentModal, setSceneTree } from '../store/store-state';
+import { createSceneNode, SceneTree, sceneTreeAddChild } from '../ray-marching/scene-tree';
+import { setSceneTree } from '../store/store-state';
 import { store } from '../store/store';
 import { sdfChildOperations, sdfChildOperationsMap } from '../ray-marching/sdf-child-operations';
 import ParameterEdit from './parameter-edit';
@@ -40,11 +40,6 @@ export default class ChildOperationView extends Component<Props>
             <div><strong>Children</strong></div>
             <div class='control-group'>
                 <button onClick={this.addChild}>Add</button>
-                { parent != null &&
-                <Fragment>
-                    <button onClick={this.deleteSelf}>Delete</button>
-                    <button onClick={this.reparent}>Re-parent</button>
-                </Fragment>}
             </div>
         </div>
     }
@@ -71,30 +66,6 @@ export default class ChildOperationView extends Component<Props>
     {
         const newTree = sceneTreeAddChild(this.props.sceneTree, this.props.node, createSceneNode('New Child', {}));
         store.execute(setSceneTree(newTree));
-    }
-
-    private deleteSelf = () =>
-    {
-        const newTree = sceneTreeDeleteChild(this.props.sceneTree, this.props.node);
-        store.execute(setSceneTree(newTree));
-    }
-
-    private reparent = () =>
-    {
-        const { node, sceneTree } = this.props;
-        const parent = node.parentId != undefined ? sceneTree.nodes[node.parentId] : undefined;
-        if (parent == null)
-        {
-            console.warn('Cannot reparent root node');
-            return;
-        }
-
-        store.execute(
-            setReparentModal({
-                show: true,
-                childNodeId: this.props.node.id
-            })
-        );
     }
 
     private updateParam = (value: number, paramInfo: SdfParameter) =>
